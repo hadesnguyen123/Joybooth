@@ -21,28 +21,85 @@ export default function IdleScreen() {
 
   return (
     <div className="idle-screen" onClick={handleStart} id="idle-screen">
-      {/* Decorative background */}
+      {/* Decorative background orbs */}
       <div className="idle-bg-orb idle-bg-orb--1" />
       <div className="idle-bg-orb idle-bg-orb--2" />
+      <div className="idle-bg-orb idle-bg-orb--3" />
 
+      {/* Floating decorative photo strips on sides */}
+      <div className="idle-side-strip idle-side-strip--left">
+        <div className="idle-strip-card">
+          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #ffd1dc, #fbcfe8)' }}>🌸</div>
+          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #fbcfe8, #f4729a)' }}>✨</div>
+          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #f4729a, #d94f78)' }}>💖</div>
+          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #d94f78, #b8325c)' }}>📸</div>
+          <div className="idle-strip-footer">JOYBOOTH • 2026</div>
+        </div>
+      </div>
+
+      <div className="idle-side-strip idle-side-strip--right">
+        <div className="idle-strip-card">
+          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)' }}>🫧</div>
+          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #7dd3fc, #38bdf8)' }}>🎀</div>
+          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #fde047, #facc15)' }}>⭐️</div>
+          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #fed7aa, #fb923c)' }}>🧸</div>
+          <div className="idle-strip-footer">PHOTO STUDIO</div>
+        </div>
+      </div>
+
+      {/* Center main attract content */}
       <div className="idle-content fade-in">
-        {/* Logo */}
+        {/* Logo & Brand badge */}
+        <div className="idle-badge-pill">
+          <span>✨</span>
+          <span>PHOTOBOOTH HÀN QUỐC CAO CẤP</span>
+          <span>✨</span>
+        </div>
+
         <div className="idle-logo">
-          {eventConfig.eventLogo
-            ? <img src={eventConfig.eventLogo} alt="Event Logo" />
-            : <div className="idle-logo-placeholder text-display">JoyBooth</div>
-          }
+          {eventConfig.eventLogo ? (
+            <img src={eventConfig.eventLogo} alt="Event Logo" />
+          ) : (
+            <h1 className="idle-logo-title">JoyBooth</h1>
+          )}
         </div>
 
         {/* Event name */}
-        <h1 className="idle-event-name text-display text-gold">
-          {eventConfig.eventName}
-        </h1>
+        <p className="idle-event-subtitle">
+          {eventConfig.eventName || 'FUN STUDIO PHOTOBOOTH'}
+        </p>
 
-        {/* CTA */}
-        <div className="idle-cta">
-          <div className="idle-cta-dot pulse-glow" />
-          <p className="idle-cta-text">Chạm để bắt đầu</p>
+        {/* CTA Button */}
+        <div className="idle-cta-container">
+          <div className="idle-cta-button">
+            <span className="idle-cta-dot" />
+            <span className="idle-cta-text">CHẠM ĐỂ BẮT ĐẦU</span>
+            <span className="idle-cta-sparkle">📸</span>
+          </div>
+          <p className="idle-cta-hint">Nhấp bất kỳ vị trí nào trên màn hình</p>
+        </div>
+
+        {/* Features row */}
+        <div className="idle-features-row">
+          <div className="idle-feature-item">
+            <span className="idle-feat-icon">🎞️</span>
+            <span>Khung Strip & Grid</span>
+          </div>
+          <div className="idle-feature-dot">•</div>
+          <div className="idle-feature-item">
+            <span className="idle-feat-icon">🫧</span>
+            <span>Filter Da Sáng</span>
+          </div>
+          <div className="idle-feature-dot">•</div>
+          <div className="idle-feature-item">
+            <span className="idle-feat-icon">⚡</span>
+            <span>In Lấy Ngay</span>
+          </div>
+          <div className="idle-feature-dot">•</div>
+          <div className="idle-feature-item">
+            <span className="idle-feat-icon">📲</span>
+            <span>Mã QR Tải Ảnh</span>
+          </div>
         </div>
       </div>
 
@@ -50,10 +107,13 @@ export default function IdleScreen() {
       <button
         className="idle-admin-trigger"
         id="idle-admin-btn"
-        onClick={(e) => { e.stopPropagation(); setScreen('admin') }}
-        title="Admin"
+        onClick={(e) => {
+          e.stopPropagation()
+          setScreen('admin')
+        }}
+        title="Quản trị"
       >
-        ⚙
+        ⚙️
       </button>
     </div>
   )

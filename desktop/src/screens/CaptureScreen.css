@@ -25,7 +25,29 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 0 auto;
+}
+
+/* Locked Layout Fixed Badge */
+.locked-layout-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid var(--color-pink-primary);
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  font-size: 0.92rem;
+  color: var(--color-dark-text);
+  box-shadow: 0 4px 15px rgba(244, 114, 154, 0.15);
+}
+
+.locked-layout-badge strong {
+  color: var(--color-pink-primary);
+  font-weight: 800;
+}
+
+.locked-layout-badge .lock-icon {
+  font-size: 0.95rem;
 }
 
 .countdown-pill {
@@ -434,9 +456,84 @@
   animation: pulseSlot 1s infinite alternate;
 }
 
+.live-slot-thumb.just-captured {
+  animation: slotBounceGlow 0.9s ease-in-out;
+  border-color: var(--color-pink-primary) !important;
+  box-shadow: 0 0 20px rgba(244, 114, 154, 0.9) !important;
+}
+
+@keyframes slotBounceGlow {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.26); box-shadow: 0 0 26px var(--color-pink-primary); }
+  70%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
 @keyframes pulseSlot {
   from { transform: scale(1); border-color: #cbd5e1; }
   to   { transform: scale(1.06); border-color: var(--color-pink-primary); }
+}
+
+/* ── Flying Photo Snap Effect Overlay ── */
+.snapshot-flying-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.snapshot-card-animate {
+  position: relative;
+  width: 380px;
+  max-width: 90vw;
+  background: #ffffff;
+  padding: 12px 12px 18px;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(244, 114, 154, 0.65), 0 0 0 4px #F4729A;
+  animation: snapAndFlyDown 1s cubic-bezier(0.18, 0.89, 0.32, 1) forwards;
+}
+
+.snapshot-card-animate img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+
+.snapshot-card-badge {
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #F4729A;
+  margin-top: 10px;
+  letter-spacing: 1px;
+}
+
+@keyframes snapAndFlyDown {
+  0% {
+    transform: scale(0.65) translateY(40px);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1.06) translateY(0);
+    opacity: 1;
+  }
+  65% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.25) translateY(360px);
+    opacity: 0;
+  }
 }
 
 .live-slots-counter {

@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { join } from 'path'
+import * as fs from 'fs'
 
 const isDev = process.env.NODE_ENV === 'development'
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5173'
@@ -114,6 +115,54 @@ ipcMain.handle('config:set', async (_event, payload: { key: string; value: unkno
     body: JSON.stringify(payload),
   })
   return res.json()
+})
+
+// ─── Storage (Downloads folder default) ───────────────────────────────────────
+ipcMain.handle('storage:get-downloads-path', async () => {
+  try {
+    const downloadsDir = app.getPath('downloads')
+    const joyboothDir = join(downloadsDir, 'JoyBooth')
+    if (!fs.existsSync(joyboothDir)) {
+      fs.mkdirSync(joyboothDir, { recursive: true })
+    }
+    return { success: true, data: { path: joyboothDir, baseDownloads: downloadsDir } }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('storage:save-photo', async (_event, payload: { dataUrl: string; fileName: string }) => {
+  try {
+    const downloadsDir = app.getPath('downloads')
+    const joyboothDir = join(downloadsDir, 'JoyBooth')
+    if (!fs.existsSync(joyboothDir)) {
+      fs.mkdirSync(joyboothDir, { recursive: true })
+    }
+
+    // Convert dataUrl (base64) to buffer
+    const base64Data = payload.dataUrl.replace(/^data:image\/\w+;base64,/, '')
+    const buffer = Buffer.from(base64Data, 'base64')
+    const targetFile = join(joyboothDir, payload.fileName)
+
+    fs.writeFileSync(targetFile, buffer)
+    return { success: true, data: { savedPath: targetFile } }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('storage:open-folder', async (_event, targetPath?: string) => {
+  try {
+    const downloadsDir = app.getPath('downloads')
+    const folderToOpen = targetPath || join(downloadsDir, 'JoyBooth')
+    if (!fs.existsSync(folderToOpen)) {
+      fs.mkdirSync(folderToOpen, { recursive: true })
+    }
+    await shell.openPath(folderToOpen)
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
 })
 
 // ─── App Lifecycle ────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useAppStore, ALL_LAYOUTS, COLOR_FILTERS, type GridLayoutItem } from '../store/appStore'
+import { useAppStore, COLOR_FILTERS } from '../store/appStore'
+import { joyBoothApi, isBrowser, mockApi } from '../lib/api'
 import './CaptureScreen.css'
 
 export default function CaptureScreen() {
@@ -9,7 +10,6 @@ export default function CaptureScreen() {
     countdownSeconds,
     setCountdownSeconds,
     selectedLayout,
-    selectLayout,
     selectedFilter,
     selectFilter,
     ringLightEnabled,
@@ -39,11 +39,15 @@ export default function CaptureScreen() {
   const currentStreamRef = useRef<MediaStream | null>(null)
 
   const [hasCamera, setHasCamera] = useState<boolean>(false)
-  const [activeFlyout, setActiveFlyout] = useState<'layout' | 'filter' | 'lighting' | null>('layout')
+  const [activeFlyout, setActiveFlyout] = useState<'filter' | 'lighting' | null>(null)
   const [isCapturingSequence, setIsCapturingSequence] = useState<boolean>(false)
   const [currentShotNumber, setCurrentShotNumber] = useState<number>(1)
   const [currentCountdown, setCurrentCountdown] = useState<number>(3)
   const [showFlash, setShowFlash] = useState<boolean>(false)
+
+  // Hiệu ứng ảnh bay vào lưới thumbnail
+  const [snapshotFlyer, setSnapshotFlyer] = useState<{ photoUrl: string; slotIndex: number } | null>(null)
+  const [justCapturedSlot, setJustCapturedSlot] = useState<number | null>(null)
 
   // Khởi động Camera thiết bị
   const startCamera = useCallback(async (deviceId?: string) => {
@@ -195,12 +199,33 @@ export default function CaptureScreen() {
         timestamp,
       })
 
+      // Kích hoạt hiệu ứng bay vào ô lưới slot
+      const slotIndex = shot - 1
+      setSnapshotFlyer({ photoUrl: photoPath, slotIndex })
+      setJustCapturedSlot(slotIndex)
+
       // Cập nhật thumbnail dải slot trực tiếp
       setCapturedThumbnails((prev) => [...prev, photoPath])
 
-      // Nghỉ 1.5s giữa các lần chụp để khách đổi dáng
+      // Tự động lưu từng ảnh chụp vào thư mục Downloads của máy
+      if (photoDataUrl && photoDataUrl.startsWith('data:image')) {
+        const fileName = `joybooth_shot_${shot}_${timestamp}.jpg`
+        const api = isBrowser ? mockApi : joyBoothApi
+        api.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save photo error:', err))
+      }
+
+      // Ẩn flyer sau khi animation kết thúc
+      setTimeout(() => {
+        setSnapshotFlyer(null)
+      }, 950)
+
+      setTimeout(() => {
+        setJustCapturedSlot(null)
+      }, 1500)
+
+      // Nghỉ 1.8s giữa các lần chụp để khách xem ảnh bay vào ô & đổi dáng
       if (shot < totalShots) {
-        await new Promise((r) => setTimeout(r, 1600))
+        await new Promise((r) => setTimeout(r, 1800))
       }
     }
 
@@ -237,69 +262,6 @@ export default function CaptureScreen() {
     }, 800)
   }
 
-  // Helper vẽ thumbnail sơ đồ khung lưới (Khung lưới miniature)
-  function renderLayoutMiniPreview(item: GridLayoutItem) {
-    if (item.previewType === '1_single') {
-      return (
-        <div style={{ width: '85%', height: '85%', background: '#a3989c', borderRadius: 4 }} />
-      )
-    }
-    if (item.previewType === '3_strip') {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, width: '45%', height: '100%' }}>
-          <div className="slot-rect" style={{ flex: 1, width: '100%' }} />
-          <div className="slot-rect" style={{ flex: 1, width: '100%' }} />
-          <div className="slot-rect" style={{ flex: 1, width: '100%' }} />
-        </div>
-      )
-    }
-    if (item.previewType === '4_strip') {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2.5, width: '38%', height: '100%' }}>
-          <div className="slot-rect" style={{ flex: 1, width: '100%' }} />
-          <div className="slot-rect" style={{ flex: 1, width: '100%' }} />
-          <div className="slot-rect" style={{ flex: 1, width: '100%' }} />
-          <div className="slot-rect" style={{ flex: 1, width: '100%' }} />
-        </div>
-      )
-    }
-    if (item.previewType === '4_grid') {
-      return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, width: '80%', height: '80%' }}>
-          <div className="slot-rect" style={{ width: '100%', height: '100%' }} />
-          <div className="slot-rect" style={{ width: '100%', height: '100%' }} />
-          <div className="slot-rect" style={{ width: '100%', height: '100%' }} />
-          <div className="slot-rect" style={{ width: '100%', height: '100%' }} />
-        </div>
-      )
-    }
-    if (item.previewType === '6_grid') {
-      return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2.5, width: '80%', height: '90%' }}>
-          <div className="slot-rect" />
-          <div className="slot-rect" />
-          <div className="slot-rect" />
-          <div className="slot-rect" />
-          <div className="slot-rect" />
-          <div className="slot-rect" />
-        </div>
-      )
-    }
-    // 8 ảnh
-    return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, width: '80%', height: '95%' }}>
-        <div className="slot-rect" />
-        <div className="slot-rect" />
-        <div className="slot-rect" />
-        <div className="slot-rect" />
-        <div className="slot-rect" />
-        <div className="slot-rect" />
-        <div className="slot-rect" />
-        <div className="slot-rect" />
-      </div>
-    )
-  }
-
   return (
     <div className="capture-screen-pastel" id="capture-screen">
       {/* Screen Flash Animation */}
@@ -319,6 +281,14 @@ export default function CaptureScreen() {
               <span>{sec}s</span>
             </button>
           ))}
+        </div>
+
+        {/* Khung đã chọn (Cố định, không được đổi tại đây) */}
+        <div className="locked-layout-badge" title="Khung lưới đã chọn từ trước">
+          <span className="lock-icon">🔒</span>
+          <span>Khung:</span>
+          <strong>{selectedLayout.name}</strong>
+          <span>({selectedLayout.photosCount} ảnh)</span>
         </div>
 
         {/* Right utility options */}
@@ -369,18 +339,9 @@ export default function CaptureScreen() {
 
       {/* ── Main Stage Area: Left Dock + Flyout + Viewfinder ── */}
       <div className="capture-main-stage">
-        {/* Left Floating Dock */}
+        {/* Left Floating Dock (Chỉ còn Bộ lọc & Phát sáng) */}
         <aside className="left-sidebar-dock">
-          {/* Nút 1: Khung lưới */}
-          <button
-            className={`dock-btn ${activeFlyout === 'layout' ? 'active' : ''}`}
-            onClick={() => setActiveFlyout(activeFlyout === 'layout' ? null : 'layout')}
-          >
-            <span className="dock-icon">📑</span>
-            <span className="dock-label">Khung lưới</span>
-          </button>
-
-          {/* Nút 2: Bộ lọc */}
+          {/* Nút 1: Bộ lọc */}
           <button
             className={`dock-btn ${activeFlyout === 'filter' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'filter' ? null : 'filter')}
@@ -389,7 +350,7 @@ export default function CaptureScreen() {
             <span className="dock-label">Bộ lọc</span>
           </button>
 
-          {/* Nút 3: Phát sáng */}
+          {/* Nút 2: Phát sáng */}
           <button
             className={`dock-btn ${activeFlyout === 'lighting' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'lighting' ? null : 'lighting')}
@@ -398,40 +359,6 @@ export default function CaptureScreen() {
             <span className="dock-label">Phát sáng</span>
           </button>
         </aside>
-
-        {/* ── Flyout Modal Panel (Khung lưới) ── */}
-        {activeFlyout === 'layout' && (
-          <div className="flyout-panel animate-pop">
-            <div className="flyout-header">
-              <span className="flyout-title">Khung lưới</span>
-              <button className="flyout-close-btn" onClick={() => setActiveFlyout(null)}>
-                ✕
-              </button>
-            </div>
-
-            <div className="flyout-content">
-              <div className="layout-grid-presets">
-                {Object.values(ALL_LAYOUTS).flat().map((layout: GridLayoutItem) => {
-                  const isSelected = selectedLayout.id === layout.id
-                  return (
-                    <div
-                      key={layout.id}
-                      className={`layout-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => selectLayout(layout)}
-                    >
-                      <div className="layout-preview-box">
-                        <div className="layout-slots-wrapper">
-                          {renderLayoutMiniPreview(layout)}
-                        </div>
-                      </div>
-                      <span className="layout-card-label">{layout.name}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ── Flyout Modal Panel (Bộ lọc màu) ── */}
         {activeFlyout === 'filter' && (
@@ -629,10 +556,22 @@ export default function CaptureScreen() {
               <div className="countdown-digits">{currentCountdown}</div>
             </div>
           )}
+
+          {/* Flying Snap Effect Animation */}
+          {snapshotFlyer && (
+            <div className="snapshot-flying-overlay">
+              <div className="snapshot-card-animate">
+                <img src={snapshotFlyer.photoUrl} alt="Just Captured" />
+                <div className="snapshot-card-badge">
+                  ✨ Đã lưu vào ô {snapshotFlyer.slotIndex + 1}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Bottom Deck: Live Slots Progress (Image 5) + Shutter Button ── */}
+      {/* ── Bottom Deck: Live Slots Progress + Shutter Button ── */}
       <footer className="capture-bottom-deck">
         {/* Live Slot Strip: [Photo 1] [Photo 2] [+] [+] with counter (e.g. 3/6) */}
         <div className="live-slots-deck">
@@ -640,11 +579,12 @@ export default function CaptureScreen() {
             {Array.from({ length: selectedLayout.photosCount }).map((_, index) => {
               const isFilled = index < capturedThumbnails.length
               const isCurrent = isCapturingSequence && index === capturedThumbnails.length
+              const isJustCaptured = justCapturedSlot === index
 
               return (
                 <div
                   key={index}
-                  className={`live-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isCurrent ? 'current' : ''}`}
+                  className={`live-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isCurrent ? 'current' : ''} ${isJustCaptured ? 'just-captured' : ''}`}
                 >
                   {isFilled ? (
                     <img src={capturedThumbnails[index]} alt={`Slot ${index + 1}`} />

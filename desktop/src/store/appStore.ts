@@ -240,6 +240,8 @@ export interface EventConfig {
   gdriveFolderId: string
   gdriveFolderUrl: string
   gdriveAutoSync: boolean
+  // Storage Settings
+  saveDirectory: string
 }
 
 // ─── Global App Store ─────────────────────────────────────────────────────────
@@ -336,6 +338,7 @@ const DEFAULT_EVENT_CONFIG: EventConfig = {
   gdriveFolderId: '1JoyBooth_Guest_Gallery_2026',
   gdriveFolderUrl: 'https://drive.google.com/drive/folders/1JoyBooth_Guest_Gallery_2026',
   gdriveAutoSync: true,
+  saveDirectory: 'Downloads/JoyBooth',
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({

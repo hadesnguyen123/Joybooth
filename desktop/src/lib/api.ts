@@ -18,6 +18,11 @@ export interface JoyBoothAPI {
     get: (key: string) => IpcResponse
     set: (key: string, value: unknown) => IpcResponse
   }
+  storage: {
+    getDownloadsPath: () => IpcResponse<{ path: string; baseDownloads: string }>
+    savePhoto: (dataUrl: string, fileName: string) => IpcResponse<{ savedPath: string }>
+    openFolder: (targetPath?: string) => IpcResponse
+  }
 }
 
 // Type-safe wrapper cho window.joyBooth API
@@ -41,6 +46,9 @@ export const joyBoothApi = {
   },
   get config() {
     return window.joyBooth.config
+  },
+  get storage() {
+    return window.joyBooth.storage
   },
 }
 
@@ -85,5 +93,16 @@ export const mockApi = {
   config: {
     get: async (_key: string) => ({ success: true, data: null }),
     set: async () => ({ success: true }),
+  },
+  storage: {
+    getDownloadsPath: async () => ({
+      success: true,
+      data: { path: '~/Downloads/JoyBooth', baseDownloads: '~/Downloads' },
+    }),
+    savePhoto: async (_dataUrl: string, fileName: string) => ({
+      success: true,
+      data: { savedPath: `~/Downloads/JoyBooth/${fileName}` },
+    }),
+    openFolder: async () => ({ success: true }),
   },
 }

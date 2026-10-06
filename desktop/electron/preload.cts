@@ -44,6 +44,18 @@ const api = {
     set: (key: string, value: unknown): IpcResponse =>
       ipcRenderer.invoke('config:set', { key, value }),
   },
+
+  // ── Storage (Downloads folder) ────────────────────────────────────────────
+  storage: {
+    getDownloadsPath: (): IpcResponse<{ path: string; baseDownloads: string }> =>
+      ipcRenderer.invoke('storage:get-downloads-path'),
+
+    savePhoto: (dataUrl: string, fileName: string): IpcResponse<{ savedPath: string }> =>
+      ipcRenderer.invoke('storage:save-photo', { dataUrl, fileName }),
+
+    openFolder: (targetPath?: string): IpcResponse =>
+      ipcRenderer.invoke('storage:open-folder', targetPath),
+  },
 }
 
 contextBridge.exposeInMainWorld('joyBooth', api)

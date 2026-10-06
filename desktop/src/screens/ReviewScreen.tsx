@@ -71,6 +71,13 @@ export default function ReviewScreen() {
         if (isMounted) {
           setCompositeStripUrl(stripUrl)
           setIsGeneratingComposite(false)
+
+          // Tự động lưu dải ảnh đã hoàn thiện vào thư mục Downloads của máy tính
+          if (stripUrl && stripUrl.startsWith('data:image')) {
+            const fileName = `joybooth_final_${selectedFrameSize}_${Date.now()}.jpg`
+            const api = isBrowser ? mockApi : joyBoothApi
+            api.storage.savePhoto(stripUrl, fileName).catch((e) => console.warn('Auto-save strip error:', e))
+          }
         }
       } catch (err) {
         console.error('Failed to generate strip composite canvas:', err)

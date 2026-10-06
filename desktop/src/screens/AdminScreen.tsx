@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAppStore, THEME_OPTIONS } from '../store/appStore'
+import { joyBoothApi, isBrowser, mockApi } from '../lib/api'
 import './AdminScreen.css'
 
 type AdminTab = 'event' | 'frames' | 'hardware' | 'cloud' | 'stats'
@@ -304,6 +305,34 @@ export default function AdminScreen() {
                     <option>DNP DS-RX1HS High-Speed Dye Sub</option>
                     <option>Canon Selphy CP1500 (USB/WiFi)</option>
                   </select>
+                </div>
+
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">📁 Thư Mục Lưu Ảnh Mặc Định (Downloads)</label>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      style={{ flex: 1, backgroundColor: '#f8fafc' }}
+                      value={eventConfig.saveDirectory || 'Downloads/JoyBooth'}
+                      onChange={(e) => setEventConfig({ saveDirectory: e.target.value })}
+                      placeholder="Downloads/JoyBooth"
+                    />
+                    <button
+                      className="btn btn-pink"
+                      style={{ padding: '10px 18px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                      onClick={() => {
+                        const api = isBrowser ? mockApi : joyBoothApi
+                        api.storage.openFolder()
+                      }}
+                      title="Mở thư mục Downloads trong Finder / File Explorer"
+                    >
+                      📂 Mở Thư Mục
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: 6 }}>
+                    ⚡ <strong>Mặc định:</strong> Ảnh chụp đơn và dải ảnh in hoàn chỉnh sẽ được tự động lưu trực tiếp vào thư mục <strong>Downloads/JoyBooth</strong> của máy tính này.
+                  </p>
                 </div>
               </div>
             </div>
