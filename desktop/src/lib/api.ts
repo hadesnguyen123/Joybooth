@@ -1,4 +1,24 @@
-import type { JoyBoothAPI } from '../../electron/preload'
+type IpcResponse<T = unknown> = Promise<{ success: boolean; data?: T; error?: string }>
+
+export interface JoyBoothAPI {
+  ai: {
+    enhance: (imagePath: string, beautyLevel: number) => IpcResponse
+    composite: (imagePath: string, framePath: string) => IpcResponse
+    generateQr: (sessionId: string, imagePath: string) => IpcResponse
+  }
+  print: {
+    send: (imagePath: string, copies: number) => IpcResponse
+    listPrinters: () => IpcResponse
+  }
+  camera: {
+    list: () => IpcResponse
+    capture: (cameraId: string, savePath: string) => IpcResponse
+  }
+  config: {
+    get: (key: string) => IpcResponse
+    set: (key: string, value: unknown) => IpcResponse
+  }
+}
 
 // Type-safe wrapper cho window.joyBooth API
 // Dùng thay cho gọi trực tiếp window.joyBooth trong components

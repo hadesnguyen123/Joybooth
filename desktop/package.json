@@ -6,7 +6,7 @@
   "description": "AI-Powered Photobooth Software",
   "type": "module",
   "author": "JoyBooth Team",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/main.cjs",
   "scripts": {
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",

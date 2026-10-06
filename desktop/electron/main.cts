@@ -16,7 +16,7 @@ function createWindow() {
     kiosk: !isDev,               // kiosk mode: khóa OS taskbar
     backgroundColor: '#0d0d0d',
     webPreferences: {
-      preload: join(__dirname, 'preload.js'),
+      preload: join(__dirname, 'preload.cjs'),
       nodeIntegration: false,    // security: tắt node trong renderer
       contextIsolation: true,    // security: context isolation
       webSecurity: true,
