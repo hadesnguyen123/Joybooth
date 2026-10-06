@@ -1,0 +1,189 @@
+/* ── JoyBooth Theme Select Screen (CHỌN CHỦ ĐỀ - Image 3) ─────────────── */
+
+.theme-screen-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-cream-bg);
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+  padding: 20px 48px;
+}
+
+.theme-main-split {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 36px;
+  max-width: 1350px;
+  margin: 0 auto;
+  width: 100%;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Left: Live Strip Preview with Theme applied */
+.theme-strip-preview-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.theme-composite-frame {
+  padding: 14px 14px 20px;
+  border-radius: 16px;
+  box-shadow: 0 16px 45px rgba(45, 36, 38, 0.15), 0 0 0 2px rgba(45, 36, 38, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all var(--transition-normal);
+  position: relative;
+  max-height: calc(100vh - 200px);
+}
+
+.strip-preview-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px);
+}
+
+.grid-preview-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  max-height: calc(100vh - 280px);
+}
+
+.theme-slot-photo {
+  width: 190px;
+  height: 125px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1e1e24;
+}
+
+.theme-slot-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Right: Theme Selector Panel */
+.theme-selector-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  justify-content: center;
+}
+
+.theme-category-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.theme-nav-arrow {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-white);
+  border: 1.5px solid rgba(45, 36, 38, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 800;
+  color: var(--color-dark-text);
+}
+
+.theme-cat-pill {
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-white);
+  border: 1.5px solid rgba(45, 36, 38, 0.1);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-dark-text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.theme-cat-pill:hover {
+  border-color: var(--color-pink-primary);
+  color: var(--color-pink-primary);
+}
+
+.theme-cat-pill.active {
+  background: var(--color-pink-primary);
+  border-color: var(--color-pink-primary);
+  color: var(--color-white);
+  box-shadow: var(--shadow-pink);
+}
+
+/* Theme Cards Grid */
+.themes-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.theme-card-item {
+  width: 100%;
+  height: 110px;
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(45, 36, 38, 0.08);
+  border: 2.5px solid transparent;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.theme-card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(45, 36, 38, 0.15);
+}
+
+.theme-card-item.selected {
+  border-color: var(--color-pink-primary);
+  box-shadow: 0 0 0 3px var(--color-pink-primary), 0 8px 24px rgba(244, 114, 154, 0.35);
+}
+
+.theme-card-name {
+  font-weight: 800;
+  font-size: 0.88rem;
+  letter-spacing: -0.2px;
+}
+
+.theme-card-decor {
+  font-size: 1.5rem;
+  display: flex;
+  gap: 4px;
+}
+
+/* Bottom Bar */
+.theme-bottom-bar {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1350px;
+  margin: 0 auto;
+  width: 100%;
+}

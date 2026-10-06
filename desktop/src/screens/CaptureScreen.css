@@ -1,0 +1,530 @@
+/* ── JoyBooth Korea Studio Capture Screen ────────────────────────────── */
+
+.capture-screen-pastel {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-cream-bg);
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── Top Bar with Countdown Pills ────────────────────────────────────────── */
+.capture-top-bar {
+  height: 76px;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 40;
+}
+
+.countdown-capsule-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 auto;
+}
+
+.countdown-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(45, 36, 38, 0.12);
+  border-radius: var(--radius-full);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-dark-text);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(45, 36, 38, 0.04);
+  transition: all var(--transition-fast);
+}
+
+.countdown-pill:hover {
+  background: var(--color-white);
+  border-color: var(--color-pink-primary);
+  color: var(--color-pink-primary);
+  transform: translateY(-1px);
+}
+
+.countdown-pill.active {
+  background: var(--color-white);
+  border-color: var(--color-dark-text);
+  color: var(--color-dark-text);
+  box-shadow: 0 4px 12px rgba(45, 36, 38, 0.1);
+}
+
+/* Top utility actions */
+.top-utility-actions {
+  position: absolute;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.utility-pill-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(45, 36, 38, 0.1);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-dark-text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.utility-pill-btn:hover {
+  background: var(--color-white);
+  border-color: var(--color-pink-primary);
+  color: var(--color-pink-primary);
+}
+
+/* ── Main Stage Area (Dock + Camera Viewfinder) ───────────────────────────── */
+.capture-main-stage {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Left Floating Sidebar Dock ─────────────────────────────────────────── */
+.left-sidebar-dock {
+  width: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-top: 10px;
+  padding-left: 16px;
+  z-index: 35;
+}
+
+.dock-btn {
+  width: 76px;
+  height: 76px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(45, 36, 38, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--color-dark-text);
+}
+
+.dock-btn:hover {
+  background: var(--color-white);
+  color: var(--color-pink-primary);
+  transform: scale(1.04);
+}
+
+.dock-btn.active {
+  background: var(--color-white);
+  color: var(--color-pink-primary);
+  box-shadow: 0 4px 16px rgba(244, 114, 154, 0.25);
+  border-color: var(--color-pink-primary);
+}
+
+.dock-icon {
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dock-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+/* ── Flyout Modal Panel (Khung lưới / Bộ lọc / Phát sáng) ────────────────── */
+.flyout-panel {
+  position: absolute;
+  top: 10px;
+  left: 108px;
+  width: 380px;
+  max-height: calc(100vh - 200px);
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 50px rgba(45, 36, 38, 0.16), 0 0 0 1px rgba(45, 36, 38, 0.05);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: flyoutSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes flyoutSlideIn {
+  from { opacity: 0; transform: translateX(-15px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.flyout-header {
+  padding: 16px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(45, 36, 38, 0.06);
+}
+
+.flyout-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-dark-text);
+}
+
+.flyout-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(45, 36, 38, 0.06);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.flyout-close-btn:hover {
+  background: var(--color-pink-soft);
+  color: var(--color-pink-primary);
+}
+
+.flyout-content {
+  padding: 16px 20px 24px;
+  overflow-y: auto;
+  max-height: 480px;
+}
+
+/* Layout Grid inside flyout */
+.layout-grid-presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px 12px;
+}
+
+.layout-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.layout-card:hover {
+  transform: translateY(-2px);
+}
+
+.layout-preview-box {
+  width: 90px;
+  height: 90px;
+  background: #f4efe9;
+  border-radius: 14px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid transparent;
+  transition: all var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.layout-card.selected .layout-preview-box {
+  border-color: var(--color-pink-primary);
+  background: var(--color-white);
+  box-shadow: 0 0 14px rgba(244, 114, 154, 0.3);
+}
+
+.layout-slots-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  gap: 4px;
+}
+
+.slot-rect {
+  background: #a3989c;
+  border-radius: 2px;
+}
+
+.layout-card-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.layout-card.selected .layout-card-label {
+  color: var(--color-pink-primary);
+  font-weight: 800;
+}
+
+/* Filter cards inside flyout */
+.filter-list-presets {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.filter-preset-card {
+  background: var(--color-cream-bg);
+  border: 1.5px solid rgba(45, 36, 38, 0.08);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filter-preset-card:hover {
+  border-color: var(--color-pink-primary);
+  background: var(--color-white);
+}
+
+.filter-preset-card.selected {
+  border-color: var(--color-pink-primary);
+  background: var(--color-pink-soft);
+  box-shadow: 0 4px 14px rgba(244, 114, 154, 0.2);
+}
+
+.filter-color-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(45, 36, 38, 0.12);
+  box-shadow: 0 2px 6px rgba(45, 36, 38, 0.08);
+}
+
+/* ── Camera Viewfinder Container ─────────────────────────────────────────── */
+.camera-viewfinder-wrapper {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  border-top-left-radius: 36px;
+  overflow: hidden;
+  background: #111111;
+  box-shadow: -10px -10px 40px rgba(45, 36, 38, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-preview-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 0.2s ease;
+}
+
+/* Ring Light effect */
+.ring-light-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 24px solid rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.7);
+  animation: ringLightPulse 3s ease-in-out infinite;
+}
+
+@keyframes ringLightPulse {
+  0%, 100% { border-color: rgba(255, 255, 255, 0.4); }
+  50%      { border-color: rgba(255, 255, 255, 0.65); }
+}
+
+/* Big Multi-Shot Countdown Overlay */
+.multi-shot-countdown-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(45, 36, 38, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  gap: 16px;
+}
+
+.countdown-digits {
+  font-family: var(--font-display);
+  font-size: 10rem;
+  font-weight: 900;
+  color: var(--color-white);
+  text-shadow: 0 0 30px var(--color-pink-primary), 0 0 70px rgba(244, 114, 154, 0.8);
+  animation: countdownPop 0.95s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.shot-step-badge {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-white);
+  background: var(--color-pink-primary);
+  padding: 8px 24px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 16px rgba(45, 36, 38, 0.3);
+}
+
+/* ── Live Slot Progress Bar (Matching Image 5) ─────────────────────────── */
+.live-slots-deck {
+  background: var(--color-white);
+  border: 1.5px solid rgba(45, 36, 38, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(45, 36, 38, 0.08);
+  margin-bottom: 8px;
+}
+
+.live-slots-list {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-slot-thumb {
+  width: 58px;
+  height: 58px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f1f2f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.live-slot-thumb.filled {
+  border: 2px solid var(--color-pink-primary);
+  box-shadow: 0 2px 8px rgba(244, 114, 154, 0.3);
+}
+
+.live-slot-thumb.filled img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-slot-thumb.empty {
+  border: 2px dashed #cbd5e1;
+  color: #94a3b8;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.live-slot-thumb.current {
+  border-color: var(--color-pink-primary);
+  animation: pulseSlot 1s infinite alternate;
+}
+
+@keyframes pulseSlot {
+  from { transform: scale(1); border-color: #cbd5e1; }
+  to   { transform: scale(1.06); border-color: var(--color-pink-primary); }
+}
+
+.live-slots-counter {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #0284c7;
+  padding-left: 8px;
+  border-left: 1.5px solid rgba(45, 36, 38, 0.1);
+}
+
+/* ── Bottom Shutter Deck ─────────────────────────────────────────────────── */
+.capture-bottom-deck {
+  height: 125px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 40;
+  gap: 8px;
+}
+
+.start-capture-btn-pink {
+  padding: 14px 44px;
+  border-radius: var(--radius-full);
+  background: var(--color-pink-primary);
+  color: var(--color-white);
+  font-family: var(--font-body);
+  font-size: 1.2rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-pink);
+  transition: all var(--transition-fast);
+}
+
+.start-capture-btn-pink:hover {
+  background: var(--color-dark-pink);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(217, 79, 120, 0.55);
+}
+
+.start-capture-btn-pink:active {
+  transform: scale(0.97);
+}
+
+.start-capture-btn-pink:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Timelapse Recording Badge ── */
+.timelapse-recording-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(239, 68, 68, 0.8);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 35;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+}
+
+.timelapse-recording-badge .rec-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  animation: recBlink 1s infinite alternate;
+}
+
+@keyframes recBlink {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0.2; transform: scale(0.85); }
+}
+

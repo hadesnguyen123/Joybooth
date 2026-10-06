@@ -1,0 +1,143 @@
+/* ── JoyBooth Select Layout Screen (CHỌN BỐ CỤC) ────────────────────── */
+
+.layout-screen-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-cream-bg);
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+  padding: 24px 60px;
+}
+
+.category-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.cat-tab-btn {
+  padding: 10px 24px;
+  border-radius: var(--radius-full);
+  background: var(--color-white);
+  border: 1.5px solid rgba(45, 36, 38, 0.12);
+  color: var(--color-dark-text);
+  font-size: 1.15rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.cat-tab-btn:hover {
+  border-color: var(--color-pink-primary);
+  color: var(--color-pink-primary);
+}
+
+.cat-tab-btn.active {
+  background: var(--color-pink-primary);
+  border-color: var(--color-pink-primary);
+  color: var(--color-white);
+  box-shadow: var(--shadow-pink);
+  transform: scale(1.05);
+}
+
+.cat-price-sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* Layout Options Stage */
+.layout-options-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  max-width: 1050px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.layout-preview-card {
+  background: var(--color-white);
+  border: 3px solid rgba(45, 36, 38, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(45, 36, 38, 0.08);
+  transition: all var(--transition-normal);
+  max-height: calc(100vh - 240px);
+}
+
+.layout-preview-card:hover {
+  border-color: var(--color-pink-primary);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 45px rgba(244, 114, 154, 0.25);
+}
+
+.layout-preview-card.selected {
+  border: 3.5px solid var(--color-pink-primary);
+  box-shadow: 0 16px 50px rgba(244, 114, 154, 0.35);
+}
+
+.layout-card-sheet {
+  background: #fdfaf7;
+  border: 1px solid rgba(45, 36, 38, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Slots renderings */
+.slots-container-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.mockup-slot-photo {
+  background: #cbd5e1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.layout-card-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-dark-text);
+}
+
+.layout-preview-card.selected .layout-card-title {
+  color: var(--color-pink-primary);
+}
+
+/* Bottom Bar */
+.layout-bottom-bar {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1050px;
+  margin: 0 auto;
+  width: 100%;
+}

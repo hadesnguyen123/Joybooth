@@ -1,0 +1,135 @@
+.idle-screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, #FFFFFF 0%, #FFF8F2 70%);
+}
+
+/* Decorative orbs */
+.idle-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.idle-bg-orb--1 {
+  width: 550px;
+  height: 550px;
+  background: #F4729A;
+  top: -150px;
+  right: -80px;
+  animation: float1 8s ease-in-out infinite;
+}
+
+.idle-bg-orb--2 {
+  width: 450px;
+  height: 450px;
+  background: #D94F78;
+  opacity: 0.2;
+  bottom: -120px;
+  left: -80px;
+  animation: float2 10s ease-in-out infinite;
+}
+
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0); }
+  50%       { transform: translate(-30px, 30px); }
+}
+
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0); }
+  50%       { transform: translate(25px, -25px); }
+}
+
+/* Content */
+.idle-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  text-align: center;
+  z-index: 1;
+}
+
+.idle-logo-placeholder {
+  font-family: var(--font-display);
+  font-size: 4.5rem;
+  font-weight: 900;
+  color: #F4729A;
+  text-shadow: 0 4px 20px rgba(244, 114, 154, 0.3);
+  letter-spacing: -1.5px;
+}
+
+.idle-event-name {
+  font-family: var(--font-body);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #2D2426;
+  max-width: 700px;
+}
+
+/* CTA */
+.idle-cta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  background: #FFFFFF;
+  padding: 16px 36px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 8px 30px rgba(45, 36, 38, 0.08);
+  border: 2px solid #F4729A;
+  animation: bounceSoft 2s infinite ease-in-out;
+}
+
+@keyframes bounceSoft {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.idle-cta-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #F4729A;
+  box-shadow: 0 0 10px #F4729A;
+}
+
+.idle-cta-text {
+  font-size: 1.3rem;
+  color: #F4729A;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* Hidden admin trigger */
+.idle-admin-trigger {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(45, 36, 38, 0.1);
+  color: #2D2426;
+  font-size: 1.3rem;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.idle-admin-trigger:hover {
+  background: #FFFFFF;
+  color: #F4729A;
+  transform: rotate(45deg);
+}
