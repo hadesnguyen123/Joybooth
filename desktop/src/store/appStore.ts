@@ -280,7 +280,8 @@ interface AppStore {
 
   // Step 4 (Post Capture): Chọn Sticker
   placedStickers: PlacedSticker[]
-  addSticker: (icon: string) => void
+  addSticker: (icon: string) => string
+  updateSticker: (id: string, updates: Partial<PlacedSticker>) => void
   removeSticker: (id: string) => void
   clearStickers: () => void
 
@@ -369,19 +370,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
   selectTheme: (theme) => set({ selectedTheme: theme }),
 
   placedStickers: [],
-  addSticker: (icon) =>
+  addSticker: (icon) => {
+    const newId = `st_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`
     set((state) => ({
       placedStickers: [
         ...state.placedStickers,
         {
-          id: `st_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+          id: newId,
           icon,
-          x: Math.floor(20 + Math.random() * 60),
-          y: Math.floor(20 + Math.random() * 60),
+          x: Math.floor(30 + Math.random() * 40),
+          y: Math.floor(30 + Math.random() * 40),
           scale: 1,
-          rotation: Math.floor((Math.random() - 0.5) * 30),
+          rotation: Math.floor((Math.random() - 0.5) * 20),
         },
       ],
+    }))
+    return newId
+  },
+  updateSticker: (id, updates) =>
+    set((state) => ({
+      placedStickers: state.placedStickers.map((s) =>
+        s.id === id ? { ...s, ...updates } : s
+      ),
     })),
   removeSticker: (id) =>
     set((state) => ({

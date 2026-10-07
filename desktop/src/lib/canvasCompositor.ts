@@ -135,9 +135,11 @@ export async function generateStripComposite(opts: RenderOptions): Promise<strin
     const px = (st.x / 100) * width
     const py = (st.y / 100) * height
 
+    const scale = st.scale || 1
     ctx.save()
     ctx.translate(px, py)
     ctx.rotate((st.rotation * Math.PI) / 180)
+    ctx.scale(scale, scale)
     ctx.font = '56px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
