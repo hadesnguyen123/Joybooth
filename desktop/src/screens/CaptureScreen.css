@@ -385,10 +385,12 @@
   flex: 1;
   height: 100%;
   position: relative;
-  border-top-left-radius: 36px;
+  border-radius: 28px;
+  margin-right: 28px;
+  margin-left: 10px;
   overflow: hidden;
   background: #111111;
-  box-shadow: -10px -10px 40px rgba(45, 36, 38, 0.1);
+  box-shadow: 0 12px 36px rgba(45, 36, 38, 0.12), 0 0 0 2px rgba(45, 36, 38, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -683,18 +685,18 @@
 /* ── Timelapse Recording Badge ── */
 .timelapse-recording-badge {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.75);
+  top: 18px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.82);
   backdrop-filter: blur(8px);
-  border: 1.5px solid rgba(239, 68, 68, 0.8);
+  border: 1.5px solid rgba(239, 68, 68, 0.85);
   border-radius: var(--radius-full);
-  padding: 6px 14px;
+  padding: 6px 16px;
   color: #ffffff;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 0.82rem;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   gap: 8px;
