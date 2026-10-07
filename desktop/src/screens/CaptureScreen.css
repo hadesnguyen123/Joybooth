@@ -435,37 +435,29 @@
 /* Sequential Countdown digits overlay */
 .multi-shot-countdown-overlay {
   position: absolute;
+  inset: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
   z-index: 35;
   pointer-events: none;
 }
 
-.countdown-digits {
+.countdown-digits-translucent {
   font-family: var(--font-display);
-  font-size: 10.5rem;
+  font-size: 8rem;
   font-weight: 900;
-  color: var(--color-white);
-  text-shadow: 0 0 35px var(--color-pink-primary), 0 0 80px rgba(244, 114, 154, 0.9);
-  animation: countdownPop 0.95s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  color: rgba(255, 255, 255, 0.28);
+  -webkit-text-stroke: 2.5px rgba(255, 255, 255, 0.88);
+  text-shadow: 0 0 25px rgba(244, 114, 154, 0.45);
+  animation: countdownTranslucentPop 0.95s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  user-select: none;
 }
 
-.shot-step-badge {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: var(--color-white);
-  background: var(--color-pink-primary);
-  padding: 10px 28px;
-  border-radius: var(--radius-full);
-  box-shadow: 0 6px 20px rgba(45, 36, 38, 0.35);
-}
-
-@keyframes countdownPop {
-  0%   { transform: scale(0.7); opacity: 0; }
-  50%  { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+@keyframes countdownTranslucentPop {
+  0%   { transform: scale(0.85); opacity: 0.35; }
+  50%  { transform: scale(1.04); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 0.6; }
 }
 
 /* ── Live Slot Progress Bar (Phóng to các ô thumbnail) ──────────────────── */

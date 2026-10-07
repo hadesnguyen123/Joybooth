@@ -666,13 +666,10 @@ export default function CaptureScreen() {
             </div>
           )}
 
-          {/* Countdown digits overlay */}
+          {/* Countdown digits overlay - Chỉ để mình số trong suốt mờ ảo, không che mặt người chụp */}
           {isCapturingShot && (
             <div className="multi-shot-countdown-overlay">
-              <span className="shot-step-badge">
-                📸 Chụp ảnh {currentShotNumber} / {totalShots}
-              </span>
-              <div className="countdown-digits">{currentCountdown}</div>
+              <div className="countdown-digits-translucent">{currentCountdown}</div>
             </div>
           )}
 
