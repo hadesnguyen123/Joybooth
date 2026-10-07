@@ -659,21 +659,33 @@
   transform: none;
 }
 
+.capture-shutter-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+}
+
 .cancel-shoot-btn {
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid rgba(45, 36, 38, 0.15);
   color: #64748b;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
-  padding: 4px 12px;
+  padding: 4px 16px;
   border-radius: var(--radius-full);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.2s;
 }
 
 .cancel-shoot-btn:hover {
   color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
+  border-color: #ef4444;
+  background: #ffffff;
+  transform: translateY(-1px);
 }
 
 /* ── Timelapse Recording Badge ── */

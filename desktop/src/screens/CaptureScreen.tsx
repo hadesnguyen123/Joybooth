@@ -719,8 +719,8 @@ export default function CaptureScreen() {
           </div>
         </div>
 
-        {/* Nút chụp: Mỗi lần bấm chụp 1 ảnh, bấm tiếp chụp ảnh tiếp theo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        {/* Nút chụp: Căn giữa tuyệt đối, không lệch viền */}
+        <div className="capture-shutter-container">
           <button
             className="start-capture-btn-pink"
             id="start-capture-button"
@@ -735,12 +735,12 @@ export default function CaptureScreen() {
                 ? '✨ Đã hoàn thành tất cả ảnh!'
                 : capturedThumbnails.length === 0
                 ? `Bắt đầu chụp (Ảnh 1 / ${totalShots})`
-                : `📸 Chụp tiếp ảnh ${capturedThumbnails.length + 1} / ${totalShots}`}
+                : `Chụp tiếp ảnh ${capturedThumbnails.length + 1} / ${totalShots}`}
             </span>
           </button>
 
-          {/* Nút hủy buổi chụp nếu khách muốn chụp lại từ đầu */}
-          {isSessionActive && !isCapturingShot && (
+          {/* Nút hủy buổi chụp nếu khách muốn chụp lại từ đầu - Nằm ngay dưới nút chính, không bị tràn cạnh phải */}
+          {isSessionActive && !isCapturingShot && !isCompleted && (
             <button className="cancel-shoot-btn" onClick={handleResetShootSession}>
               ↩ Chụp lại từ đầu
             </button>
