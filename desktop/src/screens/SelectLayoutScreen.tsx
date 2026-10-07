@@ -8,6 +8,7 @@ export default function SelectLayoutScreen() {
     selectCategory,
     selectedLayout,
     selectLayout,
+    eventConfig,
   } = useAppStore()
 
   const categories: LayoutCategory[] = [1, 3, 4, 6, 8]
@@ -26,7 +27,12 @@ export default function SelectLayoutScreen() {
   }
 
   function handleProceedToCapture() {
-    setScreen('capture')
+    // Tạm thời nếu paymentQrEnabled = false thì nhảy thẳng vào chụp ảnh
+    if (eventConfig.paymentQrEnabled) {
+      setScreen('payment')
+    } else {
+      setScreen('capture')
+    }
   }
 
   return (

@@ -6,6 +6,7 @@ export type AppScreen =
   | 'idle'
   | 'select-size'
   | 'select-layout'
+  | 'payment'
   | 'capture'
   | 'select-theme'
   | 'select-sticker'
@@ -221,6 +222,77 @@ export interface SessionState {
   gdriveUrl: string | null
 }
 
+// ─── Preset Làm Đẹp K-Beauty (Beauty Presets) ──────────────────────────────────
+export interface BeautyPreset {
+  id: string
+  name: string
+  icon: string
+  description: string
+  smoothing: number     // 0 - 100
+  rosyTone: number      // 0 - 100
+  glowClarity: number   // 0 - 100
+  brightness: number    // 70 - 130 (100 là gốc)
+  contrast: number      // 70 - 130
+}
+
+export const BEAUTY_PRESETS: BeautyPreset[] = [
+  {
+    id: 'korean_glass',
+    name: 'Trắng Hồng Hàn Quốc',
+    icon: '🌸',
+    description: 'Làn da sứ trong veo, căng bóng mịn màng chuẩn K-Beauty (Khuyên Dùng)',
+    smoothing: 42,
+    rosyTone: 28,
+    glowClarity: 22,
+    brightness: 106,
+    contrast: 98,
+  },
+  {
+    id: 'natural',
+    name: 'Tự Nhiên',
+    icon: '🌿',
+    description: 'Nét mộc chân thật, làm mịn nhẹ nhàng tự nhiên',
+    smoothing: 20,
+    rosyTone: 10,
+    glowClarity: 15,
+    brightness: 100,
+    contrast: 100,
+  },
+  {
+    id: 'haru_soft',
+    name: 'Trong Trẻo Haru',
+    icon: '❄️',
+    description: 'Tông sáng mộng mơ, mềm mại trong trẻo phong cách Haru Film',
+    smoothing: 38,
+    rosyTone: 15,
+    glowClarity: 26,
+    brightness: 108,
+    contrast: 97,
+  },
+  {
+    id: 'peachy_glow',
+    name: 'Má Đào Pastel',
+    icon: '🍑',
+    description: 'Má ửng hồng tươi tắn, ngọt ngào tràn đầy sức sống',
+    smoothing: 35,
+    rosyTone: 42,
+    glowClarity: 18,
+    brightness: 104,
+    contrast: 100,
+  },
+  {
+    id: 'studio_glam',
+    name: 'Studio Glam',
+    icon: '👑',
+    description: 'Sắc nét nổi bật, tôn khối mắt và sống mũi rạng rỡ',
+    smoothing: 25,
+    rosyTone: 18,
+    glowClarity: 45,
+    brightness: 104,
+    contrast: 104,
+  },
+]
+
 export interface EventConfig {
   eventName: string
   eventLogo: string | null
@@ -230,7 +302,14 @@ export interface EventConfig {
   printEnabled: boolean
   printCopies: number
   qrEnabled: boolean
-  paymentQrEnabled: boolean
+  // VietQR Kiosk Payment Settings (Giai đoạn 2)
+  paymentQrEnabled: boolean // Tạm thời disable (false) theo yêu cầu người dùng
+  bankBin: string           // Mã BIN ngân hàng (VD: 970422 - MB, 970436 - Vietcombank)
+  bankName: string          // Tên hiển thị ngân hàng
+  accountNumber: string     // Số tài khoản ngân hàng
+  accountHolder: string     // Tên chủ tài khoản
+  price2x6: number          // Giá gói 2x6 (VND)
+  price4x6: number          // Giá gói 4x6 (VND)
   idleTimeoutSeconds: number
   // Timelapse Video Settings
   timelapseEnabled: boolean
@@ -288,6 +367,8 @@ interface AppStore {
   // Color Filters, Adjustments & Lighting
   selectedFilter: ColorFilterItem
   selectFilter: (filter: ColorFilterItem) => void
+  selectedBeautyPreset: string | null
+  applyBeautyPreset: (presetId: string) => void
   brightnessAdjust: number
   contrastAdjust: number
   saturationAdjust: number
@@ -337,7 +418,14 @@ const DEFAULT_EVENT_CONFIG: EventConfig = {
   printEnabled: true,
   printCopies: 1,
   qrEnabled: true,
+  // VietQR Kiosk Payment Settings (Mặc định Disable theo chỉ đạo)
   paymentQrEnabled: false,
+  bankBin: '970422', // MB Bank
+  bankName: 'MB Bank (Quân Đội)',
+  accountNumber: '0388889999',
+  accountHolder: 'JOYBOOTH VIETNAM',
+  price2x6: 50000,
+  price4x6: 70000,
   idleTimeoutSeconds: 60,
   timelapseEnabled: true,
   timelapseSpeed: 2.5,
@@ -446,20 +534,35 @@ export const useAppStore = create<AppStore>((set, get) => ({
   selectedFilter: COLOR_FILTERS[0],
   selectFilter: (filter) => set({ selectedFilter: filter }),
 
-  brightnessAdjust: 100,
-  contrastAdjust: 100,
+  selectedBeautyPreset: 'korean_glass',
+  applyBeautyPreset: (presetId) => {
+    const preset = BEAUTY_PRESETS.find((p) => p.id === presetId)
+    if (!preset) return
+    set({
+      selectedBeautyPreset: presetId,
+      skinSmoothing: preset.smoothing,
+      rosyTone: preset.rosyTone,
+      glowClarity: preset.glowClarity,
+      brightnessAdjust: preset.brightness,
+      contrastAdjust: preset.contrast,
+    })
+  },
+
+  brightnessAdjust: 106,
+  contrastAdjust: 98,
   saturationAdjust: 100,
-  skinSmoothing: 25, // Khởi tạo làm mịn nhẹ 25% chuẩn studio Hàn Quốc
-  rosyTone: 15,      // Trắng hồng 15%
-  glowClarity: 10,   // Sáng nét 10%
-  setBrightnessAdjust: (brightnessAdjust) => set({ brightnessAdjust }),
-  setContrastAdjust: (contrastAdjust) => set({ contrastAdjust }),
-  setSaturationAdjust: (saturationAdjust) => set({ saturationAdjust }),
-  setSkinSmoothing: (skinSmoothing) => set({ skinSmoothing }),
-  setRosyTone: (rosyTone) => set({ rosyTone }),
-  setGlowClarity: (glowClarity) => set({ glowClarity }),
+  skinSmoothing: 42, // Mặc định chuẩn làn da trắng hồng Hàn Quốc
+  rosyTone: 28,      // Trắng hồng 28%
+  glowClarity: 22,   // Sáng nét 22%
+  setBrightnessAdjust: (brightnessAdjust) => set({ brightnessAdjust, selectedBeautyPreset: null }),
+  setContrastAdjust: (contrastAdjust) => set({ contrastAdjust, selectedBeautyPreset: null }),
+  setSaturationAdjust: (saturationAdjust) => set({ saturationAdjust, selectedBeautyPreset: null }),
+  setSkinSmoothing: (skinSmoothing) => set({ skinSmoothing, selectedBeautyPreset: null }),
+  setRosyTone: (rosyTone) => set({ rosyTone, selectedBeautyPreset: null }),
+  setGlowClarity: (glowClarity) => set({ glowClarity, selectedBeautyPreset: null }),
   resetAdjustments: () =>
     set({
+      selectedBeautyPreset: null,
       brightnessAdjust: 100,
       contrastAdjust: 100,
       saturationAdjust: 100,
@@ -484,17 +587,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const c = contrastAdjust !== 100 ? `contrast(${contrastAdjust / 100})` : ''
     const s = saturationAdjust !== 100 ? `saturate(${saturationAdjust / 100})` : ''
 
-    // Hiệu ứng làm đẹp (Glam & Beauty):
-    // Làm mịn da (Skin Smoothing): bloom nhẹ và sáng da
-    const smooth = skinSmoothing > 0 ? `blur(${(skinSmoothing * 0.007).toFixed(2)}px)` : ''
-    // Trắng hồng (Rosy tone): hơi ngả ấm nhẹ và bão hòa da
+    // Hiệu ứng làm đẹp chuẩn Hàn Quốc (K-Beauty Bojeong):
+    // Làm mịn da (Skin Smoothing): micro-blur + soft glow làm mờ nếp nhăn & lỗ chân lông
+    const smooth = skinSmoothing > 0 ? `blur(${(skinSmoothing * 0.0065).toFixed(2)}px)` : ''
+    // Trắng hồng (Rosy tone): hơi ngả ấm nhẹ nhàng và làm tươi màu môi, má đào
     const rosy =
       rosyTone > 0
-        ? `hue-rotate(-${(rosyTone * 0.08).toFixed(1)}deg) saturate(${1 + rosyTone * 0.002})`
+        ? `hue-rotate(-${(rosyTone * 0.075).toFixed(1)}deg) saturate(${1 + rosyTone * 0.0025})`
         : ''
-    // Độ nét (Clarity): tăng tương phản viền nhẹ
+    // Sáng nét (Clarity): tăng tương phản chi tiết viền tóc, lông mi, sống mũi
     const clarity =
-      glowClarity > 0 ? `contrast(${1 + glowClarity * 0.0015})` : ''
+      glowClarity > 0 ? `contrast(${1 + glowClarity * 0.0016})` : ''
 
     const parts = [base, b, c, s, smooth, rosy, clarity].filter(Boolean)
     return parts.length > 0 ? parts.join(' ') : 'none'

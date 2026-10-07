@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useAppStore, COLOR_FILTERS } from '../store/appStore'
+import { useAppStore, COLOR_FILTERS, BEAUTY_PRESETS } from '../store/appStore'
 import { joyBoothApi, isBrowser, mockApi } from '../lib/api'
 import './CaptureScreen.css'
 
@@ -12,6 +12,8 @@ export default function CaptureScreen() {
     selectedLayout,
     selectedFilter,
     selectFilter,
+    selectedBeautyPreset,
+    applyBeautyPreset,
     ringLightEnabled,
     setRingLightEnabled,
     ringLightLevel,
@@ -189,6 +191,18 @@ export default function CaptureScreen() {
             const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
             const videoUrl = URL.createObjectURL(blob)
             setTimelapseUrl(videoUrl)
+
+            // Tự động lưu video timelapse vào thư mục Downloads/JoyBooth của máy
+            const reader = new FileReader()
+            reader.onloadend = () => {
+              const dataUrl = reader.result as string
+              if (dataUrl && dataUrl.startsWith('data:')) {
+                const fileName = `joybooth_timelapse_${Date.now()}.webm`
+                const api = isBrowser ? mockApi : joyBoothApi
+                api.storage.savePhoto(dataUrl, fileName).catch((err) => console.warn('Save timelapse error:', err))
+              }
+            }
+            reader.readAsDataURL(blob)
           } catch (err) {
             console.warn('Error creating timelapse blob:', err)
           }
@@ -466,10 +480,33 @@ export default function CaptureScreen() {
             </div>
 
             <div className="flyout-content">
+              {/* Presets Làm Đẹp 1-Chạm K-Beauty */}
+              <div className="beauty-presets-container">
+                <span className="beauty-presets-title">👑 Gợi Ý Phong Cách K-Beauty (1-Chạm):</span>
+                <div className="beauty-presets-grid">
+                  {BEAUTY_PRESETS.map((preset) => {
+                    const isSelected = selectedBeautyPreset === preset.id
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        className={`beauty-preset-pill ${isSelected ? 'active' : ''}`}
+                        onClick={() => applyBeautyPreset(preset.id)}
+                        title={preset.description}
+                      >
+                        <span className="preset-icon">{preset.icon}</span>
+                        <span className="preset-name">{preset.name}</span>
+                        {isSelected && <span className="preset-check">✓</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               {/* Box 1: Làm đẹp khuôn mặt (Glam & Beauty) */}
               <div className="beauty-section-box">
                 <div className="beauty-section-header">
-                  <span>🌸 Làm Đẹp Da (Beauty Glam)</span>
+                  <span>🌸 Tùy Chỉnh Da Chi Tiết</span>
                 </div>
 
                 <div className="beauty-slider-row">
@@ -662,7 +699,7 @@ export default function CaptureScreen() {
           {eventConfig.timelapseEnabled && isSessionActive && (
             <div className="timelapse-recording-badge">
               <span className="rec-dot" />
-              <span>REC TIMELAPSE</span>
+              <span>REC TIMELAPSE ({eventConfig.timelapseSpeed || 2.5}x)</span>
             </div>
           )}
 

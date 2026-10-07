@@ -3,6 +3,7 @@ import IdleScreen from './screens/IdleScreen'
 import SelectFrameSizeScreen from './screens/SelectFrameSizeScreen'
 import SelectLayoutScreen from './screens/SelectLayoutScreen'
 import CaptureScreen from './screens/CaptureScreen'
+import PaymentScreen from './screens/PaymentScreen'
 import ThemeSelectScreen from './screens/ThemeSelectScreen'
 import StickerScreen from './screens/StickerScreen'
 import ReviewScreen from './screens/ReviewScreen'
@@ -17,6 +18,7 @@ export default function App() {
       {screen === 'idle' && <IdleScreen />}
       {screen === 'select-size' && <SelectFrameSizeScreen />}
       {screen === 'select-layout' && <SelectLayoutScreen />}
+      {screen === 'payment' && <PaymentScreen />}
       {screen === 'capture' && <CaptureScreen />}
       {screen === 'select-theme' && <ThemeSelectScreen />}
       {screen === 'select-sticker' && <StickerScreen />}

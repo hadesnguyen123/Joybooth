@@ -714,3 +714,66 @@
   from { opacity: 1; transform: scale(1); }
   to   { opacity: 0.2; transform: scale(0.85); }
 }
+
+/* ── K-Beauty Presets (1-Chạm) ── */
+.beauty-presets-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(135deg, #fff5f8 0%, #fff 100%);
+  border: 1.5px solid rgba(244, 114, 154, 0.25);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.beauty-presets-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--color-pink-primary);
+  letter-spacing: 0.5px;
+}
+
+.beauty-presets-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.beauty-preset-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1.5px solid rgba(45, 36, 38, 0.12);
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-dark-text);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.beauty-preset-pill:hover {
+  border-color: var(--color-pink-primary);
+  color: var(--color-pink-primary);
+  transform: translateY(-1px);
+}
+
+.beauty-preset-pill.active {
+  background: var(--color-pink-primary);
+  border-color: var(--color-pink-primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(244, 114, 154, 0.35);
+}
+
+.beauty-preset-pill .preset-icon {
+  font-size: 1rem;
+}
+
+.beauty-preset-pill .preset-check {
+  font-size: 0.75rem;
+  font-weight: 900;
+  margin-left: 2px;
+}

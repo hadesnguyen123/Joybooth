@@ -3,7 +3,7 @@ import { useAppStore, THEME_OPTIONS } from '../store/appStore'
 import { joyBoothApi, isBrowser, mockApi } from '../lib/api'
 import './AdminScreen.css'
 
-type AdminTab = 'event' | 'frames' | 'hardware' | 'cloud' | 'stats'
+type AdminTab = 'event' | 'frames' | 'hardware' | 'cloud' | 'payment' | 'stats'
 
 export default function AdminScreen() {
   const {
@@ -165,6 +165,14 @@ export default function AdminScreen() {
           >
             <span>☁️</span>
             <span>Google Drive & Timelapse</span>
+          </div>
+
+          <div
+            className={`admin-nav-item ${activeTab === 'payment' ? 'active' : ''}`}
+            onClick={() => setActiveTab('payment')}
+          >
+            <span>💳</span>
+            <span>Thanh Toán Kiosk (VietQR)</span>
           </div>
 
           <div
@@ -471,6 +479,174 @@ export default function AdminScreen() {
                       <option value="no">Tắt (Chỉ lưu cục bộ trên máy)</option>
                     </select>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'payment' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div>
+                  <h2 className="tab-pane-title" style={{ marginBottom: 4 }}>💳 Cổng Thanh Toán Kiosk (VietQR Tự Động)</h2>
+                  <p style={{ fontSize: '0.85rem', color: '#666' }}>
+                    Tự động tạo mã QR động ngân hàng chuẩn NAPAS 24/7 để thu tiền trước khi cho khách chụp ảnh.
+                  </p>
+                </div>
+
+                <button
+                  className="btn btn-pill-white"
+                  style={{ fontSize: '0.85rem', padding: '8px 18px', borderColor: 'var(--color-pink-primary)', color: 'var(--color-pink-primary)', fontWeight: 700 }}
+                  onClick={() => setScreen('payment')}
+                  title="Chuyển đến màn hình thanh toán để xem trước giao diện"
+                >
+                  👁️ Xem Trước Màn Hình Thanh Toán
+                </button>
+              </div>
+
+              {/* Status Notice Box */}
+              <div
+                style={{
+                  padding: 16,
+                  borderRadius: 14,
+                  marginBottom: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: eventConfig.paymentQrEnabled ? '#f0fdf4' : '#fff1f2',
+                  border: `1.5px solid ${eventConfig.paymentQrEnabled ? '#86efac' : '#fecdd3'}`,
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      padding: '4px 10px',
+                      borderRadius: 20,
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      background: eventConfig.paymentQrEnabled ? '#16a34a' : '#e11d48',
+                      color: '#ffffff',
+                      marginBottom: 6,
+                    }}
+                  >
+                    {eventConfig.paymentQrEnabled ? '🟢 ĐANG BẬT (ACTIVE)' : '🔴 TẠM THỜI TẮT (DISABLED)'}
+                  </span>
+                  <p style={{ fontSize: '0.85rem', color: '#334155', margin: 0, fontWeight: 500 }}>
+                    {eventConfig.paymentQrEnabled
+                      ? 'Kiosk đang yêu cầu khách quét mã QR thanh toán trước khi vào chụp.'
+                      : 'Đang tắt theo cấu hình: Khách hàng sẽ vào thẳng màn hình chụp sau khi chọn layout (Bỏ qua bước thanh toán).'}
+                  </p>
+                </div>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontWeight: 800, fontSize: '0.95rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={eventConfig.paymentQrEnabled}
+                    onChange={(e) => setEventConfig({ paymentQrEnabled: e.target.checked })}
+                    style={{ width: 22, height: 22, accentColor: 'var(--color-pink-primary)' }}
+                  />
+                  <span>{eventConfig.paymentQrEnabled ? 'Bật Thanh Toán' : 'Bật (Hiện Tắt)'}</span>
+                </label>
+              </div>
+
+              {/* Bank Details Form Card */}
+              <div
+                style={{
+                  padding: 22,
+                  background: '#ffffff',
+                  borderRadius: 16,
+                  border: '1.5px solid rgba(45, 36, 38, 0.08)',
+                }}
+              >
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-dark-text)', marginBottom: 16 }}>
+                  🏦 Thông Tin Tài Khoản Thụ Hưởng
+                </h3>
+
+                <div className="admin-form-grid">
+                  <div className="form-group">
+                    <label className="form-label">Ngân Hàng Thụ Hưởng</label>
+                    <select
+                      className="form-input"
+                      value={eventConfig.bankBin || '970422'}
+                      onChange={(e) => {
+                        const bin = e.target.value
+                        const bankNames: Record<string, string> = {
+                          '970422': 'MB Bank (Quân Đội)',
+                          '970436': 'Vietcombank (Ngoại Thương)',
+                          '970407': 'Techcombank (Kỹ Thương)',
+                          '970416': 'ACB (Á Châu)',
+                          '970432': 'VPBank (Việt Nam Thịnh Vượng)',
+                          '970423': 'TPBank (Tiên Phong)',
+                          '970418': 'BIDV (Đầu Tư & Phát Triển)',
+                          '970405': 'Agribank (Nông Nghiệp)',
+                        }
+                        setEventConfig({ bankBin: bin, bankName: bankNames[bin] || 'Ngân hàng' })
+                      }}
+                    >
+                      <option value="970422">MB Bank (Quân Đội) - 970422</option>
+                      <option value="970436">Vietcombank - 970436</option>
+                      <option value="970407">Techcombank - 970407</option>
+                      <option value="970416">ACB - 970416</option>
+                      <option value="970432">VPBank - 970432</option>
+                      <option value="970423">TPBank - 970423</option>
+                      <option value="970418">BIDV - 970418</option>
+                      <option value="970405">Agribank - 970405</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Số Tài Khoản</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={eventConfig.accountNumber || ''}
+                      placeholder="VD: 0388889999"
+                      onChange={(e) => setEventConfig({ accountNumber: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Tên Chủ Tài Khoản (Không dấu)</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={eventConfig.accountHolder || ''}
+                      placeholder="VD: NGUYEN VAN A"
+                      onChange={(e) => setEventConfig({ accountHolder: e.target.value.toUpperCase() })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Đơn Giá Gói Dải 2x6 Inch (VND)</label>
+                    <input
+                      type="number"
+                      step={5000}
+                      className="form-input"
+                      value={eventConfig.price2x6 || 50000}
+                      onChange={(e) => setEventConfig({ price2x6: Number(e.target.value) })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Đơn Giá Gói Postcard 4x6 Inch (VND)</label>
+                    <input
+                      type="number"
+                      step={5000}
+                      className="form-input"
+                      value={eventConfig.price4x6 || 70000}
+                      onChange={(e) => setEventConfig({ price4x6: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ background: '#f8fafc', padding: 14, borderRadius: 12, marginTop: 16, borderLeft: '4px solid #8b5cf6' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#4c1d95', marginBottom: 4 }}>
+                    💡 Tự Động Sinh Mã VietQR:
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.5, margin: 0 }}>
+                    JoyBooth tích hợp trực tiếp tiêu chuẩn VietQR quốc gia. Khi bật tính năng, mỗi khách hàng sẽ nhận được một mã QR kèm số tiền chính xác của gói chụp và mã đơn hàng riêng biệt.
+                  </p>
                 </div>
               </div>
             </div>

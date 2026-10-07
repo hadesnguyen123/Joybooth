@@ -139,8 +139,8 @@ ipcMain.handle('storage:save-photo', async (_event, payload: { dataUrl: string; 
       fs.mkdirSync(joyboothDir, { recursive: true })
     }
 
-    // Convert dataUrl (base64) to buffer
-    const base64Data = payload.dataUrl.replace(/^data:image\/\w+;base64,/, '')
+    // Convert dataUrl (base64) to buffer (supports both image and video webm/mp4)
+    const base64Data = payload.dataUrl.replace(/^data:[^;]+;base64,/, '')
     const buffer = Buffer.from(base64Data, 'base64')
     const targetFile = join(joyboothDir, payload.fileName)
 

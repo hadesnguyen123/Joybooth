@@ -1,0 +1,280 @@
+/* ── JoyBooth Payment Screen (VietQR Kiosk) ─────────────────────────── */
+
+.payment-screen-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-cream-bg);
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+  padding: 16px 40px;
+}
+
+.payment-main-stage {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 460px 540px;
+  gap: 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Order Summary Card */
+.order-summary-card {
+  background: var(--color-white);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 16px 40px rgba(45, 36, 38, 0.08);
+  border: 1.5px solid rgba(45, 36, 38, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.summary-badge-top {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 6px 14px;
+  background: var(--color-pink-soft);
+  color: var(--color-pink-primary);
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.summary-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.summary-label {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.summary-val {
+  color: var(--color-dark-text);
+  font-weight: 700;
+}
+
+.summary-val.highlight {
+  color: var(--color-pink-primary);
+}
+
+.mono-badge {
+  font-family: monospace;
+  background: #f3f4f6;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.summary-divider {
+  border: none;
+  border-top: 1.5px dashed rgba(45, 36, 38, 0.12);
+  margin: 6px 0;
+}
+
+.summary-total-box {
+  background: linear-gradient(135deg, #fff0f5 0%, #ffe4ec 100%);
+  padding: 16px 20px;
+  border-radius: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(244, 114, 154, 0.25);
+}
+
+.total-label {
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--color-dark-text);
+}
+
+.total-amount-display {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--color-pink-primary);
+}
+
+.payment-instructions-pill {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.5;
+  border-left: 4px solid var(--color-pink-primary);
+}
+
+.payment-instructions-pill p {
+  margin: 2px 0;
+}
+
+.kiosk-status-notice {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* VietQR Display Card */
+.vietqr-display-card {
+  background: var(--color-white);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 16px 40px rgba(45, 36, 38, 0.08);
+  border: 1.5px solid rgba(45, 36, 38, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.vietqr-box-frame {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border: 2px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.vietqr-real-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Radar scan line animation */
+.qr-scan-line-anim {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #f4729a, transparent);
+  box-shadow: 0 0 10px #f4729a;
+  animation: qrScan 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes qrScan {
+  0% {
+    top: 5%;
+  }
+  100% {
+    top: 92%;
+  }
+}
+
+.bank-meta-details {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+}
+
+.bank-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bank-meta-row span {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.bank-meta-row b {
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.bank-meta-row .copy-num {
+  font-family: monospace;
+  font-size: 1rem;
+  color: #0284c7;
+}
+
+.bank-meta-row .code-tag {
+  font-family: monospace;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.payment-timer-bar {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timer-text {
+  font-size: 0.82rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.timer-text b {
+  color: #e11d48;
+}
+
+.timer-expired {
+  font-size: 0.82rem;
+  color: #dc2626;
+  text-align: center;
+  font-weight: 700;
+}
+
+.timer-progress-track {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.timer-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f4729a, #fb7185);
+  border-radius: 3px;
+  transition: width 1s linear;
+}
+
+/* Footer Bottom Bar */
+.payment-bottom-bar {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.btn-success-anim {
+  background: #10b981 !important;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35) !important;
+}
