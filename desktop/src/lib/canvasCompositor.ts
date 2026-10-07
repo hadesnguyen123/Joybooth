@@ -153,15 +153,15 @@ export async function generateStripComposite(opts: RenderOptions): Promise<strin
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
-  // Tiêu đề sự kiện
-  ctx.font = '900 28px "Outfit", sans-serif'
-  ctx.letterSpacing = '2px'
+  // Tiêu đề sự kiện (Font Cute bo tròn)
+  ctx.font = '800 28px "Baloo 2", "Quicksand", sans-serif'
+  ctx.letterSpacing = '1px'
   ctx.fillText(opts.eventName.toUpperCase(), width / 2, height - 85)
 
   // Ngày tháng & Bộ lọc
-  ctx.font = '600 16px "Plus Jakarta Sans", sans-serif'
-  ctx.letterSpacing = '1px'
-  ctx.globalAlpha = 0.8
+  ctx.font = '700 16px "Quicksand", sans-serif'
+  ctx.letterSpacing = '0.5px'
+  ctx.globalAlpha = 0.85
   ctx.fillText(`${opts.eventDate}  •  ${opts.filter.name}`, width / 2, height - 48)
   ctx.restore()
 

@@ -1,7 +1,24 @@
-/* ── JoyBooth Design System ──────────────────────────────────────────────── */
+/* Online Google Fonts Fallback */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@500;600;700&display=swap');
 
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap');
+/* ── Local Bundled Cute Fonts (100% Offline Compatible) ───────────────────── */
+@font-face {
+  font-family: 'Baloo 2';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('./assets/fonts/Baloo2-Variable.ttf') format('truetype-variations'),
+       url('./assets/fonts/Baloo2-Variable.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Quicksand';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('./assets/fonts/Quicksand-Variable.ttf') format('truetype-variations'),
+       url('./assets/fonts/Quicksand-Variable.ttf') format('truetype');
+}
 
 /* ── CSS Variables (Exact Requested Palette) ────────────────────────────── */
 :root {
@@ -50,9 +67,9 @@
   --radius-xl: 36px;
   --radius-full: 9999px;
 
-  /* Fonts */
-  --font-display: 'Outfit', sans-serif;
-  --font-body:    'Plus Jakarta Sans', sans-serif;
+  /* Fonts - Thay thế font cũ bằng Font Cute Bo Tròn Chuẩn Photobooth Hàn Quốc */
+  --font-display: 'Baloo 2', 'Quicksand', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body:    'Quicksand', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Transitions */
   --transition-fast:   150ms cubic-bezier(0.16, 1, 0.3, 1);
