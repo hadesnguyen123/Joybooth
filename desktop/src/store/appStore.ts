@@ -290,9 +290,15 @@ interface AppStore {
   brightnessAdjust: number
   contrastAdjust: number
   saturationAdjust: number
+  skinSmoothing: number // 0 - 100 Làm mịn da
+  rosyTone: number      // 0 - 100 Trắng hồng
+  glowClarity: number   // 0 - 100 Sáng nét
   setBrightnessAdjust: (val: number) => void
   setContrastAdjust: (val: number) => void
   setSaturationAdjust: (val: number) => void
+  setSkinSmoothing: (val: number) => void
+  setRosyTone: (val: number) => void
+  setGlowClarity: (val: number) => void
   resetAdjustments: () => void
   getEffectiveFilterCss: () => string
   ringLightEnabled: boolean
@@ -433,17 +439,54 @@ export const useAppStore = create<AppStore>((set, get) => ({
   brightnessAdjust: 100,
   contrastAdjust: 100,
   saturationAdjust: 100,
+  skinSmoothing: 25, // Khởi tạo làm mịn nhẹ 25% chuẩn studio Hàn Quốc
+  rosyTone: 15,      // Trắng hồng 15%
+  glowClarity: 10,   // Sáng nét 10%
   setBrightnessAdjust: (brightnessAdjust) => set({ brightnessAdjust }),
   setContrastAdjust: (contrastAdjust) => set({ contrastAdjust }),
   setSaturationAdjust: (saturationAdjust) => set({ saturationAdjust }),
-  resetAdjustments: () => set({ brightnessAdjust: 100, contrastAdjust: 100, saturationAdjust: 100 }),
+  setSkinSmoothing: (skinSmoothing) => set({ skinSmoothing }),
+  setRosyTone: (rosyTone) => set({ rosyTone }),
+  setGlowClarity: (glowClarity) => set({ glowClarity }),
+  resetAdjustments: () =>
+    set({
+      brightnessAdjust: 100,
+      contrastAdjust: 100,
+      saturationAdjust: 100,
+      skinSmoothing: 0,
+      rosyTone: 0,
+      glowClarity: 0,
+    }),
   getEffectiveFilterCss: () => {
-    const { selectedFilter, brightnessAdjust, contrastAdjust, saturationAdjust } = get()
+    const {
+      selectedFilter,
+      brightnessAdjust,
+      contrastAdjust,
+      saturationAdjust,
+      skinSmoothing,
+      rosyTone,
+      glowClarity,
+    } = get()
     const base = selectedFilter.cssFilter === 'none' ? '' : selectedFilter.cssFilter
+
+    // Tính toán độ sáng, tương phản, độ bão hòa
     const b = brightnessAdjust !== 100 ? `brightness(${brightnessAdjust / 100})` : ''
     const c = contrastAdjust !== 100 ? `contrast(${contrastAdjust / 100})` : ''
     const s = saturationAdjust !== 100 ? `saturate(${saturationAdjust / 100})` : ''
-    const parts = [base, b, c, s].filter(Boolean)
+
+    // Hiệu ứng làm đẹp (Glam & Beauty):
+    // Làm mịn da (Skin Smoothing): bloom nhẹ và sáng da
+    const smooth = skinSmoothing > 0 ? `blur(${(skinSmoothing * 0.007).toFixed(2)}px)` : ''
+    // Trắng hồng (Rosy tone): hơi ngả ấm nhẹ và bão hòa da
+    const rosy =
+      rosyTone > 0
+        ? `hue-rotate(-${(rosyTone * 0.08).toFixed(1)}deg) saturate(${1 + rosyTone * 0.002})`
+        : ''
+    // Độ nét (Clarity): tăng tương phản viền nhẹ
+    const clarity =
+      glowClarity > 0 ? `contrast(${1 + glowClarity * 0.0015})` : ''
+
+    const parts = [base, b, c, s, smooth, rosy, clarity].filter(Boolean)
     return parts.length > 0 ? parts.join(' ') : 'none'
   },
 

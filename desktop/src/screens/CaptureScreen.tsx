@@ -28,26 +28,40 @@ export default function CaptureScreen() {
     brightnessAdjust,
     contrastAdjust,
     saturationAdjust,
+    skinSmoothing,
+    rosyTone,
+    glowClarity,
     setBrightnessAdjust,
     setContrastAdjust,
     setSaturationAdjust,
+    setSkinSmoothing,
+    setRosyTone,
+    setGlowClarity,
     resetAdjustments,
     getEffectiveFilterCss,
   } = useAppStore()
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const currentStreamRef = useRef<MediaStream | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordedChunksRef = useRef<Blob[]>([])
 
   const [hasCamera, setHasCamera] = useState<boolean>(false)
-  const [activeFlyout, setActiveFlyout] = useState<'filter' | 'lighting' | null>(null)
-  const [isCapturingSequence, setIsCapturingSequence] = useState<boolean>(false)
+  const [activeFlyout, setActiveFlyout] = useState<'filter' | 'beauty' | 'lighting' | null>(null)
+  
+  // Trạng thái buổi chụp theo từng lần nhấn:
+  const [isSessionActive, setIsSessionActive] = useState<boolean>(false) // Khóa các nút khác & làm tối xung quanh
+  const [isCapturingShot, setIsCapturingShot] = useState<boolean>(false) // Đang trong 3s countdown của 1 shot
   const [currentShotNumber, setCurrentShotNumber] = useState<number>(1)
   const [currentCountdown, setCurrentCountdown] = useState<number>(3)
   const [showFlash, setShowFlash] = useState<boolean>(false)
+  const [capturedThumbnails, setCapturedThumbnails] = useState<string[]>([])
 
   // Hiệu ứng ảnh bay vào lưới thumbnail
   const [snapshotFlyer, setSnapshotFlyer] = useState<{ photoUrl: string; slotIndex: number } | null>(null)
   const [justCapturedSlot, setJustCapturedSlot] = useState<number | null>(null)
+
+  const totalShots = selectedLayout.photosCount || 4
 
   // Khởi động Camera thiết bị
   const startCamera = useCallback(async (deviceId?: string) => {
@@ -142,100 +156,37 @@ export default function CaptureScreen() {
     return ''
   }
 
-  const [capturedThumbnails, setCapturedThumbnails] = useState<string[]>([])
+  // Khởi động quay Timelapse
+  function startTimelapse() {
+    if (!eventConfig.timelapseEnabled || !currentStreamRef.current) return
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') return
 
-  // Bắt đầu chuỗi chụp nhiều ảnh (Multi-shot Sequence) kết hợp quay Timelapse
-  async function startCaptureSequence() {
-    if (isCapturingSequence) return
-    setActiveFlyout(null)
-    setIsCapturingSequence(true)
-    setCapturedThumbnails([])
-
-    // 1. Khởi động MediaRecorder ghi video timelapse liên tục từ luồng camera trực tiếp
-    let mediaRecorder: MediaRecorder | null = null
-    const recordedChunks: Blob[] = []
-
-    if (eventConfig.timelapseEnabled && currentStreamRef.current) {
-      try {
-        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8')
-          ? 'video/webm;codecs=vp8'
-          : 'video/webm'
-        mediaRecorder = new MediaRecorder(currentStreamRef.current, { mimeType })
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            recordedChunks.push(event.data)
-          }
+    try {
+      recordedChunksRef.current = []
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8')
+        ? 'video/webm;codecs=vp8'
+        : 'video/webm'
+      const recorder = new MediaRecorder(currentStreamRef.current, { mimeType })
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunksRef.current.push(event.data)
         }
-        mediaRecorder.start(250)
-      } catch (err) {
-        console.warn('Failed to start MediaRecorder for timelapse:', err)
       }
+      recorder.start(250)
+      mediaRecorderRef.current = recorder
+    } catch (err) {
+      console.warn('Failed to start MediaRecorder for timelapse:', err)
     }
+  }
 
-    const totalShots = selectedLayout.photosCount || 4
-
-    for (let shot = 1; shot <= totalShots; shot++) {
-      setCurrentShotNumber(shot)
-
-      // Chạy đếm ngược cho mỗi bức ảnh
-      for (let c = countdownSeconds; c >= 1; c--) {
-        setCurrentCountdown(c)
-        await new Promise((r) => setTimeout(r, 1000))
-      }
-
-      // Flash & Chụp
-      setShowFlash(true)
-      setTimeout(() => setShowFlash(false), 450)
-
-      const photoDataUrl = grabVideoFrame()
-      const timestamp = Date.now()
-      const photoPath = photoDataUrl || `photo_${timestamp}_${shot}.jpg`
-
-      addPhoto({
-        id: `photo_${timestamp}_${shot}`,
-        rawPath: photoPath,
-        enhancedPath: photoPath,
-        compositedPath: photoPath,
-        timestamp,
-      })
-
-      // Kích hoạt hiệu ứng bay vào ô lưới slot
-      const slotIndex = shot - 1
-      setSnapshotFlyer({ photoUrl: photoPath, slotIndex })
-      setJustCapturedSlot(slotIndex)
-
-      // Cập nhật thumbnail dải slot trực tiếp
-      setCapturedThumbnails((prev) => [...prev, photoPath])
-
-      // Tự động lưu từng ảnh chụp vào thư mục Downloads của máy
-      if (photoDataUrl && photoDataUrl.startsWith('data:image')) {
-        const fileName = `joybooth_shot_${shot}_${timestamp}.jpg`
-        const api = isBrowser ? mockApi : joyBoothApi
-        api.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save photo error:', err))
-      }
-
-      // Ẩn flyer sau khi animation kết thúc
-      setTimeout(() => {
-        setSnapshotFlyer(null)
-      }, 950)
-
-      setTimeout(() => {
-        setJustCapturedSlot(null)
-      }, 1500)
-
-      // Nghỉ 1.8s giữa các lần chụp để khách xem ảnh bay vào ô & đổi dáng
-      if (shot < totalShots) {
-        await new Promise((r) => setTimeout(r, 1800))
-      }
-    }
-
-    // 2. Dừng ghi timelapse và lưu file video
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+  // Dừng quay Timelapse
+  async function stopTimelapse() {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       await new Promise<void>((resolve) => {
-        if (!mediaRecorder) return resolve()
-        mediaRecorder.onstop = () => {
+        if (!mediaRecorderRef.current) return resolve()
+        mediaRecorderRef.current.onstop = () => {
           try {
-            const blob = new Blob(recordedChunks, { type: 'video/webm' })
+            const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
             const videoUrl = URL.createObjectURL(blob)
             setTimelapseUrl(videoUrl)
           } catch (err) {
@@ -243,32 +194,118 @@ export default function CaptureScreen() {
           }
           resolve()
         }
-        mediaRecorder.stop()
+        mediaRecorderRef.current.stop()
       })
     }
+  }
 
-    // 3. Đồng bộ link Google Drive (Mock / Cloud Folder) nếu được bật
-    if (eventConfig.gdriveEnabled) {
-      const folderLink =
-        eventConfig.gdriveFolderUrl ||
-        `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || 'JoyBooth_Demo'}`
-      setGdriveUrl(folderLink)
+  // Chụp từng ảnh một theo mỗi lần nhấn nút
+  async function handleTakeSingleShot() {
+    if (isCapturingShot) return
+    if (capturedThumbnails.length >= totalShots) return
+
+    // 1. Kích hoạt chế độ buổi chụp Studio: Làm tối xung quanh & Khóa toàn bộ tính năng khác
+    setActiveFlyout(null)
+    setIsSessionActive(true)
+    setIsCapturingShot(true)
+
+    // Khởi động timelapse nếu là lần nhấn đầu tiên
+    if (capturedThumbnails.length === 0) {
+      startTimelapse()
     }
 
-    setIsCapturingSequence(false)
-    // Chuyển sang màn hình Chọn Chủ Đề (Themes)
+    const nextShotNum = capturedThumbnails.length + 1
+    setCurrentShotNumber(nextShotNum)
+
+    // 2. Chạy đếm ngược (3s, 5s hoặc 10s)
+    for (let c = countdownSeconds; c >= 1; c--) {
+      setCurrentCountdown(c)
+      await new Promise((r) => setTimeout(r, 1000))
+    }
+
+    // 3. Chớp Flash & Chụp ảnh
+    setShowFlash(true)
+    setTimeout(() => setShowFlash(false), 450)
+
+    const photoDataUrl = grabVideoFrame()
+    const timestamp = Date.now()
+    const photoPath = photoDataUrl || `photo_${timestamp}_${nextShotNum}.jpg`
+
+    addPhoto({
+      id: `photo_${timestamp}_${nextShotNum}`,
+      rawPath: photoPath,
+      enhancedPath: photoPath,
+      compositedPath: photoPath,
+      timestamp,
+    })
+
+    // 4. Kích hoạt hiệu ứng bay vào ô thumbnail slot
+    const slotIndex = capturedThumbnails.length
+    setSnapshotFlyer({ photoUrl: photoPath, slotIndex })
+    setJustCapturedSlot(slotIndex)
+
+    const nextThumbnails = [...capturedThumbnails, photoPath]
+    setCapturedThumbnails(nextThumbnails)
+
+    // 5. Tự động lưu ảnh vào thư mục Downloads của máy
+    if (photoDataUrl && photoDataUrl.startsWith('data:image')) {
+      const fileName = `joybooth_shot_${nextShotNum}_${timestamp}.jpg`
+      const api = isBrowser ? mockApi : joyBoothApi
+      api.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save photo error:', err))
+    }
+
+    // Ẩn flyer sau khi hoàn tất animation bay
     setTimeout(() => {
-      setScreen('select-theme')
-    }, 800)
+      setSnapshotFlyer(null)
+    }, 950)
+
+    setTimeout(() => {
+      setJustCapturedSlot(null)
+    }, 1500)
+
+    setIsCapturingShot(false)
+
+    // 6. Kiểm tra xem đã hoàn thành tất cả ảnh chưa
+    if (nextThumbnails.length >= totalShots) {
+      await stopTimelapse()
+
+      if (eventConfig.gdriveEnabled) {
+        const folderLink =
+          eventConfig.gdriveFolderUrl ||
+          `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || 'JoyBooth_Demo'}`
+        setGdriveUrl(folderLink)
+      }
+
+      // Hủy bỏ cơ chế khóa và chuyển màn hình sau 1.2s
+      setTimeout(() => {
+        setIsSessionActive(false)
+        setScreen('select-theme')
+      }, 1200)
+    }
   }
+
+  // Hủy buổi chụp và chụp lại từ đầu
+  function handleResetShootSession() {
+    setIsSessionActive(false)
+    setIsCapturingShot(false)
+    setCapturedThumbnails([])
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+    }
+  }
+
+  const isCompleted = capturedThumbnails.length >= totalShots
 
   return (
     <div className="capture-screen-pastel" id="capture-screen">
       {/* Screen Flash Animation */}
       {showFlash && <div className="screen-flash" />}
 
-      {/* ── Top Bar: Countdown Selectors (3s, 5s, 10s) ── */}
-      <header className="capture-top-bar">
+      {/* Focus Dim Backdrop: Làm tối xung quanh trong suốt buổi chụp */}
+      {isSessionActive && <div className="focus-dim-backdrop" />}
+
+      {/* ── Top Bar: Countdown Pills + Locked Badge + Utilities ── */}
+      <header className={`capture-top-bar ${isSessionActive ? 'locked-dimmed' : ''}`}>
         <div className="countdown-capsule-group">
           {[3, 5, 10].map((sec) => (
             <button
@@ -291,17 +328,16 @@ export default function CaptureScreen() {
           <span>({selectedLayout.photosCount} ảnh)</span>
         </div>
 
-        {/* Right utility options */}
+        {/* Right utility options — Nút to rõ nét, font chữ lớn */}
         <div className="top-utility-actions">
           {availableCameras.length > 0 && (
             <select
-              className="utility-pill-btn"
+              className="utility-pill-btn camera-select-pill"
               value={selectedCameraId || ''}
               onChange={(e) => {
                 selectCamera(e.target.value)
                 startCamera(e.target.value)
               }}
-              style={{ maxWidth: 170 }}
             >
               {availableCameras.map((cam) => (
                 <option key={cam.id} value={cam.id}>
@@ -339,38 +375,56 @@ export default function CaptureScreen() {
 
       {/* ── Main Stage Area: Left Dock + Flyout + Viewfinder ── */}
       <div className="capture-main-stage">
-        {/* Left Floating Dock (Chỉ còn Bộ lọc & Phát sáng) */}
-        <aside className="left-sidebar-dock">
-          {/* Nút 1: Bộ lọc */}
+        {/* Left Floating Dock: Bộ lọc / Làm đẹp / Phát sáng */}
+        <aside className={`left-sidebar-dock ${isSessionActive ? 'locked-dimmed' : ''}`}>
+          {/* Nút 1: Bộ lọc màu */}
           <button
             className={`dock-btn ${activeFlyout === 'filter' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'filter' ? null : 'filter')}
+            title="Chọn bộ lọc màu"
           >
             <span className="dock-icon">🫧</span>
             <span className="dock-label">Bộ lọc</span>
           </button>
 
-          {/* Nút 2: Phát sáng */}
+          {/* Nút 2: Làm đẹp & Chỉnh sáng (Tách riêng biệt) */}
+          <button
+            className={`dock-btn ${activeFlyout === 'beauty' ? 'active' : ''}`}
+            onClick={() => setActiveFlyout(activeFlyout === 'beauty' ? null : 'beauty')}
+            title="Làm mịn da & chỉnh sáng"
+          >
+            <span className="dock-icon">✨</span>
+            <span className="dock-label">Làm đẹp</span>
+          </button>
+
+          {/* Nút 3: Phát sáng (Ring Light) */}
           <button
             className={`dock-btn ${activeFlyout === 'lighting' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'lighting' ? null : 'lighting')}
+            title="Đèn sáng studio"
           >
             <span className="dock-icon">💡</span>
             <span className="dock-label">Phát sáng</span>
           </button>
         </aside>
 
-        {/* ── Flyout Modal Panel (Bộ lọc màu) ── */}
+        {/* ── Flyout Modal Panel: 1. Bộ lọc màu (Làm sáng rõ rệt thẻ đang chọn) ── */}
         {activeFlyout === 'filter' && (
           <div className="flyout-panel animate-pop">
             <div className="flyout-header">
-              <span className="flyout-title">Bộ lọc màu</span>
+              <span className="flyout-title">🫧 Bộ Lọc Màu Hàn Quốc</span>
               <button className="flyout-close-btn" onClick={() => setActiveFlyout(null)}>
                 ✕
               </button>
             </div>
 
-            <div className="flyout-content" style={{ maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
+            <div className="flyout-content">
+              {/* Banner hiển thị bộ lọc đang áp dụng */}
+              <div className="filter-active-banner">
+                <span>✨ Đang dùng: <strong>{selectedFilter.name}</strong></span>
+                <span style={{ fontSize: '0.78rem' }}>({selectedFilter.tag})</span>
+              </div>
+
               <div className="filter-list-presets">
                 {COLOR_FILTERS.map((filter) => {
                   const isSelected = selectedFilter.id === filter.id
@@ -385,26 +439,93 @@ export default function CaptureScreen() {
                         style={{ backgroundColor: filter.previewColor }}
                       />
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{filter.name}</span>
-                        <span style={{ fontSize: '0.68rem', color: 'var(--color-pink-primary)' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.9rem', color: isSelected ? 'var(--color-pink-primary)' : '#2D2426' }}>
+                          {filter.name}
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>
                           {filter.tag}
                         </span>
                       </div>
+                      {isSelected && <span className="filter-selected-badge">✓ ĐANG CHỌN</span>}
                     </div>
                   )
                 })}
               </div>
+            </div>
+          </div>
+        )}
 
-              {/* Tinh chỉnh thông số nâng cao */}
-              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-pink-primary)', textTransform: 'uppercase' }}>
-                    🎛️ Tinh Chỉnh Ánh Sáng
-                  </span>
-                  {(brightnessAdjust !== 100 || contrastAdjust !== 100 || saturationAdjust !== 100) && (
+        {/* ── Flyout Modal Panel: 2. Làm đẹp & Chỉnh sáng (Tách riêng biệt) ── */}
+        {activeFlyout === 'beauty' && (
+          <div className="flyout-panel animate-pop">
+            <div className="flyout-header">
+              <span className="flyout-title">✨ Làm Đẹp & Ánh Sáng Studio</span>
+              <button className="flyout-close-btn" onClick={() => setActiveFlyout(null)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="flyout-content">
+              {/* Box 1: Làm đẹp khuôn mặt (Glam & Beauty) */}
+              <div className="beauty-section-box">
+                <div className="beauty-section-header">
+                  <span>🌸 Làm Đẹp Da (Beauty Glam)</span>
+                </div>
+
+                <div className="beauty-slider-row">
+                  <div className="beauty-slider-label">
+                    <span>Làm Mịn Da (Skin Smoothing)</span>
+                    <span className="beauty-val-badge">{skinSmoothing}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={skinSmoothing}
+                    onChange={(e) => setSkinSmoothing(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                  />
+                </div>
+
+                <div className="beauty-slider-row">
+                  <div className="beauty-slider-label">
+                    <span>Trắng Hồng Da (Rosy Tone)</span>
+                    <span className="beauty-val-badge">{rosyTone}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={rosyTone}
+                    onChange={(e) => setRosyTone(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                  />
+                </div>
+
+                <div className="beauty-slider-row">
+                  <div className="beauty-slider-label">
+                    <span>Độ Nét Căng Bóng (Clarity Glow)</span>
+                    <span className="beauty-val-badge">{glowClarity}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={glowClarity}
+                    onChange={(e) => setGlowClarity(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                  />
+                </div>
+              </div>
+
+              {/* Box 2: Tinh chỉnh ánh sáng */}
+              <div className="beauty-section-box">
+                <div className="beauty-section-header">
+                  <span>🎛️ Tinh Chỉnh Ánh Sáng</span>
+                  {(brightnessAdjust !== 100 || contrastAdjust !== 100 || saturationAdjust !== 100 || skinSmoothing !== 0 || rosyTone !== 0 || glowClarity !== 0) && (
                     <button
                       className="btn btn-ghost"
-                      style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                      style={{ fontSize: '0.75rem', padding: '2px 8px', color: 'var(--color-pink-primary)' }}
                       onClick={resetAdjustments}
                     >
                       Đặt lại
@@ -412,10 +533,10 @@ export default function CaptureScreen() {
                   )}
                 </div>
 
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#666', marginBottom: 4 }}>
-                    <span>Độ sáng (Brightness)</span>
-                    <span style={{ fontWeight: 700 }}>{brightnessAdjust}%</span>
+                <div className="beauty-slider-row">
+                  <div className="beauty-slider-label">
+                    <span>Độ Sáng (Brightness)</span>
+                    <span className="beauty-val-badge">{brightnessAdjust}%</span>
                   </div>
                   <input
                     type="range"
@@ -427,10 +548,10 @@ export default function CaptureScreen() {
                   />
                 </div>
 
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#666', marginBottom: 4 }}>
-                    <span>Tương phản (Contrast)</span>
-                    <span style={{ fontWeight: 700 }}>{contrastAdjust}%</span>
+                <div className="beauty-slider-row">
+                  <div className="beauty-slider-label">
+                    <span>Độ Tương Phản (Contrast)</span>
+                    <span className="beauty-val-badge">{contrastAdjust}%</span>
                   </div>
                   <input
                     type="range"
@@ -442,10 +563,10 @@ export default function CaptureScreen() {
                   />
                 </div>
 
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#666', marginBottom: 4 }}>
-                    <span>Độ bão hòa (Saturation)</span>
-                    <span style={{ fontWeight: 700 }}>{saturationAdjust}%</span>
+                <div className="beauty-slider-row">
+                  <div className="beauty-slider-label">
+                    <span>Độ Bão Hòa (Saturation)</span>
+                    <span className="beauty-val-badge">{saturationAdjust}%</span>
                   </div>
                   <input
                     type="range"
@@ -461,11 +582,11 @@ export default function CaptureScreen() {
           </div>
         )}
 
-        {/* ── Flyout Modal Panel (Phát sáng / Lighting) ── */}
+        {/* ── Flyout Modal Panel: 3. Phát sáng (Ring Light) ── */}
         {activeFlyout === 'lighting' && (
           <div className="flyout-panel animate-pop">
             <div className="flyout-header">
-              <span className="flyout-title">Đèn phát sáng (Ring Light)</span>
+              <span className="flyout-title">💡 Đèn Phát Sáng (Ring Light)</span>
               <button className="flyout-close-btn" onClick={() => setActiveFlyout(null)}>
                 ✕
               </button>
@@ -473,40 +594,38 @@ export default function CaptureScreen() {
 
             <div className="flyout-content" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Đèn sáng Photobooth:</span>
+                <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Đèn sáng Photobooth:</span>
                 <button
-                  className="btn btn-pill-white"
-                  style={{
-                    padding: '6px 14px',
-                    borderColor: ringLightEnabled ? 'var(--color-pink-primary)' : 'rgba(0,0,0,0.1)',
-                    color: ringLightEnabled ? 'var(--color-pink-primary)' : '#555',
-                  }}
+                  className={`btn ${ringLightEnabled ? 'btn-primary' : 'btn-pill-white'}`}
+                  style={{ padding: '6px 18px', fontSize: '0.88rem' }}
                   onClick={() => setRingLightEnabled(!ringLightEnabled)}
                 >
-                  {ringLightEnabled ? '💡 Đang Bật' : 'Tắt'}
+                  {ringLightEnabled ? 'Đang Bật' : 'Tắt'}
                 </button>
               </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: '0.85rem', color: '#666' }}>Cường độ phát sáng:</span>
-                  <span style={{ fontWeight: 700, color: 'var(--color-pink-primary)' }}>{ringLightLevel}%</span>
+              {ringLightEnabled && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#666', marginBottom: 6 }}>
+                    <span>Cường độ ánh sáng</span>
+                    <span style={{ fontWeight: 700, color: 'var(--color-pink-primary)' }}>{ringLightLevel}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="40"
+                    max="100"
+                    value={ringLightLevel}
+                    onChange={(e) => setRingLightLevel(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="20"
-                  max="100"
-                  value={ringLightLevel}
-                  onChange={(e) => setRingLightLevel(Number(e.target.value))}
-                  style={{ width: '100%', accentColor: 'var(--color-pink-primary)', cursor: 'pointer' }}
-                />
-              </div>
+              )}
             </div>
           </div>
         )}
 
         {/* ── Center Camera Viewfinder Stage ── */}
-        <div className="camera-viewfinder-wrapper">
+        <div className={`camera-viewfinder-wrapper ${isSessionActive ? 'shooting-focus' : ''}`}>
           {hasCamera ? (
             <video
               ref={videoRef}
@@ -540,18 +659,18 @@ export default function CaptureScreen() {
           )}
 
           {/* Timelapse Recording Indicator */}
-          {eventConfig.timelapseEnabled && isCapturingSequence && (
+          {eventConfig.timelapseEnabled && isSessionActive && (
             <div className="timelapse-recording-badge">
               <span className="rec-dot" />
               <span>REC TIMELAPSE</span>
             </div>
           )}
 
-          {/* Sequential Multi-Shot Countdown */}
-          {isCapturingSequence && (
+          {/* Countdown digits overlay */}
+          {isCapturingShot && (
             <div className="multi-shot-countdown-overlay">
               <span className="shot-step-badge">
-                📸 Chụp ảnh {currentShotNumber} / {selectedLayout.photosCount}
+                📸 Chụp ảnh {currentShotNumber} / {totalShots}
               </span>
               <div className="countdown-digits">{currentCountdown}</div>
             </div>
@@ -571,20 +690,20 @@ export default function CaptureScreen() {
         </div>
       </div>
 
-      {/* ── Bottom Deck: Live Slots Progress + Shutter Button ── */}
+      {/* ── Bottom Deck: Live Slots Progress (Phóng to) + Shutter Button ── */}
       <footer className="capture-bottom-deck">
-        {/* Live Slot Strip: [Photo 1] [Photo 2] [+] [+] with counter (e.g. 3/6) */}
+        {/* Live Slot Strip: [Photo 1] [Photo 2] [+] [+] with counter (e.g. 1/4) */}
         <div className="live-slots-deck">
           <div className="live-slots-list">
-            {Array.from({ length: selectedLayout.photosCount }).map((_, index) => {
+            {Array.from({ length: totalShots }).map((_, index) => {
               const isFilled = index < capturedThumbnails.length
-              const isCurrent = isCapturingSequence && index === capturedThumbnails.length
+              const isCurrent = index === capturedThumbnails.length
               const isJustCaptured = justCapturedSlot === index
 
               return (
                 <div
                   key={index}
-                  className={`live-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isCurrent ? 'current' : ''} ${isJustCaptured ? 'just-captured' : ''}`}
+                  className={`live-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isCurrent && isSessionActive ? 'current' : ''} ${isJustCaptured ? 'just-captured' : ''}`}
                 >
                   {isFilled ? (
                     <img src={capturedThumbnails[index]} alt={`Slot ${index + 1}`} />
@@ -596,19 +715,37 @@ export default function CaptureScreen() {
             })}
           </div>
           <div className="live-slots-counter">
-            {capturedThumbnails.length}/{selectedLayout.photosCount}
+            {capturedThumbnails.length}/{totalShots}
           </div>
         </div>
 
-        <button
-          className="start-capture-btn-pink"
-          id="start-capture-button"
-          disabled={isCapturingSequence}
-          onClick={startCaptureSequence}
-        >
-          <span style={{ fontSize: '1.4rem' }}>📷</span>
-          <span>{isCapturingSequence ? 'Đang Chụp Theo Chuỗi...' : 'Bắt đầu chụp'}</span>
-        </button>
+        {/* Nút chụp: Mỗi lần bấm chụp 1 ảnh, bấm tiếp chụp ảnh tiếp theo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button
+            className="start-capture-btn-pink"
+            id="start-capture-button"
+            disabled={isCapturingShot || isCompleted}
+            onClick={handleTakeSingleShot}
+          >
+            <span style={{ fontSize: '1.5rem' }}>📷</span>
+            <span>
+              {isCapturingShot
+                ? `Đang đếm ngược ảnh ${currentShotNumber}...`
+                : isCompleted
+                ? '✨ Đã hoàn thành tất cả ảnh!'
+                : capturedThumbnails.length === 0
+                ? `Bắt đầu chụp (Ảnh 1 / ${totalShots})`
+                : `📸 Chụp tiếp ảnh ${capturedThumbnails.length + 1} / ${totalShots}`}
+            </span>
+          </button>
+
+          {/* Nút hủy buổi chụp nếu khách muốn chụp lại từ đầu */}
+          {isSessionActive && !isCapturingShot && (
+            <button className="cancel-shoot-btn" onClick={handleResetShootSession}>
+              ↩ Chụp lại từ đầu
+            </button>
+          )}
+        </div>
       </footer>
     </div>
   )
