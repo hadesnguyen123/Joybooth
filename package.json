@@ -10,6 +10,8 @@
     "build:win": "npm --prefix desktop run build:win",
     "start": "npm --prefix desktop start",
     "preview": "npm --prefix desktop run preview",
+    "cms": "npm --prefix cms-web run dev",
+    "cms:build": "npm --prefix cms-web run build",
     "ai": "cd ai-service && python main.py"
   }
 }
