@@ -42,10 +42,10 @@ export default function SelectFrameSizeScreen() {
           </div>
 
           <p className="size-card-desc">
-            Bản in dải Strip đôi Hàn Quốc (2 bản 2x6). Thích hợp chia sẻ với bạn thân hoặc kẹp ốp lưng điện thoại.
+            Gồm 2 dải in Strip đôi
           </p>
 
-          <button className="btn-select-size">Chọn Khung 2x6</button>
+          <button className="btn-select-size">CHỌN KHUNG NÀY ➔</button>
         </div>
 
         {/* Option 2: 4x6 INCH */}
@@ -66,10 +66,10 @@ export default function SelectFrameSizeScreen() {
           </div>
 
           <p className="size-card-desc">
-            Bản in khổ lớn Bưu Thiếp Postcard (10x15cm). Thích hợp cho nhóm đông người, gia đình hoặc lưu giữ vào album.
+            Gồm 1 bưu thiếp Postcard lớn
           </p>
 
-          <button className="btn-select-size">Chọn Khung 4x6</button>
+          <button className="btn-select-size">CHỌN KHUNG NÀY ➔</button>
         </div>
       </div>
 

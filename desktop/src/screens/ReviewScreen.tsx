@@ -506,11 +506,11 @@ export default function ReviewScreen() {
               onClick={handlePrint}
             >
               {isPrinting ? (
-                <>⏳ Đang gửi lệnh in ({printCopies} bản)...</>
+                <>⏳ ĐANG GỬI LỆNH IN ({printCopies} BẢN)...</>
               ) : printSuccess ? (
-                <>✅ Đã gửi lệnh in! Vui lòng nhận ảnh tại khe in</>
+                <>✅ ĐÃ GỬI LỆNH IN! VUI LÒNG NHẬN ẢNH</>
               ) : (
-                <>🖨️ In {printCopies} Bản Ngay</>
+                <>🖨️ IN {printCopies} BẢN NGAY ➔</>
               )}
             </button>
           </div>
@@ -532,7 +532,7 @@ export default function ReviewScreen() {
             style={{ padding: '12px 20px', color: 'var(--color-dark-text)', borderColor: 'var(--color-border-pink)' }}
             onClick={() => setScreen('select-theme')}
           >
-            🎨 Đổi Theme
+            🎨 Đổi Khung
           </button>
           <button
             className="btn btn-pill-white"
@@ -546,10 +546,10 @@ export default function ReviewScreen() {
         <button
           className="btn btn-pink"
           id="finish-button"
-          style={{ padding: '14px 40px', fontSize: '1.1rem' }}
+          style={{ padding: '14px 44px', fontSize: '1.15rem', fontWeight: 900 }}
           onClick={handleFinish}
         >
-          ✅ Hoàn Tất & Về Trang Đầu
+          HOÀN TẤT & KẾT THÚC ➔
         </button>
       </footer>
     </div>

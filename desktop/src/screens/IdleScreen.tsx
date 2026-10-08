@@ -16,8 +16,6 @@ export default function IdleScreen() {
     }
   }
 
-  const selfboothMinutes = Math.round((eventConfig.selfboothDurationSeconds || 60) / 60)
-
   return (
     <div className="idle-screen" id="idle-screen">
       {/* Decorative background orbs */}
@@ -89,7 +87,7 @@ export default function IdleScreen() {
 
         {/* ── 2 Chế Độ Chụp Tại Màn Hình Chính ── */}
         <div className="idle-modes-container">
-          {/* Chế độ 1: PHOTOBOOTH CỔ ĐIỂN */}
+          {/* Chế độ 1: PHOTOBOOTH */}
           <div
             className="idle-mode-card card-photobooth"
             id="mode-photobooth-card"
@@ -97,28 +95,23 @@ export default function IdleScreen() {
           >
             <div className="mode-card-badge badge-photobooth">
               <span>⭐️</span>
-              <span>PHỔ BIẾN</span>
+              <span>PHỔ BIẾN NHẤT</span>
             </div>
 
             <div className="mode-card-icon">📸</div>
 
-            <h2 className="mode-card-title">Photobooth Cổ Điển</h2>
+            <h2 className="mode-card-title">PHOTOBOOTH</h2>
             <p className="mode-card-subtitle">
-              Chụp lần lượt theo ô khung hình
+              Chụp theo khung hình • In 2 dải Strip
             </p>
 
-            <ul className="mode-card-features">
-              <li>🎞️ Khung Strip 2x6 & Postcard 4x6</li>
-              <li>🔄 Chụp lại ảnh chưa ưng ý</li>
-              <li>🎨 Đổi viền & dán Sticker</li>
-            </ul>
-
             <div className="mode-card-action btn-action-photobooth">
-              <span>Bắt Đầu Ngay ➔</span>
+              <span>CHẠM ĐỂ CHỤP NGAY 📸</span>
+              <span className="action-arrow">➔</span>
             </div>
           </div>
 
-          {/* Chế độ 2: SELFBOOTH HÀN QUỐC */}
+          {/* Chế độ 2: SELFBOOTH */}
           <div
             className="idle-mode-card card-selfbooth"
             id="mode-selfbooth-card"
@@ -126,24 +119,19 @@ export default function IdleScreen() {
           >
             <div className="mode-card-badge badge-selfbooth">
               <span>🔥</span>
-              <span>K-STUDIO</span>
+              <span>HOT TREND</span>
             </div>
 
             <div className="mode-card-icon">⏱️</div>
 
-            <h2 className="mode-card-title">Selfbooth Tự Do</h2>
+            <h2 className="mode-card-title">SELFBOOTH</h2>
             <p className="mode-card-subtitle">
-              Chụp không giới hạn {selfboothMinutes} phút
+              Tự do tạo dáng trong {eventConfig.selfboothDurationSeconds || 60}s
             </p>
 
-            <ul className="mode-card-features">
-              <li>⏱️ Thả ga tạo dáng {eventConfig.selfboothDurationSeconds || 60}s</li>
-              <li>🖼️ Tự chọn những ảnh đẹp nhất</li>
-              <li>☁️ Quét QR tải ảnh Google Drive</li>
-            </ul>
-
             <div className="mode-card-action btn-action-selfbooth">
-              <span>Bắt Đầu Ngay ➔</span>
+              <span>CHẠM ĐỂ CHỤP NGAY ⏱️</span>
+              <span className="action-arrow">➔</span>
             </div>
           </div>
         </div>

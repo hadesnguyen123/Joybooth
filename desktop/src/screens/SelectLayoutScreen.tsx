@@ -44,9 +44,9 @@ export default function SelectLayoutScreen() {
     <div className="layout-screen-container" id="select-layout-screen">
       {/* Title */}
       <div className="screen-title-banner">
-        <div className="title-bubble-badge">CHỌN BỐ CỤC KHUNG HÌNH</div>
-        <p style={{ margin: '6px 0 0', fontSize: '0.95rem', color: '#64748b' }}>
-          Định dạng: <strong>{selectedFrameSize === '2x6' ? 'Dải Strip 2x6 inch' : 'Bưu thiếp 4x6 inch'}</strong> • Gói cơ bản: <strong>{basePriceFormatted}đ</strong>
+        <div className="title-bubble-badge">CHỌN BỐ CỤC</div>
+        <p style={{ margin: '6px 0 0', fontSize: '0.95rem', color: '#64748b', fontWeight: 700 }}>
+          {selectedFrameSize === '2x6' ? 'Dải Strip 2x6' : 'Postcard 4x6'} • {basePriceFormatted}đ
         </p>
       </div>
 
@@ -135,10 +135,10 @@ export default function SelectLayoutScreen() {
 
         <button
           className="btn btn-pink"
-          style={{ padding: '14px 44px', fontSize: '1.15rem' }}
+          style={{ padding: '14px 44px', fontSize: '1.15rem', fontWeight: 900 }}
           onClick={handleProceed}
         >
-          {eventConfig.paymentRequiredForPhotobooth ? '💳 Tiếp Tục Thanh Toán →' : '📷 Tiếp Tục Chụp →'}
+          {eventConfig.paymentRequiredForPhotobooth ? 'TIẾP TỤC THANH TOÁN ➔' : 'BẮT ĐẦU CHỤP ➔'}
         </button>
       </footer>
     </div>

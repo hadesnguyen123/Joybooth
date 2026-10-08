@@ -129,33 +129,33 @@ export default function PaymentScreen() {
       <div className="payment-main-stage">
         {/* CỘT TRÁI: Chi tiết gói, Số lượng in & Mã giảm giá */}
         <div className="order-summary-card">
-          <div className="summary-badge-top">1. CHI TIẾT ĐƠN HÀNG</div>
+          <div className="summary-badge-top">ĐƠN HÀNG</div>
 
           <div className="summary-info-row">
-            <span className="summary-label">Khổ ảnh in:</span>
+            <span className="summary-label">Khổ ảnh:</span>
             <span className="summary-val highlight">
-              {selectedFrameSize === '2x6' ? '🎞️ Dải Strip (2x6 inch)' : '🖼️ Bưu Thiếp Postcard (4x6 inch)'}
+              {selectedFrameSize === '2x6' ? '🎞️ Strip (2x6)' : '🖼️ Postcard (4x6)'}
             </span>
           </div>
 
           <div className="summary-info-row">
-            <span className="summary-label">Bố cục chọn:</span>
+            <span className="summary-label">Bố cục:</span>
             <span className="summary-val">{selectedLayout.name}</span>
           </div>
 
           <div className="summary-info-row">
-            <span className="summary-label">Mã giao dịch:</span>
+            <span className="summary-label">Mã đơn:</span>
             <span className="summary-val mono-badge">{orderCode}</span>
           </div>
 
           {/* CHỌN SỐ LƯỢNG ẢNH IN */}
           <div className="copies-selector-box">
             <div className="copies-label-wrap">
-              <span className="copies-title">Số bản in nhận được:</span>
+              <span className="copies-title">Số bản in:</span>
               <span className="copies-subtext">
                 {selectedFrameSize === '2x6'
-                  ? `(Gói cơ bản gồm 2 dải in)`
-                  : `(Gói cơ bản gồm 1 ảnh 4x6)`}
+                  ? `(Cơ bản: 2 dải)`
+                  : `(Cơ bản: 1 tấm)`}
               </span>
             </div>
 
@@ -183,7 +183,7 @@ export default function PaymentScreen() {
 
           {/* NHẬP MÃ GIẢM GIÁ */}
           <div className="coupon-input-section">
-            <label className="coupon-label">Mã giảm giá / Voucher ưu đãi:</label>
+            <label className="coupon-label">Mã ưu đãi:</label>
             {!appliedCoupon ? (
               <div className="coupon-input-group">
                 <input
@@ -373,14 +373,14 @@ export default function PaymentScreen() {
           {paymentMethod === 'vietqr' && (
             <button
               className={`btn btn-pink ${isProcessing ? 'btn-success-anim' : ''}`}
-              style={{ padding: '14px 38px', fontSize: '1.1rem' }}
+              style={{ padding: '14px 44px', fontSize: '1.15rem', fontWeight: 900 }}
               onClick={() => handleConfirmPaid('vietqr')}
             >
               {isProcessing
-                ? '✅ Đã Xác Nhận! Đang Vào Chụp...'
+                ? '✅ ĐÃ XÁC NHẬN! ĐANG MỞ CAMERA...'
                 : finalAmount === 0
-                ? '🎉 Trải Nghiệm Miễn Phí → Chụp Ngay'
-                : '✅ Tôi Đã Chuyển Khoản Xong'}
+                ? 'BẮT ĐẦU CHỤP MIỄN PHÍ ➔'
+                : 'XÁC NHẬN ĐÃ THANH TOÁN ➔'}
             </button>
           )}
 
