@@ -447,7 +447,7 @@ const DEFAULT_EVENT_CONFIG: EventConfig = {
   gdriveEnabled: true,
   gdriveFolderId: '1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU',
   gdriveFolderUrl: 'https://drive.google.com/drive/folders/1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU',
-  gdriveWebhookUrl: '',
+  gdriveWebhookUrl: 'https://script.google.com/macros/s/AKfycbwaxURdY_LUzje8k_IXilHcQiCXnvICL5Xo767cm6RwPsYjE2yJp-I3bE_jpQ3i66J7/exec',
   gdriveAutoSync: true,
   saveDirectory: 'Downloads/JoyBooth',
 }
