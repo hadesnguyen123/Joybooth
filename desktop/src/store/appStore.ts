@@ -14,6 +14,7 @@ export type AppScreen =
   | 'admin'
 
 export type BoothMode = 'attended' | 'unattended'
+export type CaptureMode = 'photobooth' | 'selfbooth'
 export type FrameSize = '2x6' | '4x6'
 
 // ─── Khung Kích Thước (Frame Size) ──────────────────────────────────────────
@@ -302,6 +303,9 @@ export interface EventConfig {
   printEnabled: boolean
   printCopies: number
   qrEnabled: boolean
+  // Chế độ chụp Photobooth vs Selfbooth
+  captureMode: CaptureMode  // 'photobooth' | 'selfbooth'
+  selfboothDurationSeconds: number // Thời gian giới hạn phiên Selfbooth (giây, mặc định 60s)
   // VietQR Kiosk Payment Settings (Giai đoạn 2)
   paymentQrEnabled: boolean // Tạm thời disable (false) theo yêu cầu người dùng
   bankBin: string           // Mã BIN ngân hàng (VD: 970422 - MB, 970436 - Vietcombank)
@@ -338,10 +342,17 @@ interface AppStore {
   session: SessionState | null
   startNewSession: () => void
   addPhoto: (photo: CapturedPhoto) => void
+  setSessionPhotos: (photos: CapturedPhoto[]) => void
+  replaceSessionPhotoAt: (index: number, photo: CapturedPhoto) => void
+  removeSessionPhotoAt: (index: number) => void
   clearSession: () => void
   setQr: (url: string, imagePath: string) => void
   setTimelapseUrl: (url: string | null) => void
   setGdriveUrl: (url: string | null) => void
+
+  // Mode settings
+  setCaptureMode: (mode: CaptureMode) => void
+  setSelfboothDurationSeconds: (seconds: number) => void
 
   // Step 1: Chọn Khung Hình (2x6 inch vs 4x6 inch)
   selectedFrameSize: FrameSize
@@ -418,6 +429,9 @@ const DEFAULT_EVENT_CONFIG: EventConfig = {
   printEnabled: true,
   printCopies: 1,
   qrEnabled: true,
+  // Chế độ chụp Photobooth vs Selfbooth
+  captureMode: 'photobooth',
+  selfboothDurationSeconds: 60,
   // VietQR Kiosk Payment Settings (Mặc định Disable theo chỉ đạo)
   paymentQrEnabled: false,
   bankBin: '970422', // MB Bank
@@ -510,6 +524,36 @@ export const useAppStore = create<AppStore>((set, get) => ({
       session: state.session
         ? { ...state.session, photos: [...state.session.photos, photo] }
         : state.session,
+    })),
+
+  setSessionPhotos: (photos) =>
+    set((state) => ({
+      session: state.session ? { ...state.session, photos } : state.session,
+    })),
+
+  replaceSessionPhotoAt: (index, photo) =>
+    set((state) => {
+      if (!state.session) return { session: state.session }
+      const newPhotos = [...state.session.photos]
+      newPhotos[index] = photo
+      return { session: { ...state.session, photos: newPhotos } }
+    }),
+
+  removeSessionPhotoAt: (index) =>
+    set((state) => {
+      if (!state.session) return { session: state.session }
+      const newPhotos = state.session.photos.filter((_, i) => i !== index)
+      return { session: { ...state.session, photos: newPhotos } }
+    }),
+
+  setCaptureMode: (captureMode) =>
+    set((state) => ({
+      eventConfig: { ...state.eventConfig, captureMode },
+    })),
+
+  setSelfboothDurationSeconds: (selfboothDurationSeconds) =>
+    set((state) => ({
+      eventConfig: { ...state.eventConfig, selfboothDurationSeconds },
     })),
 
   clearSession: () => set({ session: null, placedStickers: [] }),

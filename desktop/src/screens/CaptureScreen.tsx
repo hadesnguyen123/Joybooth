@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useAppStore, COLOR_FILTERS, BEAUTY_PRESETS } from '../store/appStore'
+import { useAppStore, COLOR_FILTERS, BEAUTY_PRESETS, type CapturedPhoto } from '../store/appStore'
 import { joyBoothApi, isBrowser, mockApi } from '../lib/api'
 import './CaptureScreen.css'
 
 export default function CaptureScreen() {
   const {
     setScreen,
-    addPhoto,
+    setSessionPhotos,
     countdownSeconds,
     setCountdownSeconds,
     selectedLayout,
@@ -48,22 +48,32 @@ export default function CaptureScreen() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordedChunksRef = useRef<Blob[]>([])
 
+  const totalShots = selectedLayout.photosCount || 4
+  const isSelfboothMode = eventConfig.captureMode === 'selfbooth'
+  const selfboothDuration = eventConfig.selfboothDurationSeconds || 60
+
   const [hasCamera, setHasCamera] = useState<boolean>(false)
   const [activeFlyout, setActiveFlyout] = useState<'filter' | 'beauty' | 'lighting' | null>(null)
-  
-  // Trạng thái buổi chụp theo từng lần nhấn:
-  const [isSessionActive, setIsSessionActive] = useState<boolean>(false) // Khóa các nút khác & làm tối xung quanh
-  const [isCapturingShot, setIsCapturingShot] = useState<boolean>(false) // Đang trong 3s countdown của 1 shot
-  const [currentShotNumber, setCurrentShotNumber] = useState<number>(1)
+
+  // ── Trạng thái chung khi chụp ──
+  const [isSessionActive, setIsSessionActive] = useState<boolean>(false)
+  const [isCapturingShot, setIsCapturingShot] = useState<boolean>(false)
   const [currentCountdown, setCurrentCountdown] = useState<number>(3)
   const [showFlash, setShowFlash] = useState<boolean>(false)
-  const [capturedThumbnails, setCapturedThumbnails] = useState<string[]>([])
-
-  // Hiệu ứng ảnh bay vào lưới thumbnail
   const [snapshotFlyer, setSnapshotFlyer] = useState<{ photoUrl: string; slotIndex: number } | null>(null)
   const [justCapturedSlot, setJustCapturedSlot] = useState<number | null>(null)
 
-  const totalShots = selectedLayout.photosCount || 4
+  // ── Chế độ PHOTOBOOTH CỔ ĐIỂN (Có Retake / Xóa ô xấu) ──
+  const [slots, setSlots] = useState<(CapturedPhoto | null)[]>(Array(totalShots).fill(null))
+  const [retakeSlotIndex, setRetakeSlotIndex] = useState<number | null>(null)
+
+  // ── Chế độ SELFBOOTH (Chụp tự do theo thời gian & Chọn ảnh vào khung) ──
+  const [isSelfboothRunning, setIsSelfboothRunning] = useState<boolean>(false)
+  const [selfboothTimeLeft, setSelfboothTimeLeft] = useState<number>(selfboothDuration)
+  const [selfboothLibrary, setSelfboothLibrary] = useState<CapturedPhoto[]>([])
+  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState<boolean>(false)
+  const [pickedSlots, setPickedSlots] = useState<(CapturedPhoto | null)[]>(Array(totalShots).fill(null))
+  const [activeSlotToPick, setActiveSlotToPick] = useState<number>(0)
 
   // Khởi động Camera thiết bị
   const startCamera = useCallback(async (deviceId?: string) => {
@@ -132,6 +142,24 @@ export default function CaptureScreen() {
     }
   }, [selectedCameraId, startCamera])
 
+  // Đếm ngược thời gian phiên Selfbooth
+  useEffect(() => {
+    if (!isSelfboothMode || !isSelfboothRunning || isPhotoPickerOpen) return
+
+    const timer = setInterval(() => {
+      setSelfboothTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          handleFinishSelfboothSession()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [isSelfboothMode, isSelfboothRunning, isPhotoPickerOpen])
+
   // Chụp 1 khung hình từ video sang DataURL
   function grabVideoFrame(): string {
     if (!videoRef.current) return ''
@@ -141,7 +169,6 @@ export default function CaptureScreen() {
     const ctx = canvas.getContext('2d')
 
     if (ctx) {
-      // Áp dụng bộ lọc màu và tinh chỉnh ánh sáng canvas
       const effFilter = getEffectiveFilterCss()
       if (effFilter && effFilter !== 'none') {
         ctx.filter = effFilter
@@ -192,7 +219,6 @@ export default function CaptureScreen() {
             const videoUrl = URL.createObjectURL(blob)
             setTimelapseUrl(videoUrl)
 
-            // Tự động lưu video timelapse vào thư mục Downloads/JoyBooth của máy
             const reader = new FileReader()
             reader.onloadend = () => {
               const dataUrl = reader.result as string
@@ -213,126 +239,289 @@ export default function CaptureScreen() {
     }
   }
 
-  // Chụp từng ảnh một theo mỗi lần nhấn nút
-  async function handleTakeSingleShot() {
-    if (isCapturingShot) return
-    if (capturedThumbnails.length >= totalShots) return
+  // ══════════════════════════════════════════════════════════════════════════════
+  // XỬ LÝ PHOTOBOOTH CỔ ĐIỂN (Retake / Xóa ô xấu)
+  // ══════════════════════════════════════════════════════════════════════════════
+  const filledSlotsCount = slots.filter(Boolean).length
+  const isPhotoboothFull = filledSlotsCount === totalShots
 
-    // 1. Kích hoạt chế độ buổi chụp Studio: Làm tối xung quanh & Khóa toàn bộ tính năng khác
+  async function handleTakePhotoboothShot() {
+    if (isCapturingShot) return
+    if (isPhotoboothFull && retakeSlotIndex === null) return
+
+    // Xác định ô sẽ được gán ảnh vào
+    let targetIndex = retakeSlotIndex
+    if (targetIndex === null) {
+      targetIndex = slots.findIndex((s) => s === null)
+      if (targetIndex === -1) targetIndex = 0
+    }
+
     setActiveFlyout(null)
     setIsSessionActive(true)
     setIsCapturingShot(true)
 
-    // Khởi động timelapse nếu là lần nhấn đầu tiên
-    if (capturedThumbnails.length === 0) {
+    // Khởi động timelapse nếu là bức ảnh đầu tiên
+    if (filledSlotsCount === 0) {
       startTimelapse()
     }
 
-    const nextShotNum = capturedThumbnails.length + 1
-    setCurrentShotNumber(nextShotNum)
-
-    // 2. Chạy đếm ngược (3s, 5s hoặc 10s)
+    // Đếm ngược (3s, 5s hoặc 10s)
     for (let c = countdownSeconds; c >= 1; c--) {
       setCurrentCountdown(c)
       await new Promise((r) => setTimeout(r, 1000))
     }
 
-    // 3. Chớp Flash & Chụp ảnh
+    // Chớp Flash & Chụp ảnh
     setShowFlash(true)
     setTimeout(() => setShowFlash(false), 450)
 
     const photoDataUrl = grabVideoFrame()
     const timestamp = Date.now()
-    const photoPath = photoDataUrl || `photo_${timestamp}_${nextShotNum}.jpg`
+    const photoPath = photoDataUrl || `photo_${timestamp}_${targetIndex + 1}.jpg`
 
-    addPhoto({
-      id: `photo_${timestamp}_${nextShotNum}`,
+    const newPhoto: CapturedPhoto = {
+      id: `photo_${timestamp}_${targetIndex + 1}`,
       rawPath: photoPath,
       enhancedPath: photoPath,
       compositedPath: photoPath,
       timestamp,
-    })
+    }
 
-    // 4. Kích hoạt hiệu ứng bay vào ô thumbnail slot
-    const slotIndex = capturedThumbnails.length
-    setSnapshotFlyer({ photoUrl: photoPath, slotIndex })
-    setJustCapturedSlot(slotIndex)
+    // Cập nhật ô slot
+    const nextSlots = [...slots]
+    nextSlots[targetIndex] = newPhoto
+    setSlots(nextSlots)
 
-    const nextThumbnails = [...capturedThumbnails, photoPath]
-    setCapturedThumbnails(nextThumbnails)
+    // Reset lại retake index sau khi chụp xong
+    setRetakeSlotIndex(null)
 
-    // 5. Tự động lưu ảnh vào thư mục Downloads của máy
+    // Hiệu ứng bay vào ô thumbnail
+    setSnapshotFlyer({ photoUrl: photoPath, slotIndex: targetIndex })
+    setJustCapturedSlot(targetIndex)
+
+    // Tự động lưu ảnh vào máy tính
     if (photoDataUrl && photoDataUrl.startsWith('data:image')) {
-      const fileName = `joybooth_shot_${nextShotNum}_${timestamp}.jpg`
+      const fileName = `joybooth_shot_${targetIndex + 1}_${timestamp}.jpg`
       const api = isBrowser ? mockApi : joyBoothApi
       api.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save photo error:', err))
     }
 
-    // Ẩn flyer sau khi hoàn tất animation bay
-    setTimeout(() => {
-      setSnapshotFlyer(null)
-    }, 950)
-
-    setTimeout(() => {
-      setJustCapturedSlot(null)
-    }, 1500)
-
+    setTimeout(() => setSnapshotFlyer(null), 950)
+    setTimeout(() => setJustCapturedSlot(null), 1500)
     setIsCapturingShot(false)
 
-    // 6. Kiểm tra xem đã hoàn thành tất cả ảnh chưa
-    if (nextThumbnails.length >= totalShots) {
+    // Nếu sau lần chụp này đã full tất cả các ô:
+    // Dừng timelapse nhưng KHÔNG tự động chuyển màn hình ngay!
+    // Giữ nguyên để khách xem lại, xóa ảnh không đẹp hoặc bấm Tiếp tục.
+    if (nextSlots.every(Boolean)) {
       await stopTimelapse()
-
       if (eventConfig.gdriveEnabled) {
         const folderLink =
           eventConfig.gdriveFolderUrl ||
           `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || 'JoyBooth_Demo'}`
         setGdriveUrl(folderLink)
       }
-
-      // Hủy bỏ cơ chế khóa và chuyển màn hình sau 1.2s
-      setTimeout(() => {
-        setIsSessionActive(false)
-        setScreen('select-theme')
-      }, 1200)
     }
   }
 
-  // Hủy buổi chụp và chụp lại từ đầu
+  // Xóa ảnh ở ô slot k để chuẩn bị chụp lại (retake)
+  function handleDeleteSlot(indexToDelete: number) {
+    if (isCapturingShot) return
+    const nextSlots = [...slots]
+    nextSlots[indexToDelete] = null
+    setSlots(nextSlots)
+    setRetakeSlotIndex(indexToDelete)
+  }
+
+  // Khách hài lòng và bấm xác nhận tiếp tục sang bước chọn theme
+  function handleProceedPhotobooth() {
+    const validPhotos = slots.filter((s): s is CapturedPhoto => s !== null)
+    if (validPhotos.length < totalShots) return
+
+    setSessionPhotos(validPhotos)
+    setIsSessionActive(false)
+    setScreen('select-theme')
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // XỬ LÝ CHẾ ĐỘ SELFBOOTH (Chụp tự do không giới hạn thời gian & Chọn ảnh)
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  // Bắt đầu phiên chụp Selfbooth
+  function handleStartSelfbooth() {
+    setIsSelfboothRunning(true)
+    setIsSessionActive(true)
+    setSelfboothTimeLeft(selfboothDuration)
+    setSelfboothLibrary([])
+    startTimelapse()
+  }
+
+  // Bấm chụp 1 ảnh trong phiên Selfbooth (chụp tự do liên tục)
+  async function handleTakeSelfboothShot() {
+    if (isCapturingShot || !isSelfboothRunning) return
+
+    setIsCapturingShot(true)
+
+    // Đếm ngược ngắn 2 giây để tạo dáng nhanh vui vẻ
+    for (let c = 2; c >= 1; c--) {
+      setCurrentCountdown(c)
+      await new Promise((r) => setTimeout(r, 1000))
+    }
+
+    setShowFlash(true)
+    setTimeout(() => setShowFlash(false), 450)
+
+    const photoDataUrl = grabVideoFrame()
+    const timestamp = Date.now()
+    const photoNum = selfboothLibrary.length + 1
+    const photoPath = photoDataUrl || `selfbooth_${timestamp}_${photoNum}.jpg`
+
+    const newPhoto: CapturedPhoto = {
+      id: `selfbooth_${timestamp}_${photoNum}`,
+      rawPath: photoPath,
+      enhancedPath: photoPath,
+      compositedPath: photoPath,
+      timestamp,
+    }
+
+    setSelfboothLibrary((prev) => [...prev, newPhoto])
+
+    // Lưu ảnh vào máy
+    if (photoDataUrl && photoDataUrl.startsWith('data:image')) {
+      const fileName = `joybooth_self_${photoNum}_${timestamp}.jpg`
+      const api = isBrowser ? mockApi : joyBoothApi
+      api.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save selfbooth photo error:', err))
+    }
+
+    // Hiệu ứng bay lên
+    setSnapshotFlyer({ photoUrl: photoPath, slotIndex: 0 })
+    setTimeout(() => setSnapshotFlyer(null), 800)
+    setIsCapturingShot(false)
+  }
+
+  // Kết thúc phiên chụp Selfbooth (Hết giờ hoặc bấm "Xong Sớm")
+  async function handleFinishSelfboothSession() {
+    setIsSelfboothRunning(false)
+    await stopTimelapse()
+
+    if (eventConfig.gdriveEnabled) {
+      const folderLink =
+        eventConfig.gdriveFolderUrl ||
+        `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || 'JoyBooth_Demo'}`
+      setGdriveUrl(folderLink)
+    }
+
+    // Tự động điền trước các ảnh gần nhất vào pickedSlots
+    setSelfboothLibrary((currentLibrary) => {
+      const initialPicked: (CapturedPhoto | null)[] = Array(totalShots).fill(null)
+      for (let i = 0; i < totalShots; i++) {
+        if (i < currentLibrary.length) {
+          // Lấy các ảnh mới chụp
+          initialPicked[i] = currentLibrary[currentLibrary.length - totalShots + i] || currentLibrary[i]
+        }
+      }
+      setPickedSlots(initialPicked)
+      return currentLibrary
+    })
+
+    setIsPhotoPickerOpen(true)
+  }
+
+  // Chọn ảnh từ gallery gán vào slot trong Photo Picker
+  function handleAssignPhotoToSlot(photo: CapturedPhoto) {
+    const nextPicked = [...pickedSlots]
+    
+    // Nếu ảnh này đã có ở một slot khác, tháo ra
+    const existingIndex = nextPicked.findIndex((p) => p?.id === photo.id)
+    if (existingIndex !== -1) {
+      nextPicked[existingIndex] = null
+    }
+
+    // Gán vào ô đang active
+    nextPicked[activeSlotToPick] = photo
+    setPickedSlots(nextPicked)
+
+    // Tự động chuyển active slot sang ô trống tiếp theo (nếu có)
+    const nextEmptySlot = nextPicked.findIndex((s) => s === null)
+    if (nextEmptySlot !== -1) {
+      setActiveSlotToPick(nextEmptySlot)
+    }
+  }
+
+  // Bỏ chọn ảnh khỏi slot
+  function handleRemovePickedSlot(index: number) {
+    const nextPicked = [...pickedSlots]
+    nextPicked[index] = null
+    setPickedSlots(nextPicked)
+    setActiveSlotToPick(index)
+  }
+
+  // Xác nhận ảnh đã chọn trong Selfbooth & Tiếp tục
+  function handleConfirmSelfboothSelection() {
+    const validPhotos = pickedSlots.filter((p): p is CapturedPhoto => p !== null)
+    if (validPhotos.length < totalShots) return
+
+    setSessionPhotos(validPhotos)
+    setIsPhotoPickerOpen(false)
+    setIsSessionActive(false)
+    setScreen('select-theme')
+  }
+
+  // Định dạng thời gian Selfbooth mm:ss
+  function formatTime(seconds: number): string {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+
+  // Hủy buổi chụp và làm mới
   function handleResetShootSession() {
     setIsSessionActive(false)
     setIsCapturingShot(false)
-    setCapturedThumbnails([])
+    setIsSelfboothRunning(false)
+    setIsPhotoPickerOpen(false)
+    setSlots(Array(totalShots).fill(null))
+    setRetakeSlotIndex(null)
+    setSelfboothLibrary([])
+    setSelfboothTimeLeft(selfboothDuration)
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop()
     }
   }
-
-  const isCompleted = capturedThumbnails.length >= totalShots
 
   return (
     <div className="capture-screen-pastel" id="capture-screen">
       {/* Screen Flash Animation */}
       {showFlash && <div className="screen-flash" />}
 
-      {/* Focus Dim Backdrop: Làm tối xung quanh trong suốt buổi chụp */}
-      {isSessionActive && <div className="focus-dim-backdrop" />}
+      {/* Focus Dim Backdrop: Làm tối xung quanh khi đang chụp */}
+      {isSessionActive && !isPhotoPickerOpen && <div className="focus-dim-backdrop" />}
 
       {/* ── Top Bar: Countdown Pills + Locked Badge + Utilities ── */}
-      <header className={`capture-top-bar ${isSessionActive ? 'locked-dimmed' : ''}`}>
-        <div className="countdown-capsule-group">
-          {[3, 5, 10].map((sec) => (
-            <button
-              key={sec}
-              className={`countdown-pill ${countdownSeconds === sec ? 'active' : ''}`}
-              onClick={() => setCountdownSeconds(sec)}
-              title={`Thời gian đếm ngược ${sec} giây`}
-            >
-              <span>⏱️</span>
-              <span>{sec}s</span>
-            </button>
-          ))}
-        </div>
+      <header className={`capture-top-bar ${isSessionActive && !isPhotoboothFull ? 'locked-dimmed' : ''}`}>
+        {!isSelfboothMode ? (
+          <div className="countdown-capsule-group">
+            {[3, 5, 10].map((sec) => (
+              <button
+                key={sec}
+                className={`countdown-pill ${countdownSeconds === sec ? 'active' : ''}`}
+                onClick={() => setCountdownSeconds(sec)}
+                title={`Thời gian đếm ngược ${sec} giây`}
+              >
+                <span>⏱️</span>
+                <span>{sec}s</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          /* Selfbooth Session Timer Badge */
+          <div className={`selfbooth-session-timer-badge ${selfboothTimeLeft <= 10 && isSelfboothRunning ? 'timer-warning' : ''}`}>
+            <span className="timer-icon">{isSelfboothRunning ? '⏱️' : '⏳'}</span>
+            <span className="timer-label">Selfbooth:</span>
+            <strong className="timer-digits">{formatTime(selfboothTimeLeft)}</strong>
+            <span className="timer-photos-count">({selfboothLibrary.length} ảnh)</span>
+          </div>
+        )}
 
         {/* Khung đã chọn (Cố định, không được đổi tại đây) */}
         <div className="locked-layout-badge" title="Khung lưới đã chọn từ trước">
@@ -342,7 +531,7 @@ export default function CaptureScreen() {
           <span>({selectedLayout.photosCount} ảnh)</span>
         </div>
 
-        {/* Right utility options — Nút to rõ nét, font chữ lớn */}
+        {/* Right utility options */}
         <div className="top-utility-actions">
           {availableCameras.length > 0 && (
             <select
@@ -390,8 +579,7 @@ export default function CaptureScreen() {
       {/* ── Main Stage Area: Left Dock + Flyout + Viewfinder ── */}
       <div className="capture-main-stage">
         {/* Left Floating Dock: Bộ lọc / Làm đẹp / Phát sáng */}
-        <aside className={`left-sidebar-dock ${isSessionActive ? 'locked-dimmed' : ''}`}>
-          {/* Nút 1: Bộ lọc màu */}
+        <aside className={`left-sidebar-dock ${isSessionActive && !isPhotoboothFull ? 'locked-dimmed' : ''}`}>
           <button
             className={`dock-btn ${activeFlyout === 'filter' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'filter' ? null : 'filter')}
@@ -401,7 +589,6 @@ export default function CaptureScreen() {
             <span className="dock-label">Bộ lọc</span>
           </button>
 
-          {/* Nút 2: Làm đẹp & Chỉnh sáng (Tách riêng biệt) */}
           <button
             className={`dock-btn ${activeFlyout === 'beauty' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'beauty' ? null : 'beauty')}
@@ -411,7 +598,6 @@ export default function CaptureScreen() {
             <span className="dock-label">Làm đẹp</span>
           </button>
 
-          {/* Nút 3: Phát sáng (Ring Light) */}
           <button
             className={`dock-btn ${activeFlyout === 'lighting' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'lighting' ? null : 'lighting')}
@@ -422,7 +608,7 @@ export default function CaptureScreen() {
           </button>
         </aside>
 
-        {/* ── Flyout Modal Panel: 1. Bộ lọc màu (Làm sáng rõ rệt thẻ đang chọn) ── */}
+        {/* ── Flyout Panel 1: Bộ lọc màu ── */}
         {activeFlyout === 'filter' && (
           <div className="flyout-panel animate-pop">
             <div className="flyout-header">
@@ -433,7 +619,6 @@ export default function CaptureScreen() {
             </div>
 
             <div className="flyout-content">
-              {/* Banner hiển thị bộ lọc đang áp dụng */}
               <div className="filter-active-banner">
                 <span>✨ Đang dùng: <strong>{selectedFilter.name}</strong></span>
                 <span style={{ fontSize: '0.78rem' }}>({selectedFilter.tag})</span>
@@ -448,19 +633,11 @@ export default function CaptureScreen() {
                       className={`filter-preset-card ${isSelected ? 'selected' : ''}`}
                       onClick={() => selectFilter(filter)}
                     >
-                      <div
-                        className="filter-color-dot"
-                        style={{ backgroundColor: filter.previewColor }}
-                      />
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontWeight: 800, fontSize: '0.9rem', color: isSelected ? 'var(--color-pink-primary)' : '#2D2426' }}>
-                          {filter.name}
-                        </span>
-                        <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>
-                          {filter.tag}
-                        </span>
+                      <div className="filter-card-circle" style={{ background: filter.previewColor }}>
+                        {isSelected && <span className="filter-card-check">✓</span>}
                       </div>
-                      {isSelected && <span className="filter-selected-badge">✓ ĐANG CHỌN</span>}
+                      <span className="filter-card-name">{filter.name}</span>
+                      <span className="filter-card-tag">{filter.tag}</span>
                     </div>
                   )
                 })}
@@ -469,49 +646,46 @@ export default function CaptureScreen() {
           </div>
         )}
 
-        {/* ── Flyout Modal Panel: 2. Làm đẹp & Chỉnh sáng (Tách riêng biệt) ── */}
+        {/* ── Flyout Panel 2: Làm đẹp & Chỉnh sáng ── */}
         {activeFlyout === 'beauty' && (
           <div className="flyout-panel animate-pop">
             <div className="flyout-header">
-              <span className="flyout-title">✨ Làm Đẹp & Ánh Sáng Studio</span>
+              <span className="flyout-title">✨ Làm Đẹp Chuẩn K-Beauty</span>
               <button className="flyout-close-btn" onClick={() => setActiveFlyout(null)}>
                 ✕
               </button>
             </div>
 
             <div className="flyout-content">
-              {/* Presets Làm Đẹp 1-Chạm K-Beauty */}
               <div className="beauty-presets-container">
-                <span className="beauty-presets-title">👑 Gợi Ý Phong Cách K-Beauty (1-Chạm):</span>
+                <div className="beauty-presets-title">🌸 PRESET LÀM ĐẸP (1-CHẠM)</div>
                 <div className="beauty-presets-grid">
                   {BEAUTY_PRESETS.map((preset) => {
-                    const isSelected = selectedBeautyPreset === preset.id
+                    const isActive = selectedBeautyPreset === preset.id
                     return (
                       <button
                         key={preset.id}
-                        type="button"
-                        className={`beauty-preset-pill ${isSelected ? 'active' : ''}`}
+                        className={`beauty-preset-pill ${isActive ? 'active' : ''}`}
                         onClick={() => applyBeautyPreset(preset.id)}
                         title={preset.description}
                       >
                         <span className="preset-icon">{preset.icon}</span>
-                        <span className="preset-name">{preset.name}</span>
-                        {isSelected && <span className="preset-check">✓</span>}
+                        <span>{preset.name}</span>
+                        {isActive && <span className="preset-check">✓</span>}
                       </button>
                     )
                   })}
                 </div>
               </div>
 
-              {/* Box 1: Làm đẹp khuôn mặt (Glam & Beauty) */}
               <div className="beauty-section-box">
                 <div className="beauty-section-header">
-                  <span>🌸 Tùy Chỉnh Da Chi Tiết</span>
+                  <span>🌸 Làn Da Hàn Quốc</span>
                 </div>
 
                 <div className="beauty-slider-row">
                   <div className="beauty-slider-label">
-                    <span>Làm Mịn Da (Skin Smoothing)</span>
+                    <span>Làm Mịn Da (Skin Blur)</span>
                     <span className="beauty-val-badge">{skinSmoothing}%</span>
                   </div>
                   <input
@@ -526,7 +700,7 @@ export default function CaptureScreen() {
 
                 <div className="beauty-slider-row">
                   <div className="beauty-slider-label">
-                    <span>Trắng Hồng Da (Rosy Tone)</span>
+                    <span>Trắng Hồng Tự Nhiên</span>
                     <span className="beauty-val-badge">{rosyTone}%</span>
                   </div>
                   <input
@@ -541,7 +715,7 @@ export default function CaptureScreen() {
 
                 <div className="beauty-slider-row">
                   <div className="beauty-slider-label">
-                    <span>Độ Nét Căng Bóng (Clarity Glow)</span>
+                    <span>Sáng Nét Chi Tiết</span>
                     <span className="beauty-val-badge">{glowClarity}%</span>
                   </div>
                   <input
@@ -555,7 +729,6 @@ export default function CaptureScreen() {
                 </div>
               </div>
 
-              {/* Box 2: Tinh chỉnh ánh sáng */}
               <div className="beauty-section-box">
                 <div className="beauty-section-header">
                   <span>🎛️ Tinh Chỉnh Ánh Sáng</span>
@@ -619,7 +792,7 @@ export default function CaptureScreen() {
           </div>
         )}
 
-        {/* ── Flyout Modal Panel: 3. Phát sáng (Ring Light) ── */}
+        {/* ── Flyout Panel 3: Phát sáng (Ring Light) ── */}
         {activeFlyout === 'lighting' && (
           <div className="flyout-panel animate-pop">
             <div className="flyout-header">
@@ -662,7 +835,7 @@ export default function CaptureScreen() {
         )}
 
         {/* ── Center Camera Viewfinder Stage ── */}
-        <div className={`camera-viewfinder-wrapper ${isSessionActive ? 'shooting-focus' : ''}`}>
+        <div className={`camera-viewfinder-wrapper ${isSessionActive && !isPhotoboothFull ? 'shooting-focus' : ''}`}>
           {hasCamera ? (
             <video
               ref={videoRef}
@@ -703,7 +876,7 @@ export default function CaptureScreen() {
             </div>
           )}
 
-          {/* Countdown digits overlay - Chỉ để mình số trong suốt mờ ảo, không che mặt người chụp */}
+          {/* Countdown digits overlay */}
           {isCapturingShot && (
             <div className="multi-shot-countdown-overlay">
               <div className="countdown-digits-translucent">{currentCountdown}</div>
@@ -716,7 +889,9 @@ export default function CaptureScreen() {
               <div className="snapshot-card-animate">
                 <img src={snapshotFlyer.photoUrl} alt="Just Captured" />
                 <div className="snapshot-card-badge">
-                  ✨ Đã lưu vào ô {snapshotFlyer.slotIndex + 1}
+                  {isSelfboothMode
+                    ? `✨ Đã thêm vào bộ sưu tập (${selfboothLibrary.length} ảnh)`
+                    : `✨ Đã lưu vào ô ${snapshotFlyer.slotIndex + 1}`}
                 </div>
               </div>
             </div>
@@ -724,63 +899,279 @@ export default function CaptureScreen() {
         </div>
       </div>
 
-      {/* ── Bottom Deck: Live Slots Progress (Phóng to) + Shutter Button ── */}
+      {/* ── Bottom Deck: 
+          1) PHOTOBOOTH MODE: Hiển thị các ô slot kèm nút X xóa & Chụp lại
+          2) SELFBOOTH MODE: Hiển thị đếm số ảnh & Nút Bấm Chụp / Nút Kết Thúc Sớm 
+      ── */}
       <footer className="capture-bottom-deck">
-        {/* Live Slot Strip: [Photo 1] [Photo 2] [+] [+] with counter (e.g. 1/4) */}
-        <div className="live-slots-deck">
-          <div className="live-slots-list">
-            {Array.from({ length: totalShots }).map((_, index) => {
-              const isFilled = index < capturedThumbnails.length
-              const isCurrent = index === capturedThumbnails.length
-              const isJustCaptured = justCapturedSlot === index
+        {!isSelfboothMode ? (
+          /* ── PHOTOBOOTH MODE CONTROLS ── */
+          <>
+            <div className="live-slots-deck">
+              <div className="live-slots-list">
+                {Array.from({ length: totalShots }).map((_, index) => {
+                  const slotItem = slots[index]
+                  const isFilled = slotItem !== null
+                  const isRetaking = retakeSlotIndex === index
+                  const isJustCaptured = justCapturedSlot === index
 
-              return (
-                <div
-                  key={index}
-                  className={`live-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isCurrent && isSessionActive ? 'current' : ''} ${isJustCaptured ? 'just-captured' : ''}`}
+                  return (
+                    <div
+                      key={index}
+                      className={`live-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isRetaking ? 'retaking-target' : ''} ${isJustCaptured ? 'just-captured' : ''}`}
+                    >
+                      {isFilled ? (
+                        <>
+                          <img src={slotItem.compositedPath || slotItem.rawPath} alt={`Slot ${index + 1}`} />
+                          <span className="slot-index-badge">{index + 1}</span>
+                          {/* Nút xóa ảnh không đẹp để chụp lại */}
+                          <button
+                            className="slot-delete-btn"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteSlot(index)
+                            }}
+                            title={`Xóa ảnh ô ${index + 1} để chụp lại`}
+                          >
+                            ✕
+                          </button>
+                        </>
+                      ) : (
+                        <div className="slot-empty-content">
+                          <span className="slot-empty-plus">+</span>
+                          <span className="slot-empty-label">Ô {index + 1}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="live-slots-counter">
+                {filledSlotsCount}/{totalShots}
+              </div>
+            </div>
+
+            <div className="capture-shutter-container">
+              {isPhotoboothFull && retakeSlotIndex === null ? (
+                /* ĐÃ ĐỦ FULL ẢNH: Nút Hài Lòng & Tiếp Tục */
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <button
+                    className="start-capture-btn-pink proceed-glow-btn"
+                    id="proceed-theme-button"
+                    onClick={handleProceedPhotobooth}
+                  >
+                    <span style={{ fontSize: '1.4rem' }}>🎉</span>
+                    <span>Hài Lòng & Tiếp Tục ➔</span>
+                  </button>
+                  <span className="retake-hint-text">
+                    💡 Mẹo: Bấm dấu <strong>✕</strong> trên ô ảnh chưa ưng ý để chụp lại ô đó!
+                  </span>
+                </div>
+              ) : (
+                /* CHƯA ĐỦ ẢNH HOẶC ĐANG CHỤP LẠI (RETAKE) */
+                <button
+                  className="start-capture-btn-pink"
+                  id="start-capture-button"
+                  disabled={isCapturingShot}
+                  onClick={handleTakePhotoboothShot}
                 >
-                  {isFilled ? (
-                    <img src={capturedThumbnails[index]} alt={`Slot ${index + 1}`} />
-                  ) : (
-                    <span>+</span>
+                  <span style={{ fontSize: '1.5rem' }}>📷</span>
+                  <span>
+                    {isCapturingShot
+                      ? `Đang đếm ngược...`
+                      : retakeSlotIndex !== null
+                      ? `📸 Chụp Lại Ô ${retakeSlotIndex + 1}`
+                      : filledSlotsCount === 0
+                      ? `Bắt đầu chụp (Ảnh 1 / ${totalShots})`
+                      : `Chụp tiếp ảnh ${filledSlotsCount + 1} / ${totalShots}`}
+                  </span>
+                </button>
+              )}
+
+              {isSessionActive && !isCapturingShot && (
+                <button className="cancel-shoot-btn" onClick={handleResetShootSession}>
+                  ↩ Chụp lại từ đầu
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          /* ── SELFBOOTH MODE CONTROLS ── */
+          <div className="selfbooth-bottom-controls">
+            {!isSelfboothRunning ? (
+              <div className="selfbooth-start-box">
+                <button
+                  className="start-capture-btn-pink selfbooth-start-btn"
+                  onClick={handleStartSelfbooth}
+                >
+                  <span style={{ fontSize: '1.5rem' }}>🚀</span>
+                  <span>Bắt Đầu Phiên Selfbooth ({Math.round(selfboothDuration / 60)} Phút)</span>
+                </button>
+                <p className="selfbooth-start-desc">
+                  Thỏa sức tạo dáng và bấm chụp không giới hạn số ảnh. Khi hết giờ, bạn sẽ tự tay chọn ra {totalShots} ảnh đẹp nhất!
+                </p>
+              </div>
+            ) : (
+              <div className="selfbooth-running-box">
+                <div className="selfbooth-stat-bar">
+                  <div className="selfbooth-stat-item">
+                    <span>⏱️ Còn lại:</span>
+                    <strong className={selfboothTimeLeft <= 10 ? 'text-danger' : ''}>
+                      {formatTime(selfboothTimeLeft)}
+                    </strong>
+                  </div>
+                  <div className="selfbooth-stat-item">
+                    <span>📸 Đã chụp:</span>
+                    <strong>{selfboothLibrary.length} tấm</strong>
+                  </div>
+                </div>
+
+                <div className="selfbooth-actions-row">
+                  <button
+                    className="start-capture-btn-pink selfbooth-shutter-btn"
+                    disabled={isCapturingShot}
+                    onClick={handleTakeSelfboothShot}
+                  >
+                    <span style={{ fontSize: '1.6rem' }}>📸</span>
+                    <span>{isCapturingShot ? 'Đang chụp...' : 'Bấm Chụp Ảnh (Pose!)'}</span>
+                  </button>
+
+                  {selfboothLibrary.length >= totalShots && (
+                    <button
+                      className="selfbooth-finish-early-btn"
+                      onClick={handleFinishSelfboothSession}
+                    >
+                      ✨ Xong Sớm & Chọn Ảnh ➔
+                    </button>
                   )}
                 </div>
-              )
-            })}
+              </div>
+            )}
           </div>
-          <div className="live-slots-counter">
-            {capturedThumbnails.length}/{totalShots}
-          </div>
-        </div>
-
-        {/* Nút chụp: Căn giữa tuyệt đối, không lệch viền */}
-        <div className="capture-shutter-container">
-          <button
-            className="start-capture-btn-pink"
-            id="start-capture-button"
-            disabled={isCapturingShot || isCompleted}
-            onClick={handleTakeSingleShot}
-          >
-            <span style={{ fontSize: '1.5rem' }}>📷</span>
-            <span>
-              {isCapturingShot
-                ? `Đang đếm ngược ảnh ${currentShotNumber}...`
-                : isCompleted
-                ? '✨ Đã hoàn thành tất cả ảnh!'
-                : capturedThumbnails.length === 0
-                ? `Bắt đầu chụp (Ảnh 1 / ${totalShots})`
-                : `Chụp tiếp ảnh ${capturedThumbnails.length + 1} / ${totalShots}`}
-            </span>
-          </button>
-
-          {/* Nút hủy buổi chụp nếu khách muốn chụp lại từ đầu - Nằm ngay dưới nút chính, không bị tràn cạnh phải */}
-          {isSessionActive && !isCapturingShot && !isCompleted && (
-            <button className="cancel-shoot-btn" onClick={handleResetShootSession}>
-              ↩ Chụp lại từ đầu
-            </button>
-          )}
-        </div>
+        )}
       </footer>
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          MODAL CHỌN ẢNH VÀO KHUNG CHO CHẾ ĐỘ SELFBOOTH (Photo Picker Modal)
+      ════════════════════════════════════════════════════════════════════════ */}
+      {isPhotoPickerOpen && (
+        <div className="photo-picker-modal-backdrop">
+          <div className="photo-picker-modal-card animate-pop">
+            <div className="photo-picker-header">
+              <div>
+                <h2 className="photo-picker-title">
+                  🌸 CHỌN {totalShots} ẢNH ĐẸP NHẤT VÀO KHUNG
+                </h2>
+                <p className="photo-picker-subtitle">
+                  Bạn đã chụp được {selfboothLibrary.length} tấm ảnh! Hãy chạm vào ảnh bạn thích để đưa vào các ô bên dưới.
+                </p>
+              </div>
+              <div className="photo-picker-badge">
+                {pickedSlots.filter(Boolean).length}/{totalShots} Ảnh Đã Chọn
+              </div>
+            </div>
+
+            {/* Hàng 1: Các ô slot của khung hình */}
+            <div className="picker-target-slots-row">
+              {Array.from({ length: totalShots }).map((_, idx) => {
+                const picked = pickedSlots[idx]
+                const isActive = activeSlotToPick === idx
+
+                return (
+                  <div
+                    key={idx}
+                    className={`picker-slot-card ${picked ? 'filled' : 'empty'} ${isActive ? 'active-target' : ''}`}
+                    onClick={() => setActiveSlotToPick(idx)}
+                  >
+                    {picked ? (
+                      <>
+                        <img src={picked.compositedPath || picked.rawPath} alt={`Slot ${idx + 1}`} />
+                        <span className="picker-slot-number">Ô {idx + 1}</span>
+                        <button
+                          className="picker-slot-remove-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRemovePickedSlot(idx)
+                          }}
+                          title="Bỏ ảnh này ra"
+                        >
+                          ✕
+                        </button>
+                      </>
+                    ) : (
+                      <div className="picker-slot-empty">
+                        <span style={{ fontSize: '1.8rem', color: '#94a3b8' }}>+</span>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>
+                          Ô {idx + 1} {isActive ? '(Đang chọn)' : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Hàng 2: Lưới tất cả ảnh đã chụp trong phiên Selfbooth */}
+            <div className="picker-library-section">
+              <div className="picker-library-label">
+                <span>📸 Kho Ảnh Đã Chụp Trong Phiên ({selfboothLibrary.length} ảnh):</span>
+                <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                  Chạm vào ảnh để gán vào ô đang sáng viền hồng
+                </span>
+              </div>
+
+              <div className="picker-library-grid">
+                {selfboothLibrary.map((photo, pIdx) => {
+                  const assignedSlot = pickedSlots.findIndex((s) => s?.id === photo.id)
+                  const isAssigned = assignedSlot !== -1
+
+                  return (
+                    <div
+                      key={photo.id}
+                      className={`picker-library-item ${isAssigned ? 'assigned' : ''}`}
+                      onClick={() => handleAssignPhotoToSlot(photo)}
+                    >
+                      <img src={photo.compositedPath || photo.rawPath} alt={`Photo ${pIdx + 1}`} />
+                      <span className="library-photo-num">#{pIdx + 1}</span>
+                      {isAssigned && (
+                        <div className="assigned-badge">
+                          ✓ Ô {assignedSlot + 1}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Footer Modal: Nút Xác Nhận & Nút Chụp Thêm */}
+            <div className="photo-picker-footer">
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setIsPhotoPickerOpen(false)
+                  setIsSelfboothRunning(true)
+                }}
+              >
+                ↩ Chụp Thêm Ảnh
+              </button>
+
+              <button
+                className="start-capture-btn-pink picker-confirm-btn"
+                disabled={pickedSlots.filter(Boolean).length < totalShots}
+                onClick={handleConfirmSelfboothSelection}
+              >
+                <span>🎉</span>
+                <span>
+                  {pickedSlots.filter(Boolean).length < totalShots
+                    ? `Hãy chọn đủ ${totalShots} ảnh (${pickedSlots.filter(Boolean).length}/${totalShots})`
+                    : 'Xác Nhận & Tiếp Tục Chọn Theme ➔'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

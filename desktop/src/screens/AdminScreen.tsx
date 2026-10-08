@@ -212,7 +212,40 @@ export default function AdminScreen() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Chế Độ Hoạt Động</label>
+                  <label className="form-label">Chế Độ Chụp Chính</label>
+                  <select
+                    className="form-input"
+                    value={eventConfig.captureMode || 'photobooth'}
+                    onChange={(e) => setEventConfig({ captureMode: e.target.value as any })}
+                  >
+                    <option value="photobooth">📸 Photobooth Cổ Điển (Chụp theo số khung hình, hỗ trợ xóa & chụp lại)</option>
+                    <option value="selfbooth">⏱️ Selfbooth Tự Do (Chụp không giới hạn trong thời gian quy định)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Thời Gian Giới Hạn Selfbooth (Mặc định: 1 phút)
+                  </label>
+                  <select
+                    className="form-input"
+                    value={eventConfig.selfboothDurationSeconds || 60}
+                    onChange={(e) => setEventConfig({ selfboothDurationSeconds: Number(e.target.value) })}
+                  >
+                    <option value={30}>30 Giây (Chụp nhanh thử nghiệm)</option>
+                    <option value={60}>1 Phút (60 giây - Khuyên Dùng)</option>
+                    <option value={90}>1 Phút 30 Giây (90 giây)</option>
+                    <option value={120}>2 Phút (120 giây)</option>
+                    <option value={180}>3 Phút (180 giây)</option>
+                    <option value={300}>5 Phút (300 giây)</option>
+                  </select>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)', marginTop: 4, display: 'block' }}>
+                    Khách có thể bấm chụp liên tục không giới hạn ảnh trong thời gian này, sau đó tự chọn ảnh đẹp nhất vào khung.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Chế Độ Vận Hành</label>
                   <select
                     className="form-input"
                     value={boothMode}
