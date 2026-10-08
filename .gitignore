@@ -2,6 +2,7 @@
 node_modules/
 desktop/node_modules/
 cms-web/node_modules/
+joybooth-cms/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
