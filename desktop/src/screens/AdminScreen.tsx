@@ -474,43 +474,72 @@ export default function AdminScreen() {
 
                 <div className="admin-form-grid">
                   <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Đường Dẫn Thư Mục Google Drive (Folder URL)</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label className="form-label">Đường Dẫn Thư Mục Google Drive (Folder URL)</label>
+                      {eventConfig.gdriveFolderUrl && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          style={{ fontSize: '0.75rem', padding: '2px 10px', color: 'var(--color-pink-primary)' }}
+                          onClick={() => window.open(eventConfig.gdriveFolderUrl, '_blank')}
+                        >
+                          🔗 Mở Trên Trình Duyệt
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="text"
                       className="form-input"
                       value={eventConfig.gdriveFolderUrl || ''}
-                      placeholder="https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOp..."
+                      placeholder="https://drive.google.com/drive/folders/1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU"
                       onChange={(e) => setEventConfig({ gdriveFolderUrl: e.target.value })}
                       disabled={!eventConfig.gdriveEnabled}
                     />
                     <small style={{ color: '#888', fontSize: '0.75rem', marginTop: 4, display: 'block' }}>
-                      Mã QR ở màn hình kết thúc sẽ dẫn trực tiếp khách hàng đến thư mục này.
+                      Thư mục cha chứa các folder con theo ngày & giờ chụp (JoyBooth_YYYY-MM-DD_HH-mm).
                     </small>
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Mã Thư Mục (Folder ID)</label>
+                    <label className="form-label">Mã Thư Mục Cha (Parent Folder ID)</label>
                     <input
                       type="text"
                       className="form-input"
                       value={eventConfig.gdriveFolderId || ''}
-                      placeholder="1JoyBooth_Guest_Gallery_2026"
+                      placeholder="1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU"
                       onChange={(e) => setEventConfig({ gdriveFolderId: e.target.value })}
                       disabled={!eventConfig.gdriveEnabled}
                     />
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Tự Động Đồng Bộ (Auto-Sync)</label>
+                    <label className="form-label">Tự Động Tạo Subfolder & Đẩy Lên Drive</label>
                     <select
                       className="form-input"
                       value={eventConfig.gdriveAutoSync ? 'yes' : 'no'}
                       onChange={(e) => setEventConfig({ gdriveAutoSync: e.target.value === 'yes' })}
                       disabled={!eventConfig.gdriveEnabled}
                     >
-                      <option value="yes">Bật (Tự động tải lên ngay sau khi chụp)</option>
+                      <option value="yes">Bật (Tạo folder JoyBooth_YYYY-MM-DD_HH-mm & Đẩy lên)</option>
                       <option value="no">Tắt (Chỉ lưu cục bộ trên máy)</option>
                     </select>
+                  </div>
+
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label">
+                      Google Apps Script Webhook URL (Tùy chọn - Cloud Auto-Create)
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={eventConfig.gdriveWebhookUrl || ''}
+                      placeholder="https://script.google.com/macros/s/.../exec"
+                      onChange={(e) => setEventConfig({ gdriveWebhookUrl: e.target.value })}
+                      disabled={!eventConfig.gdriveEnabled}
+                    />
+                    <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 4, display: 'block' }}>
+                      Nếu có Webhook, JoyBooth sẽ tự động gọi Google Drive API tạo folder con thật sự trên Cloud và sinh link chia sẻ trực tiếp cho mã QR.
+                    </small>
                   </div>
                 </div>
               </div>

@@ -55,6 +55,19 @@ const api = {
 
     openFolder: (targetPath?: string): IpcResponse =>
       ipcRenderer.invoke('storage:open-folder', targetPath),
+
+    uploadDriveSession: (payload: {
+      parentFolderId: string
+      subfolderName: string
+      files: Array<{ name: string; dataUrl: string }>
+      webhookUrl?: string
+    }): IpcResponse<{
+      localDir: string
+      cloudFolderUrl: string
+      cloudFolderId: string
+      subfolderName: string
+      filesCount: number
+    }> => ipcRenderer.invoke('storage:upload-drive-session', payload),
   },
 }
 

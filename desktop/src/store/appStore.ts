@@ -322,6 +322,7 @@ export interface EventConfig {
   gdriveEnabled: boolean
   gdriveFolderId: string
   gdriveFolderUrl: string
+  gdriveWebhookUrl: string // URL Google Apps Script Web App để tạo subfolder tự động
   gdriveAutoSync: boolean
   // Storage Settings
   saveDirectory: string
@@ -444,8 +445,9 @@ const DEFAULT_EVENT_CONFIG: EventConfig = {
   timelapseEnabled: true,
   timelapseSpeed: 2.5,
   gdriveEnabled: true,
-  gdriveFolderId: '1JoyBooth_Guest_Gallery_2026',
-  gdriveFolderUrl: 'https://drive.google.com/drive/folders/1JoyBooth_Guest_Gallery_2026',
+  gdriveFolderId: '1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU',
+  gdriveFolderUrl: 'https://drive.google.com/drive/folders/1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU',
+  gdriveWebhookUrl: '',
   gdriveAutoSync: true,
   saveDirectory: 'Downloads/JoyBooth',
 }

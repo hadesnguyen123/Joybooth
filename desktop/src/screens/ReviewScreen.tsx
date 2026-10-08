@@ -16,6 +16,7 @@ export default function ReviewScreen() {
     selectedTheme,
     placedStickers,
     selectedFrameSize,
+    setGdriveUrl,
   } = useAppStore()
 
   const [activeMediaView, setActiveMediaView] = useState<'strip' | 'timelapse'>('strip')
@@ -27,6 +28,21 @@ export default function ReviewScreen() {
   const [compositeStripUrl, setCompositeStripUrl] = useState<string>('')
   const [isGeneratingComposite, setIsGeneratingComposite] = useState<boolean>(true)
 
+  // ── Google Drive & Local Session Folder ──
+  const [subfolderName] = useState<string>(() => {
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+    const timeStr = `${pad(now.getHours())}h${pad(now.getMinutes())}`
+    return `JoyBooth_${dateStr}_${timeStr}`
+  })
+  const [cloudFolderUrl, setCloudFolderUrl] = useState<string>(
+    eventConfig.gdriveFolderUrl || 'https://drive.google.com/drive/folders/1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU'
+  )
+  const [isSyncingDrive, setIsSyncingDrive] = useState<boolean>(false)
+  const [driveSyncDone, setDriveSyncDone] = useState<boolean>(false)
+  const [localFolderDir, setLocalFolderDir] = useState<string>('')
+
   const photos = session?.photos && session.photos.length > 0 ? session.photos : [
     { id: '1', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 1 },
     { id: '2', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 2 },
@@ -34,11 +50,8 @@ export default function ReviewScreen() {
     { id: '4', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 4 },
   ]
 
-  // Link đích của mã QR: Google Drive hoặc Local Gallery
-  const targetCloudUrl =
-    eventConfig.gdriveEnabled && session?.gdriveUrl
-      ? session.gdriveUrl
-      : `https://joybooth.vn/gallery/${session?.sessionId || 'demo'}`
+  // Link đích của mã QR: Google Drive Subfolder hoặc Gallery
+  const targetCloudUrl = cloudFolderUrl || `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || '1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU'}`
 
   // Tạo mã QR Code
   useEffect(() => {
@@ -51,10 +64,11 @@ export default function ReviewScreen() {
       .catch((err) => console.error('Error generating QR:', err))
   }, [targetCloudUrl])
 
-  // Sinh bản ghép canvas composite chất lượng cao
+  // Sinh bản ghép canvas composite chất lượng cao & Đẩy ảnh lên Google Drive
   useEffect(() => {
     let isMounted = true
-    async function makeComposite() {
+
+    async function processSessionMedia() {
       try {
         setIsGeneratingComposite(true)
         const photoUrls = photos.map((p) => p.compositedPath || p.enhancedPath || p.rawPath).filter(Boolean)
@@ -68,28 +82,90 @@ export default function ReviewScreen() {
           eventName: eventConfig.eventName,
           eventDate: eventConfig.date,
         })
-        if (isMounted) {
-          setCompositeStripUrl(stripUrl)
-          setIsGeneratingComposite(false)
 
-          // Tự động lưu dải ảnh đã hoàn thiện vào thư mục Downloads của máy tính
-          if (stripUrl && stripUrl.startsWith('data:image')) {
-            const fileName = `joybooth_final_${selectedFrameSize}_${Date.now()}.jpg`
-            const api = isBrowser ? mockApi : joyBoothApi
-            api.storage.savePhoto(stripUrl, fileName).catch((e) => console.warn('Auto-save strip error:', e))
+        if (!isMounted) return
+
+        setCompositeStripUrl(stripUrl)
+        setIsGeneratingComposite(false)
+
+        // Tự động tạo thư mục con & đẩy toàn bộ ảnh lên Google Drive (và lưu cục bộ)
+        if (eventConfig.gdriveEnabled && eventConfig.gdriveAutoSync) {
+          setIsSyncingDrive(true)
+
+          const filesToUpload: Array<{ name: string; dataUrl: string }> = []
+
+          // 1. Dải ảnh in hoàn chỉnh
+          if (stripUrl) {
+            filesToUpload.push({
+              name: `joybooth_final_${selectedFrameSize}.jpg`,
+              dataUrl: stripUrl,
+            })
+          }
+
+          // 2. Các ảnh chụp đơn lẻ
+          photos.forEach((p, idx) => {
+            const dataUrl = p.compositedPath || p.enhancedPath || p.rawPath
+            if (dataUrl && dataUrl.startsWith('data:image')) {
+              filesToUpload.push({
+                name: `shot_${idx + 1}.jpg`,
+                dataUrl,
+              })
+            }
+          })
+
+          // 3. Video Timelapse nếu có dữ liệu dataUrl
+          if (session?.timelapseUrl && session.timelapseUrl.startsWith('data:')) {
+            filesToUpload.push({
+              name: `joybooth_timelapse.webm`,
+              dataUrl: session.timelapseUrl,
+            })
+          }
+
+          const api = isBrowser ? mockApi : joyBoothApi
+          const res = await api.storage.uploadDriveSession({
+            parentFolderId: eventConfig.gdriveFolderId || '1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU',
+            subfolderName,
+            files: filesToUpload,
+            webhookUrl: eventConfig.gdriveWebhookUrl,
+          })
+
+          if (isMounted && res.success && res.data) {
+            setLocalFolderDir(res.data.localDir)
+            if (res.data.cloudFolderUrl) {
+              setCloudFolderUrl(res.data.cloudFolderUrl)
+              setGdriveUrl(res.data.cloudFolderUrl)
+            }
+            setIsSyncingDrive(false)
+            setDriveSyncDone(true)
+          } else if (isMounted) {
+            setIsSyncingDrive(false)
           }
         }
       } catch (err) {
-        console.error('Failed to generate strip composite canvas:', err)
-        if (isMounted) setIsGeneratingComposite(false)
+        console.error('Failed to generate strip composite or upload to Drive:', err)
+        if (isMounted) {
+          setIsGeneratingComposite(false)
+          setIsSyncingDrive(false)
+        }
       }
     }
 
-    makeComposite()
+    processSessionMedia()
     return () => {
       isMounted = false
     }
-  }, [photos, selectedFrameSize, selectedLayout, selectedTheme, placedStickers, selectedFilter, eventConfig])
+  }, [
+    photos,
+    selectedFrameSize,
+    selectedLayout,
+    selectedTheme,
+    placedStickers,
+    selectedFilter,
+    eventConfig,
+    subfolderName,
+    session?.timelapseUrl,
+    setGdriveUrl,
+  ])
 
   // Tự động đếm ngược
   useEffect(() => {
@@ -150,6 +226,15 @@ export default function ReviewScreen() {
     document.body.removeChild(a)
   }
 
+  function handleOpenLocalFolder() {
+    const api = isBrowser ? mockApi : joyBoothApi
+    api.storage.openFolder(localFolderDir || undefined)
+  }
+
+  function handleOpenDriveBrowser() {
+    window.open(cloudFolderUrl, '_blank')
+  }
+
   const isGrid =
     selectedLayout.previewType === '4_grid' ||
     selectedLayout.previewType === '6_grid' ||
@@ -179,73 +264,83 @@ export default function ReviewScreen() {
               className={`review-media-tab-btn ${activeMediaView === 'strip' ? 'active' : ''}`}
               onClick={() => setActiveMediaView('strip')}
             >
-              📸 Dải Ảnh ({selectedFrameSize.toUpperCase()})
+              <span>🖼️</span>
+              <span>Dải Ảnh In ({selectedFrameSize.toUpperCase()})</span>
             </button>
             <button
               className={`review-media-tab-btn ${activeMediaView === 'timelapse' ? 'active' : ''}`}
               onClick={() => setActiveMediaView('timelapse')}
             >
-              🎬 Video Timelapse ({eventConfig.timelapseSpeed || 2.5}x)
+              <span>🎬</span>
+              <span>Video Timelapse ({eventConfig.timelapseSpeed || 2.5}x)</span>
             </button>
           </div>
 
-          {activeMediaView === 'strip' ? (
-            <div
-              className="photobooth-strip-card"
-              style={{
-                background: selectedTheme.bgGradient || selectedTheme.bgColor,
-                borderColor: selectedTheme.borderColor,
-                position: 'relative',
-              }}
-            >
-              {/* Render placed stickers */}
-              {placedStickers.map((st) => (
+          {/* VIEW 1: DẢI ẢNH IN */}
+          {activeMediaView === 'strip' && (
+            <div className="frame-preview-wrapper fade-in">
+              {isGeneratingComposite ? (
+                <div className="composite-generating-loader">
+                  <span className="loader-spinner-pink" />
+                  <span style={{ fontWeight: 700, color: 'var(--color-pink-primary)' }}>
+                    Đang hoàn thiện dải ảnh & sticker...
+                  </span>
+                </div>
+              ) : compositeStripUrl ? (
+                <div className="final-rendered-strip-box animate-pop">
+                  <img
+                    src={compositeStripUrl}
+                    alt="JoyBooth Final Print"
+                    className={`final-rendered-strip-img ${selectedFrameSize === '2x6' ? 'strip-2x6-view' : 'postcard-4x6-view'}`}
+                  />
+                </div>
+              ) : (
+                /* Fallback preview nếu chưa tải xong canvas */
                 <div
-                  key={st.id}
-                  className="placed-sticker-element"
+                  className={`photobooth-strip-paper ${selectedFrameSize === '4x6' ? 'frame-4x6-postcard' : 'frame-2x6-strip'}`}
                   style={{
-                    left: `${st.x}%`,
-                    top: `${st.y}%`,
-                    transform: `rotate(${st.rotation}deg)`,
-                    pointerEvents: 'none',
+                    background: selectedTheme.bgGradient || selectedTheme.bgColor,
+                    borderColor: selectedTheme.borderColor,
                   }}
                 >
-                  {st.icon}
-                </div>
-              ))}
-
-              <div className={isGrid ? 'strip-slots-grid' : 'strip-slots-vertical'}>
-                {photos.slice(0, selectedLayout.photosCount).map((p, idx) => (
-                  <div key={p.id || idx} className="strip-photo-item">
-                    {p.compositedPath ? (
-                      <img
-                        src={p.compositedPath}
-                        alt={`Photobooth Shot ${idx + 1}`}
-                        className="strip-photo-img"
-                      />
-                    ) : (
-                      <div style={{ color: '#aaa', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '0.85rem' }}>
-                        📸 Ảnh {idx + 1}
-                      </div>
-                    )}
+                  <div className="strip-header-deco">
+                    <span>{selectedTheme.decorations ? selectedTheme.decorations[0] : '🌸'}</span>
+                    <span className="strip-event-tag" style={{ color: selectedTheme.textColor }}>
+                      {eventConfig.eventName}
+                    </span>
+                    <span>{selectedTheme.decorations ? selectedTheme.decorations[1] : '✨'}</span>
                   </div>
-                ))}
-              </div>
 
-              {/* Strip Footer Branding */}
-              <div className="strip-footer-badge" style={{ color: selectedTheme.textColor }}>
-                <span className="strip-footer-text" style={{ color: selectedTheme.textColor }}>
-                  {eventConfig.eventName}
-                </span>
-                <span className="strip-date-text" style={{ color: selectedTheme.textColor, opacity: 0.85 }}>
-                  {eventConfig.date} • {selectedFilter.name}
-                </span>
-              </div>
+                  <div className={`strip-photos-grid ${isGrid ? 'grid-mode' : 'stack-mode'}`}>
+                    {photos.map((photo, index) => (
+                      <div key={photo.id || index} className="strip-photo-item">
+                        <img
+                          src={photo.compositedPath || photo.enhancedPath || photo.rawPath}
+                          alt={`Shot ${index + 1}`}
+                          style={{ filter: selectedFilter.cssFilter }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="strip-footer-deco">
+                    <span className="strip-logo-text" style={{ color: selectedTheme.textColor }}>
+                      JoyBooth
+                    </span>
+                    <span className="strip-date-text" style={{ color: selectedTheme.textColor }}>
+                      {eventConfig.date}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="timelapse-preview-card">
+          )}
+
+          {/* VIEW 2: VIDEO TIMELAPSE */}
+          {activeMediaView === 'timelapse' && (
+            <div className="timelapse-preview-wrapper fade-in">
               {session?.timelapseUrl ? (
-                <div className="timelapse-video-container">
+                <div className="timelapse-player-card">
                   <video
                     src={session.timelapseUrl}
                     autoPlay
@@ -286,44 +381,67 @@ export default function ReviewScreen() {
 
         {/* Right: Instant QR & Print */}
         <section className="review-delivery-deck">
-          {/* Card QR Tải Ảnh & Cloud */}
+          {/* Card QR Tải Ảnh & Cloud Google Drive */}
           <div className="delivery-card-pastel">
             <div className="card-title-pastel">
-              <span>{eventConfig.gdriveEnabled ? '📁' : '📱'}</span>
-              <span>
-                {eventConfig.gdriveEnabled
-                  ? 'Quét QR Mở Google Drive (Ảnh + Strip + Timelapse)'
-                  : 'Quét QR Tải Toàn Bộ Ảnh & Dải Strip'}
-              </span>
+              <span>📁</span>
+              <span>Quét QR Nhận Ảnh Trên Google Drive</span>
             </div>
             <div className="qr-row">
               <div className="qr-box-pastel">
                 {qrDataUrl ? (
-                  <img src={qrDataUrl} alt="QR Code tải ảnh" />
+                  <img src={qrDataUrl} alt="QR Code tải ảnh Google Drive" />
                 ) : (
                   <span>Tạo mã QR...</span>
                 )}
               </div>
               <div style={{ flex: 1 }}>
                 <p className="qr-guide-text">
-                  {eventConfig.gdriveEnabled
-                    ? 'Mở Camera iPhone/Android hoặc Zalo để mở thư mục Google Drive chứa ảnh gốc, dải strip và video timelapse.'
-                    : 'Mở Camera iPhone/Android hoặc Zalo để quét và lưu ảnh gốc về điện thoại tức thì.'}
+                  Mở Camera điện thoại hoặc Zalo để mở thư mục Google Drive riêng của bạn, chứa đầy đủ dải ảnh in, ảnh gốc và video timelapse.
                 </p>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '8px 0' }}>
-                  <span className="cloud-sync-badge">
-                    {eventConfig.gdriveEnabled ? '☁️ Đã đồng bộ Google Drive' : '⚡ Tải trực tiếp'}
-                  </span>
+                {/* Badge thông báo thư mục con theo ngày giờ */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '8px 0' }}>
+                  <div className="cloud-sync-badge-custom">
+                    {isSyncingDrive ? (
+                      <span>⏳ Đang tạo thư mục Google Drive: <strong>{subfolderName}</strong>...</span>
+                    ) : driveSyncDone ? (
+                      <span>✅ Đã lưu vào thư mục: <strong>{subfolderName}</strong></span>
+                    ) : (
+                      <span>☁️ Đã kết nối folder Google Drive: <strong>{subfolderName}</strong></span>
+                    )}
+                  </div>
                 </div>
 
-                <p className="qr-subguide">Khổ in: {selectedFrameSize.toUpperCase()} • Bộ lọc: {selectedFilter.name}</p>
+                {/* Nút thao tác mở nhanh */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  <button
+                    className="btn btn-pill-white"
+                    style={{ fontSize: '0.8rem', padding: '6px 14px' }}
+                    onClick={handleOpenDriveBrowser}
+                    title="Mở thư mục Google Drive trên trình duyệt"
+                  >
+                    🌐 Mở Google Drive
+                  </button>
+                  <button
+                    className="btn btn-pill-white"
+                    style={{ fontSize: '0.8rem', padding: '6px 14px' }}
+                    onClick={handleOpenLocalFolder}
+                    title="Mở thư mục lưu trữ trên máy tính"
+                  >
+                    📂 Mở Folder Máy
+                  </button>
+                </div>
+
+                <p className="qr-subguide" style={{ marginTop: 8 }}>
+                  Khổ in: {selectedFrameSize.toUpperCase()} • Bộ lọc: {selectedFilter.name}
+                </p>
                 
                 {compositeStripUrl && (
                   <button
                     className="download-strip-btn"
                     onClick={handleDownloadStrip}
-                    style={{ marginTop: 10 }}
+                    style={{ marginTop: 8 }}
                   >
                     💾 Tải Dải Strip Về Máy ({selectedFrameSize.toUpperCase()})
                   </button>

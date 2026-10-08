@@ -165,6 +165,86 @@ ipcMain.handle('storage:open-folder', async (_event, targetPath?: string) => {
   }
 })
 
+// Tải session ảnh lên Google Drive (Tự động tạo folder con theo ngày giờ YYYY-MM-DD_HH-mm)
+ipcMain.handle(
+  'storage:upload-drive-session',
+  async (
+    _event,
+    payload: {
+      parentFolderId: string
+      subfolderName: string
+      files: Array<{ name: string; dataUrl: string }>
+      webhookUrl?: string
+    }
+  ) => {
+    try {
+      const downloadsDir = app.getPath('downloads')
+      const localSessionDir = join(downloadsDir, 'JoyBooth', payload.subfolderName)
+      if (!fs.existsSync(localSessionDir)) {
+        fs.mkdirSync(localSessionDir, { recursive: true })
+      }
+
+      // Lưu các file ảnh và video vào thư mục cục bộ theo ngày giờ
+      const savedFiles: string[] = []
+      for (const item of payload.files) {
+        if (!item.dataUrl) continue
+        try {
+          const base64Data = item.dataUrl.replace(/^data:[^;]+;base64,/, '')
+          const buffer = Buffer.from(base64Data, 'base64')
+          const targetFilePath = join(localSessionDir, item.name)
+          fs.writeFileSync(targetFilePath, buffer)
+          savedFiles.push(targetFilePath)
+        } catch (fileErr) {
+          console.warn('Cannot write session file:', item.name, fileErr)
+        }
+      }
+
+      let cloudFolderUrl = `https://drive.google.com/drive/folders/${payload.parentFolderId}`
+      let cloudFolderId = payload.parentFolderId
+
+      // Nếu có cấu hình Google Apps Script Webhook, gửi request tạo folder và đẩy ảnh lên Google Drive trực tiếp
+      if (payload.webhookUrl && payload.webhookUrl.trim().startsWith('http')) {
+        try {
+          const res = await fetch(payload.webhookUrl.trim(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'create_session_folder',
+              parentFolderId: payload.parentFolderId,
+              folderName: payload.subfolderName,
+              files: payload.files.map((f) => ({
+                name: f.name,
+                dataUrl: f.dataUrl,
+              })),
+            }),
+          })
+          const resJson: any = await res.json()
+          if (resJson && resJson.success && resJson.folderUrl) {
+            cloudFolderUrl = resJson.folderUrl
+            cloudFolderId = resJson.folderId || cloudFolderId
+          }
+        } catch (netErr: any) {
+          console.warn('Google Drive Webhook upload error:', netErr.message)
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          localDir: localSessionDir,
+          cloudFolderUrl,
+          cloudFolderId,
+          subfolderName: payload.subfolderName,
+          filesCount: savedFiles.length,
+        },
+      }
+    } catch (err: any) {
+      console.error('Upload drive session failed:', err)
+      return { success: false, error: err.message }
+    }
+  }
+)
+
 // ─── App Lifecycle ────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {

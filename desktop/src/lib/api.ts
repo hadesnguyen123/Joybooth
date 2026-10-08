@@ -22,6 +22,18 @@ export interface JoyBoothAPI {
     getDownloadsPath: () => IpcResponse<{ path: string; baseDownloads: string }>
     savePhoto: (dataUrl: string, fileName: string) => IpcResponse<{ savedPath: string }>
     openFolder: (targetPath?: string) => IpcResponse
+    uploadDriveSession: (payload: {
+      parentFolderId: string
+      subfolderName: string
+      files: Array<{ name: string; dataUrl: string }>
+      webhookUrl?: string
+    }) => IpcResponse<{
+      localDir: string
+      cloudFolderUrl: string
+      cloudFolderId: string
+      subfolderName: string
+      filesCount: number
+    }>
   }
 }
 
@@ -104,5 +116,20 @@ export const mockApi = {
       data: { savedPath: `~/Downloads/JoyBooth/${fileName}` },
     }),
     openFolder: async () => ({ success: true }),
+    uploadDriveSession: async (payload: {
+      parentFolderId: string
+      subfolderName: string
+      files: Array<{ name: string; dataUrl: string }>
+      webhookUrl?: string
+    }) => ({
+      success: true,
+      data: {
+        localDir: `~/Downloads/JoyBooth/${payload.subfolderName}`,
+        cloudFolderUrl: `https://drive.google.com/drive/folders/${payload.parentFolderId}`,
+        cloudFolderId: payload.parentFolderId,
+        subfolderName: payload.subfolderName,
+        filesCount: payload.files.length,
+      },
+    }),
   },
 }
