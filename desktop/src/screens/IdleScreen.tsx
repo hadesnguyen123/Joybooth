@@ -1,26 +1,19 @@
-import { useAppStore } from '../store/appStore'
+import { useAppStore, type CaptureMode } from '../store/appStore'
 import './IdleScreen.css'
 
-/**
- * IdleScreen — Màn hình chờ / Attract screen
- * Hiện khi không có khách. Click bất kỳ để vào màn hình chụp.
- *
- * 🔴 REVIEW NEEDED: Cần thiết kế UI thực tế từ bạn
- *    - Logo/brand của event hiển thị ở đâu?
- *    - Có slideshow ảnh không? (ảnh mẫu từ sự kiện trước)
- *    - Animation/motion như thế nào?
- *    - Text "Chạm để bắt đầu" vị trí và style?
- */
 export default function IdleScreen() {
-  const { setScreen, startNewSession, eventConfig } = useAppStore()
+  const { setScreen, startNewSession, eventConfig, setCaptureMode } = useAppStore()
 
-  function handleStart() {
+  function handleSelectMode(mode: CaptureMode) {
+    setCaptureMode(mode)
     startNewSession()
     setScreen('select-size')
   }
 
+  const selfboothMinutes = Math.round((eventConfig.selfboothDurationSeconds || 60) / 60)
+
   return (
-    <div className="idle-screen" onClick={handleStart} id="idle-screen">
+    <div className="idle-screen" id="idle-screen">
       {/* Decorative background orbs */}
       <div className="idle-bg-orb idle-bg-orb--1" />
       <div className="idle-bg-orb idle-bg-orb--2" />
@@ -47,15 +40,31 @@ export default function IdleScreen() {
         </div>
       </div>
 
-      {/* Center main attract content */}
-      <div className="idle-content fade-in">
-        {/* Logo & Brand badge */}
-        <div className="idle-badge-pill">
+      {/* Top Header with prominent Admin Button */}
+      <header className="idle-top-header">
+        <div className="idle-header-badge">
           <span>✨</span>
           <span>PHOTOBOOTH HÀN QUỐC CAO CẤP</span>
-          <span>✨</span>
         </div>
 
+        {/* Nút Quản Trị Hệ Thống rõ ràng ngay màn hình chính */}
+        <button
+          className="idle-admin-pill-btn"
+          id="idle-admin-btn"
+          onClick={(e) => {
+            e.stopPropagation()
+            setScreen('admin')
+          }}
+          title="Vào cài đặt hệ thống (PIN: 1234)"
+        >
+          <span className="admin-icon">⚙️</span>
+          <span className="admin-text">Quản Trị Hệ Thống</span>
+        </button>
+      </header>
+
+      {/* Center main attract content */}
+      <div className="idle-content fade-in">
+        {/* Brand & Event Title */}
         <div className="idle-logo">
           {eventConfig.eventLogo ? (
             <img src={eventConfig.eventLogo} alt="Event Logo" />
@@ -64,19 +73,75 @@ export default function IdleScreen() {
           )}
         </div>
 
-        {/* Event name */}
         <p className="idle-event-subtitle">
           {eventConfig.eventName || 'FUN STUDIO PHOTOBOOTH'}
         </p>
 
-        {/* CTA Button */}
-        <div className="idle-cta-container">
-          <div className="idle-cta-button">
-            <span className="idle-cta-dot" />
-            <span className="idle-cta-text">CHẠM ĐỂ BẮT ĐẦU</span>
-            <span className="idle-cta-sparkle">📸</span>
+        <p className="idle-mode-prompt">
+          Chạm vào 1 trong 2 chế độ chụp bên dưới để bắt đầu:
+        </p>
+
+        {/* ── 2 Chế Độ Chụp Tại Màn Hình Chính ── */}
+        <div className="idle-modes-container">
+          {/* Chế độ 1: PHOTOBOOTH CỔ ĐIỂN */}
+          <div
+            className="idle-mode-card card-photobooth"
+            id="mode-photobooth-card"
+            onClick={() => handleSelectMode('photobooth')}
+          >
+            <div className="mode-card-badge badge-photobooth">
+              <span>⭐️</span>
+              <span>PHỔ BIẾN NHẤT</span>
+            </div>
+
+            <div className="mode-card-icon">📸</div>
+
+            <h2 className="mode-card-title">Photobooth Cổ Điển</h2>
+            <p className="mode-card-subtitle">
+              Chụp lần lượt theo số ô khung hình
+            </p>
+
+            <ul className="mode-card-features">
+              <li>✨ Hỗ trợ chụp dải Strip 2x6 & Postcard 4x6</li>
+              <li>🔄 Cho phép xóa ảnh chưa đẹp để chụp lại (Retake)</li>
+              <li>🎨 Tự chọn theme viền và sticker dễ thương</li>
+            </ul>
+
+            <div className="mode-card-action btn-action-photobooth">
+              <span>Bắt Đầu Chụp Photobooth</span>
+              <span className="action-arrow">➔</span>
+            </div>
           </div>
-          <p className="idle-cta-hint">Nhấp bất kỳ vị trí nào trên màn hình</p>
+
+          {/* Chế độ 2: SELFBOOTH HÀN QUỐC */}
+          <div
+            className="idle-mode-card card-selfbooth"
+            id="mode-selfbooth-card"
+            onClick={() => handleSelectMode('selfbooth')}
+          >
+            <div className="mode-card-badge badge-selfbooth">
+              <span>🔥</span>
+              <span>HOT TREND K-STUDIO</span>
+            </div>
+
+            <div className="mode-card-icon">⏱️</div>
+
+            <h2 className="mode-card-title">Selfbooth Tự Do</h2>
+            <p className="mode-card-subtitle">
+              Chụp không giới hạn trong {selfboothMinutes} phút
+            </p>
+
+            <ul className="mode-card-features">
+              <li>⏱️ Thả ga tạo dáng bấm chụp liên tục trong {eventConfig.selfboothDurationSeconds || 60}s</li>
+              <li>🖼️ Tự tay chọn các bức ảnh đẹp nhất đưa vào khung</li>
+              <li>☁️ Tự động tạo thư mục và đẩy lên Google Drive</li>
+            </ul>
+
+            <div className="mode-card-action btn-action-selfbooth">
+              <span>Bắt Đầu Chụp Selfbooth</span>
+              <span className="action-arrow">➔</span>
+            </div>
+          </div>
         </div>
 
         {/* Features row */}
@@ -88,33 +153,20 @@ export default function IdleScreen() {
           <div className="idle-feature-dot">•</div>
           <div className="idle-feature-item">
             <span className="idle-feat-icon">🫧</span>
-            <span>Filter Da Sáng</span>
+            <span>Làn Da K-Beauty</span>
           </div>
           <div className="idle-feature-dot">•</div>
           <div className="idle-feature-item">
             <span className="idle-feat-icon">⚡</span>
-            <span>In Lấy Ngay</span>
+            <span>In Nhiệt Lấy Ngay</span>
           </div>
           <div className="idle-feature-dot">•</div>
           <div className="idle-feature-item">
             <span className="idle-feat-icon">📲</span>
-            <span>Mã QR Tải Ảnh</span>
+            <span>Google Drive QR Tức Thì</span>
           </div>
         </div>
       </div>
-
-      {/* Admin trigger — hidden corner button */}
-      <button
-        className="idle-admin-trigger"
-        id="idle-admin-btn"
-        onClick={(e) => {
-          e.stopPropagation()
-          setScreen('admin')
-        }}
-        title="Quản trị"
-      >
-        ⚙️
-      </button>
     </div>
   )
 }
