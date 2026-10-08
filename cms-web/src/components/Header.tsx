@@ -1,10 +1,11 @@
-import { Wifi, RefreshCw, UserCheck, ShieldCheck } from 'lucide-react'
+import { Wifi, RefreshCw, UserCheck, ShieldCheck, Server, AlertCircle } from 'lucide-react'
 
 interface HeaderProps {
   title: string
   subtitle?: string
   onlineKioskCount: number
   totalKioskCount: number
+  isBackendConnected: boolean
 }
 
 export default function Header({
@@ -12,6 +13,7 @@ export default function Header({
   subtitle,
   onlineKioskCount,
   totalKioskCount,
+  isBackendConnected,
 }: HeaderProps) {
   return (
     <header className="cms-header">
@@ -21,6 +23,25 @@ export default function Header({
       </div>
 
       <div className="header-right">
+        {/* Backend API Server Status Capsule */}
+        <div className={`status-capsule ${isBackendConnected ? 'api-online' : 'api-offline'}`}>
+          {isBackendConnected ? (
+            <>
+              <Server className="w-4 h-4 text-emerald-500 animate-pulse" />
+              <span>
+                Backend API: <strong>Port 5181 (Live)</strong>
+              </span>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="w-4 h-4 text-amber-500" />
+              <span>
+                Backend API: <strong>Đang kết nối...</strong>
+              </span>
+            </>
+          )}
+        </div>
+
         {/* Kiosks Online Status Capsule */}
         <div className="status-capsule">
           <Wifi className="w-4 h-4 text-emerald-500 animate-pulse" />

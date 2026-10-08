@@ -49,7 +49,7 @@ const TAB_META: Record<NavTab, { title: string; subtitle: string }> = {
 
 function CmsLayout() {
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard')
-  const { kiosks, frames, coupons } = useCms()
+  const { kiosks, frames, coupons, isBackendConnected } = useCms()
 
   const onlineKiosks = kiosks.filter((k) => k.status === 'online').length
   const totalKiosks = kiosks.length
@@ -74,6 +74,7 @@ function CmsLayout() {
           subtitle={subtitle}
           onlineKioskCount={onlineKiosks}
           totalKioskCount={totalKiosks}
+          isBackendConnected={isBackendConnected}
         />
 
         <main className="cms-content-scroll">

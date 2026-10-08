@@ -11,7 +11,10 @@
     "start": "npm --prefix desktop start",
     "preview": "npm --prefix desktop run preview",
     "cms": "npm --prefix cms-web run dev",
+    "cms:server": "npm --prefix cms-web run server",
+    "cms:ui": "npm --prefix cms-web run dev:ui",
     "cms:build": "npm --prefix cms-web run build",
+    "verify": "node .agents/skills/joybooth-system-verifier/scripts/verify-all.mjs",
     "ai": "cd ai-service && python main.py"
   }
 }
