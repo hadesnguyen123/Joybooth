@@ -7,7 +7,13 @@ export default function IdleScreen() {
   function handleSelectMode(mode: CaptureMode) {
     setCaptureMode(mode)
     startNewSession()
-    setScreen('select-size')
+    if (mode === 'selfbooth') {
+      // Đối với Selfbooth: Vào thẳng màn hình chụp, mặc định không thanh toán trước
+      setScreen('capture')
+    } else {
+      // Đối với Photobooth: Bắt đầu chọn Khung (2x6 vs 4x6) -> Bố cục -> Thanh toán -> Chụp
+      setScreen('select-size')
+    }
   }
 
   const selfboothMinutes = Math.round((eventConfig.selfboothDurationSeconds || 60) / 60)

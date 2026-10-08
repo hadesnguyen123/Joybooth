@@ -4,6 +4,7 @@ import './SelectLayoutScreen.css'
 export default function SelectLayoutScreen() {
   const {
     setScreen,
+    selectedFrameSize,
     selectedCategory,
     selectCategory,
     selectedLayout,
@@ -11,24 +12,28 @@ export default function SelectLayoutScreen() {
     eventConfig,
   } = useAppStore()
 
-  const categories: LayoutCategory[] = [1, 3, 4, 6, 8]
+  // 2x6 Strip chỉ cho phép 3 ảnh hoặc 4 ảnh strip
+  // 4x6 Postcard cho phép 1, 4, 6, 8 ảnh
+  const categories: LayoutCategory[] =
+    selectedFrameSize === '2x6' ? [3, 4] : [1, 4, 6, 8]
+
+  // Đảm bảo selectedCategory hợp lệ với frameSize
+  if (!categories.includes(selectedCategory)) {
+    selectCategory(4)
+  }
+
   const currentCategoryLayouts = ALL_LAYOUTS[selectedCategory] || ALL_LAYOUTS[4]
 
-  const categoryPrices: Record<LayoutCategory, string> = {
-    1: '40.000 đ',
-    3: '60.000 đ',
-    4: '70.000 đ',
-    6: '80.000 đ',
-    8: '90.000 đ',
-  }
+  const basePriceFormatted = new Intl.NumberFormat('vi-VN').format(
+    selectedFrameSize === '2x6' ? eventConfig.price2x6 : eventConfig.price4x6
+  )
 
   function handleChooseLayout(layout: GridLayoutItem) {
     selectLayout(layout)
   }
 
-  function handleProceedToCapture() {
-    // Tạm thời nếu paymentQrEnabled = false thì nhảy thẳng vào chụp ảnh
-    if (eventConfig.paymentQrEnabled) {
+  function handleProceed() {
+    if (eventConfig.paymentRequiredForPhotobooth) {
       setScreen('payment')
     } else {
       setScreen('capture')
@@ -39,10 +44,13 @@ export default function SelectLayoutScreen() {
     <div className="layout-screen-container" id="select-layout-screen">
       {/* Title */}
       <div className="screen-title-banner">
-        <div className="title-bubble-badge">CHỌN BỐ CỤC</div>
+        <div className="title-bubble-badge">CHỌN BỐ CỤC KHUNG HÌNH</div>
+        <p style={{ margin: '6px 0 0', fontSize: '0.95rem', color: '#64748b' }}>
+          Định dạng: <strong>{selectedFrameSize === '2x6' ? 'Dải Strip 2x6 inch' : 'Bưu thiếp 4x6 inch'}</strong> • Gói cơ bản: <strong>{basePriceFormatted}đ</strong>
+        </p>
       </div>
 
-      {/* Category Tabs: 1 ảnh, 3 ảnh, 4 ảnh, 6 ảnh, 8 ảnh */}
+      {/* Category Tabs */}
       <div className="category-tabs-row">
         {categories.map((cat) => {
           const isActive = selectedCategory === cat
@@ -53,9 +61,6 @@ export default function SelectLayoutScreen() {
               onClick={() => selectCategory(cat)}
             >
               <span>{cat} ảnh</span>
-              {isActive && (
-                <span className="cat-price-sub">{categoryPrices[cat]}</span>
-              )}
             </button>
           )
         })}
@@ -131,9 +136,9 @@ export default function SelectLayoutScreen() {
         <button
           className="btn btn-pink"
           style={{ padding: '14px 44px', fontSize: '1.15rem' }}
-          onClick={handleProceedToCapture}
+          onClick={handleProceed}
         >
-          📷 Tiếp Tục Chụp
+          {eventConfig.paymentRequiredForPhotobooth ? '💳 Tiếp Tục Thanh Toán →' : '📷 Tiếp Tục Chụp →'}
         </button>
       </footer>
     </div>

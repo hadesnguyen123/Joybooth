@@ -700,15 +700,83 @@ export default function AdminScreen() {
                       onChange={(e) => setEventConfig({ price4x6: Number(e.target.value) })}
                     />
                   </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Giá In Thêm 2x6 Inch (+2 dải) (VND)</label>
+                    <input
+                      type="number"
+                      step={5000}
+                      className="form-input"
+                      value={eventConfig.extraCopyPrice2x6 || 25000}
+                      onChange={(e) => setEventConfig({ extraCopyPrice2x6: Number(e.target.value) })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Giá In Thêm 4x6 Inch (+1 postcard) (VND)</label>
+                    <input
+                      type="number"
+                      step={5000}
+                      className="form-input"
+                      value={eventConfig.extraCopyPrice4x6 || 35000}
+                      onChange={(e) => setEventConfig({ extraCopyPrice4x6: Number(e.target.value) })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Bắt Buộc Thanh Toán Cho Photobooth</label>
+                    <select
+                      className="form-input"
+                      value={eventConfig.paymentRequiredForPhotobooth ? 'yes' : 'no'}
+                      onChange={(e) => setEventConfig({ paymentRequiredForPhotobooth: e.target.value === 'yes' })}
+                    >
+                      <option value="yes">Bật (Chọn bố cục ➔ Thanh toán ➔ Chụp)</option>
+                      <option value="no">Tắt (Vào chụp ngay không cần thanh toán)</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Bắt Buộc Thanh Toán Cho Selfbooth</label>
+                    <select
+                      className="form-input"
+                      value={eventConfig.paymentRequiredForSelfbooth ? 'yes' : 'no'}
+                      onChange={(e) => setEventConfig({ paymentRequiredForSelfbooth: e.target.value === 'yes' })}
+                    >
+                      <option value="no">Tắt (Mặc định: Vào thẳng màn hình chụp tự do)</option>
+                      <option value="yes">Bật (Yêu cầu thanh toán trước khi mở camera)</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', padding: 14, borderRadius: 12, marginTop: 16, borderLeft: '4px solid #8b5cf6' }}>
-                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#4c1d95', marginBottom: 4 }}>
-                    💡 Tự Động Sinh Mã VietQR:
+                {/* Danh sách mã giảm giá */}
+                <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e2e8f0' }}>
+                  <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#1e293b', marginBottom: 10 }}>
+                    🏷️ Danh Sách Mã Giảm Giá / Voucher Ưu Đãi Đang Kích Hoạt:
                   </h4>
-                  <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.5, margin: 0 }}>
-                    JoyBooth tích hợp trực tiếp tiêu chuẩn VietQR quốc gia. Khi bật tính năng, mỗi khách hàng sẽ nhận được một mã QR kèm số tiền chính xác của gói chụp và mã đơn hàng riêng biệt.
-                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+                    {(eventConfig.discountCoupons || []).map((cp) => (
+                      <div
+                        key={cp.code}
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 10,
+                          padding: '10px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 3,
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <strong style={{ color: '#db2777', fontSize: '0.9rem' }}>{cp.code}</strong>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#fce7f3', color: '#be185d', padding: '2px 6px', borderRadius: 6 }}>
+                            {cp.type === 'percent' ? `-${cp.value}%` : `-${cp.value.toLocaleString()}đ`}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.76rem', color: '#64748b' }}>{cp.description}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

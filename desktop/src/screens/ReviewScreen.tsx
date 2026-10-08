@@ -16,12 +16,15 @@ export default function ReviewScreen() {
     selectedTheme,
     placedStickers,
     selectedFrameSize,
+    selectedCopies,
     setGdriveUrl,
   } = useAppStore()
 
+  const defaultCopies = session?.paidCopies || selectedCopies || (selectedFrameSize === '2x6' ? 2 : 1)
+
   const [activeMediaView, setActiveMediaView] = useState<'strip' | 'timelapse'>('strip')
   const [qrDataUrl, setQrDataUrl] = useState<string>('')
-  const [printCopies, setPrintCopies] = useState<number>(1)
+  const [printCopies, setPrintCopies] = useState<number>(defaultCopies)
   const [isPrinting, setIsPrinting] = useState<boolean>(false)
   const [printSuccess, setPrintSuccess] = useState<boolean>(false)
   const [timeLeft, setTimeLeft] = useState<number>(eventConfig.idleTimeoutSeconds || 60)

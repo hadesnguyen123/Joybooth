@@ -1,4 +1,4 @@
-/* ── JoyBooth Payment Screen (VietQR Kiosk) ─────────────────────────── */
+/* ── JoyBooth Payment Screen (VietQR & Cash Kiosk) ─────────────────────── */
 
 .payment-screen-container {
   width: 100vw;
@@ -15,8 +15,8 @@
 .payment-main-stage {
   flex: 1;
   display: grid;
-  grid-template-columns: 460px 540px;
-  gap: 40px;
+  grid-template-columns: 480px 520px;
+  gap: 36px;
   max-width: 1100px;
   margin: 0 auto;
   width: 100%;
@@ -28,22 +28,22 @@
 .order-summary-card {
   background: var(--color-white);
   border-radius: 20px;
-  padding: 28px;
+  padding: 24px 28px;
   box-shadow: 0 16px 40px rgba(45, 36, 38, 0.08);
   border: 1.5px solid rgba(45, 36, 38, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .summary-badge-top {
   display: inline-block;
   align-self: flex-start;
-  padding: 6px 14px;
+  padding: 5px 12px;
   background: var(--color-pink-soft);
   color: var(--color-pink-primary);
   border-radius: var(--radius-full);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.5px;
 }
@@ -52,7 +52,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 }
 
 .summary-label {
@@ -74,86 +74,315 @@
   background: #f3f4f6;
   padding: 3px 8px;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: #1f2937;
+}
+
+/* Copies Selector Box */
+.copies-selector-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.copies-label-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.copies-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.copies-subtext {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.copies-counter-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.counter-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.counter-btn:hover:not(:disabled) {
+  border-color: var(--color-pink-primary);
+  color: var(--color-pink-primary);
+  background: #fff0f5;
+  transform: scale(1.05);
+}
+
+.counter-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.counter-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 44px;
+}
+
+.counter-number {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--color-pink-primary);
+}
+
+.counter-unit {
+  font-size: 0.7rem;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+/* Coupon Input Section */
+.coupon-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.coupon-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.coupon-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.coupon-text-field {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.coupon-text-field:focus {
+  border-color: var(--color-pink-primary);
+}
+
+.btn-apply-coupon {
+  padding: 9px 18px;
+  border-radius: 10px;
+  border: none;
+  background: #1e293b;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-apply-coupon:hover {
+  background: #334155;
+}
+
+.coupon-applied-pill {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.coupon-applied-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.coupon-code-badge {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #065f46;
+}
+
+.coupon-desc {
+  font-size: 0.72rem;
+  color: #047857;
+}
+
+.btn-remove-coupon {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.coupon-error-text {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin: 0;
 }
 
 .summary-divider {
   border: none;
   border-top: 1.5px dashed rgba(45, 36, 38, 0.12);
-  margin: 6px 0;
+  margin: 4px 0;
+}
+
+/* Cost Breakdown List */
+.cost-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.84rem;
+  color: #64748b;
+}
+
+.cost-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.cost-row.discount {
+  color: #059669;
+  font-weight: 700;
 }
 
 .summary-total-box {
   background: linear-gradient(135deg, #fff0f5 0%, #ffe4ec 100%);
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-radius: 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border: 1px solid rgba(244, 114, 154, 0.25);
+  margin-top: 4px;
 }
 
 .total-label {
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--color-dark-text);
 }
 
 .total-amount-display {
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 900;
   color: var(--color-pink-primary);
 }
 
-.payment-instructions-pill {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 12px 16px;
-  font-size: 0.82rem;
-  color: #475569;
-  line-height: 1.5;
-  border-left: 4px solid var(--color-pink-primary);
-}
-
-.payment-instructions-pill p {
-  margin: 2px 0;
-}
-
-.kiosk-status-notice {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  font-style: italic;
-  line-height: 1.4;
-}
-
-/* VietQR Display Card */
-.vietqr-display-card {
+/* ── Payment Action Card (Right Side) ─────────────────────────── */
+.payment-action-card {
   background: var(--color-white);
   border-radius: 20px;
-  padding: 24px;
+  padding: 22px;
   box-shadow: 0 16px 40px rgba(45, 36, 38, 0.08);
   border: 1.5px solid rgba(45, 36, 38, 0.08);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+}
+
+/* Method Switcher Tabs */
+.method-switcher-tabs {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.method-tab-btn {
+  padding: 10px;
+  border-radius: 9px;
+  border: none;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #64748b;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.method-tab-btn.active {
+  background: #ffffff;
+  color: var(--color-pink-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* VietQR View */
+.vietqr-view-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .vietqr-box-frame {
   position: relative;
-  width: 280px;
-  height: 280px;
+  width: 240px;
+  height: 240px;
   background: #ffffff;
-  border-radius: 16px;
-  padding: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
   border: 2px solid #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+.free-experience-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  color: #059669;
+}
+
+.free-experience-box b {
+  font-size: 1.1rem;
+}
+
+.free-experience-box p {
+  font-size: 0.8rem;
+  color: #4b5563;
+  margin: 0;
 }
 
 .vietqr-real-image {
@@ -162,7 +391,6 @@
   object-fit: contain;
 }
 
-/* Radar scan line animation */
 .qr-scan-line-anim {
   position: absolute;
   top: 0;
@@ -175,23 +403,19 @@
 }
 
 @keyframes qrScan {
-  0% {
-    top: 5%;
-  }
-  100% {
-    top: 92%;
-  }
+  0% { top: 5%; }
+  100% { top: 92%; }
 }
 
 .bank-meta-details {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   background: #f8fafc;
-  padding: 14px 18px;
-  border-radius: 12px;
-  font-size: 0.88rem;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.82rem;
 }
 
 .bank-meta-row {
@@ -212,7 +436,7 @@
 
 .bank-meta-row .copy-num {
   font-family: monospace;
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #0284c7;
 }
 
@@ -228,11 +452,11 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .timer-text {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: #64748b;
   text-align: center;
 }
@@ -242,7 +466,7 @@
 }
 
 .timer-expired {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: #dc2626;
   text-align: center;
   font-weight: 700;
@@ -250,7 +474,7 @@
 
 .timer-progress-track {
   width: 100%;
-  height: 6px;
+  height: 5px;
   background: #e2e8f0;
   border-radius: 3px;
   overflow: hidden;
@@ -263,9 +487,104 @@
   transition: width 1s linear;
 }
 
+/* Cash View Content */
+.cash-view-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 10px 4px;
+}
+
+.cash-instruction-illustration {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cash-icon-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #10b981;
+}
+
+.cash-instruction-illustration h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #1e293b;
+}
+
+.cash-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  background: #f8fafc;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  color: #475569;
+  width: 100%;
+}
+
+.cash-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.step-num {
+  background: var(--color-pink-primary);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.cash-operator-confirm-box {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.btn-cash-confirm {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  background: #10b981;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-cash-confirm:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}
+
 /* Footer Bottom Bar */
 .payment-bottom-bar {
-  height: 68px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;

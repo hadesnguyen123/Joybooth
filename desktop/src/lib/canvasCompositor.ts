@@ -61,28 +61,29 @@ export async function generateStripComposite(opts: RenderOptions): Promise<strin
   }
   ctx.fillRect(0, 0, width, height)
 
-  // 2. Tính toán khung ảnh (Slots)
-  const count = Math.min(opts.photos.length, opts.layout.photosCount)
+  // 2. Tính toán khung ảnh (Slots) chuẩn xác theo Bố cục đã chọn (opts.layout)
+  // BẮT BUỘC giữ đúng cấu trúc ô theo layout, không được co rút dựa trên số lượng ảnh truyền vào
+  const totalSlots = opts.layout.photosCount || (is2x6 ? 4 : 4)
+  const cols = opts.layout.cols || 1
+  const rows = opts.layout.rows || Math.max(1, Math.ceil(totalSlots / cols))
+
   const footerHeight = 150
   const padX = is2x6 ? 36 : 50
   const padTop = 40
   const gap = 20
 
   const availableHeight = height - padTop - footerHeight
-  const cols = opts.layout.cols || 1
-  const rows = Math.ceil(count / cols)
-
   const slotW = (width - padX * 2 - gap * (cols - 1)) / cols
   const slotH = (availableHeight - gap * (rows - 1)) / rows
 
-  // 3. Tải và vẽ từng ảnh
-  for (let i = 0; i < count; i++) {
+  // 3. Tải và vẽ từng ảnh theo đúng từng ô của layout đã chọn
+  for (let i = 0; i < totalSlots; i++) {
     const colIdx = i % cols
     const rowIdx = Math.floor(i / cols)
     const sx = padX + colIdx * (slotW + gap)
     const sy = padTop + rowIdx * (slotH + gap)
 
-    // Khung viền ảnh
+    // Khung viền ảnh bo góc
     ctx.save()
     ctx.fillStyle = '#1A1A1A'
     ctx.beginPath()
@@ -90,11 +91,11 @@ export async function generateStripComposite(opts: RenderOptions): Promise<strin
     ctx.fill()
     ctx.clip()
 
-    const photoSrc = opts.photos[i]
+    const photoSrc = opts.photos[i] || (opts.photos.length > 0 ? opts.photos[opts.photos.length - 1] : '')
     if (photoSrc) {
       try {
         const img = await loadImage(photoSrc)
-        // Áp dụng bộ lọc màu nếu photo chưa được nướng sẵn filter (không phải data:image)
+        // Áp dụng bộ lọc màu nếu photo chưa được nướng sẵn filter
         if (!photoSrc.startsWith('data:image') && opts.filter.cssFilter && opts.filter.cssFilter !== 'none') {
           ctx.filter = opts.filter.cssFilter
         }
@@ -118,12 +119,11 @@ export async function generateStripComposite(opts: RenderOptions): Promise<strin
         ctx.drawImage(img, dx, dy, dw, dh)
       } catch (err) {
         console.warn(`Could not load photo ${i + 1}:`, err)
-        // Fallback placeholder
         ctx.fillStyle = '#333333'
         ctx.fillRect(sx, sy, slotW, slotH)
       }
     } else {
-      ctx.fillStyle = '#EEEEEE'
+      ctx.fillStyle = '#E2E8F0'
       ctx.fillRect(sx, sy, slotW, slotH)
     }
 

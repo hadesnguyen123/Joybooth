@@ -210,6 +210,20 @@ export interface CapturedPhoto {
   timestamp: number
 }
 
+export interface DiscountCoupon {
+  code: string
+  type: 'percent' | 'fixed'
+  value: number // % hoặc số tiền VND
+  description: string
+}
+
+export const DEFAULT_DISCOUNT_COUPONS: DiscountCoupon[] = [
+  { code: 'JOYBOOTH10', type: 'percent', value: 10, description: 'Giảm 10% tổng hóa đơn' },
+  { code: 'GIAM20K', type: 'fixed', value: 20000, description: 'Giảm trực tiếp 20.000đ' },
+  { code: 'FREE', type: 'percent', value: 100, description: 'Miễn phí trải nghiệm (0đ)' },
+  { code: 'VIP2026', type: 'percent', value: 20, description: 'Khách hàng thân thiết VIP (-20%)' },
+]
+
 export interface SessionState {
   sessionId: string
   photos: CapturedPhoto[]
@@ -221,6 +235,12 @@ export interface SessionState {
   qrImagePath: string | null
   timelapseUrl: string | null
   gdriveUrl: string | null
+  // Thông tin thanh toán đã chốt
+  paidAmount: number
+  paidCopies: number
+  paymentMethod: 'vietqr' | 'cash' | 'free' | null
+  discountCodeUsed: string | null
+  discountAmount: number
 }
 
 // ─── Preset Làm Đẹp K-Beauty (Beauty Presets) ──────────────────────────────────
@@ -306,14 +326,19 @@ export interface EventConfig {
   // Chế độ chụp Photobooth vs Selfbooth
   captureMode: CaptureMode  // 'photobooth' | 'selfbooth'
   selfboothDurationSeconds: number // Thời gian giới hạn phiên Selfbooth (giây, mặc định 60s)
-  // VietQR Kiosk Payment Settings (Giai đoạn 2)
-  paymentQrEnabled: boolean // Tạm thời disable (false) theo yêu cầu người dùng
+  // VietQR Kiosk Payment Settings
+  paymentQrEnabled: boolean // Bật/tắt thanh toán QR
+  paymentRequiredForPhotobooth: boolean // Yêu cầu thanh toán trước khi chụp Photobooth (Mặc định true)
+  paymentRequiredForSelfbooth: boolean  // Yêu cầu thanh toán trước khi chụp Selfbooth (Mặc định false)
   bankBin: string           // Mã BIN ngân hàng (VD: 970422 - MB, 970436 - Vietcombank)
   bankName: string          // Tên hiển thị ngân hàng
   accountNumber: string     // Số tài khoản ngân hàng
   accountHolder: string     // Tên chủ tài khoản
   price2x6: number          // Giá gói 2x6 (VND)
   price4x6: number          // Giá gói 4x6 (VND)
+  extraCopyPrice2x6: number // Giá bản in thêm 2x6 (VND)
+  extraCopyPrice4x6: number // Giá bản in thêm 4x6 (VND)
+  discountCoupons: DiscountCoupon[] // Danh sách mã giảm giá
   idleTimeoutSeconds: number
   // Timelapse Video Settings
   timelapseEnabled: boolean
@@ -355,9 +380,18 @@ interface AppStore {
   setCaptureMode: (mode: CaptureMode) => void
   setSelfboothDurationSeconds: (seconds: number) => void
 
-  // Step 1: Chọn Khung Hình (2x6 inch vs 4x6 inch)
+  // Step 1: Chọn Khung Hình (2x6 inch vs 4x6 inch) & Số lượng in
   selectedFrameSize: FrameSize
   selectFrameSize: (size: FrameSize) => void
+  selectedCopies: number
+  setSelectedCopies: (copies: number) => void
+  setSessionPayment: (data: {
+    paidAmount: number
+    paidCopies: number
+    paymentMethod: 'vietqr' | 'cash' | 'free'
+    discountCodeUsed: string | null
+    discountAmount: number
+  }) => void
 
   // Step 2: Chọn Bố Cục (1, 3, 4, 6, 8 ảnh)
   selectedCategory: LayoutCategory
@@ -433,14 +467,19 @@ const DEFAULT_EVENT_CONFIG: EventConfig = {
   // Chế độ chụp Photobooth vs Selfbooth
   captureMode: 'photobooth',
   selfboothDurationSeconds: 60,
-  // VietQR Kiosk Payment Settings (Mặc định Disable theo chỉ đạo)
-  paymentQrEnabled: false,
+  // VietQR Kiosk Payment Settings
+  paymentQrEnabled: true,
+  paymentRequiredForPhotobooth: true,
+  paymentRequiredForSelfbooth: false,
   bankBin: '970422', // MB Bank
   bankName: 'MB Bank (Quân Đội)',
   accountNumber: '0388889999',
   accountHolder: 'JOYBOOTH VIETNAM',
   price2x6: 50000,
   price4x6: 70000,
+  extraCopyPrice2x6: 25000,
+  extraCopyPrice4x6: 35000,
+  discountCoupons: DEFAULT_DISCOUNT_COUPONS,
   idleTimeoutSeconds: 60,
   timelapseEnabled: true,
   timelapseSpeed: 2.5,
@@ -460,7 +499,38 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setBoothMode: (boothMode) => set({ boothMode }),
 
   selectedFrameSize: '2x6',
-  selectFrameSize: (size) => set({ selectedFrameSize: size }),
+  selectFrameSize: (size) => {
+    if (size === '2x6') {
+      const defaultLayout = ALL_LAYOUTS[4][0]
+      set({
+        selectedFrameSize: size,
+        selectedCategory: 4,
+        selectedLayout: defaultLayout,
+        selectedCopies: 2,
+      })
+    } else {
+      const defaultLayout = ALL_LAYOUTS[4][1] || ALL_LAYOUTS[4][0]
+      set({
+        selectedFrameSize: size,
+        selectedCategory: 4,
+        selectedLayout: defaultLayout,
+        selectedCopies: 1,
+      })
+    }
+  },
+
+  selectedCopies: 2,
+  setSelectedCopies: (selectedCopies) => set({ selectedCopies }),
+
+  setSessionPayment: (data) =>
+    set((state) => ({
+      session: state.session
+        ? {
+            ...state.session,
+            ...data,
+          }
+        : null,
+    })),
 
   selectedCategory: 4,
   selectCategory: (cat) => {
@@ -517,6 +587,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
         qrImagePath: null,
         timelapseUrl: null,
         gdriveUrl: null,
+        paidAmount: 0,
+        paidCopies: get().selectedCopies,
+        paymentMethod: null,
+        discountCodeUsed: null,
+        discountAmount: 0,
       },
       placedStickers: [],
     }),
