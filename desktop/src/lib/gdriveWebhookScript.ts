@@ -19,18 +19,22 @@ export const GOOGLE_APPS_SCRIPT_SAMPLE = `function doPost(e) {
     var parentId = data.parentFolderId || '1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU';
     var parentFolder = DriveApp.getFolderById(parentId);
     
-    // Tạo folder nhỏ con theo ngày giờ (ví dụ: JoyBooth_2026-10-08_22h35)
-    var folderName = data.folderName || ('JoyBooth_' + Utilities.formatDate(new Date(), 'GMT+7', 'yyyy-MM-dd_HH\\'h\\'mm'));
+    // Tự động tạo tên folder theo ngày giờ (VD: JoyBooth_2026-10-08_22h35)
+    var now = new Date();
+    var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+    var timeStamp = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + '_' + pad(now.getHours()) + 'h' + pad(now.getMinutes());
+    
+    var folderName = data.folderName || ('JoyBooth_' + timeStamp);
     var newFolder = parentFolder.createFolder(folderName);
     
-    // Đặt quyền truy cập công khai xem ảnh cho người quét QR
+    // Đặt quyền truy cập công khai xem ảnh cho người quét mã QR
     newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     
     // Đẩy từng file ảnh lên folder con
     if (data.files && Array.isArray(data.files)) {
       for (var i = 0; i < data.files.length; i++) {
         var fileItem = data.files[i];
-        if (!fileItem.dataUrl) continue;
+        if (!fileItem || !fileItem.dataUrl) continue;
         
         var parts = fileItem.dataUrl.split(';base64,');
         if (parts.length === 2) {
