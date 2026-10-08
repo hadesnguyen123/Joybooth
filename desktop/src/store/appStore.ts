@@ -462,7 +462,7 @@ const DEFAULT_EVENT_CONFIG: EventConfig = {
   operatorName: '',
   countdownSeconds: 3,
   printEnabled: true,
-  printCopies: 1,
+  printCopies: 2,
   qrEnabled: true,
   // Chế độ chụp Photobooth vs Selfbooth
   captureMode: 'photobooth',

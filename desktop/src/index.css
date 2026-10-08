@@ -67,9 +67,9 @@
   --radius-xl: 36px;
   --radius-full: 9999px;
 
-  /* Fonts - Thay thế font cũ bằng Font Cute Bo Tròn Chuẩn Photobooth Hàn Quốc */
-  --font-display: 'Baloo 2', 'Quicksand', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body:    'Quicksand', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Fonts - Font Chuẩn Cute Photobooth Hàn Quốc có hỗ trợ đầy đủ tiếng Việt trên mọi nền tảng */
+  --font-display: 'Quicksand', 'Baloo 2', 'Nunito', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+  --font-body:    'Quicksand', 'Nunito', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
 
   /* Transitions */
   --transition-fast:   150ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -92,6 +92,12 @@ html, body, #root {
   color: var(--color-dark-text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Ép toàn bộ các thẻ form control, button, input kế thừa chuẩn font UI tiếng Việt */
+button, input, select, textarea, optgroup {
+  font-family: var(--font-body) !important;
+  color: inherit;
 }
 
 /* ── Button Utilities ────────────────────────────────────────────────────── */

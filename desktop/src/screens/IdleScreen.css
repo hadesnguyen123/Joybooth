@@ -163,6 +163,7 @@
   color: #2d2426;
   padding: 10px 22px;
   border-radius: var(--radius-full);
+  font-family: var(--font-body) !important;
   font-size: 0.95rem;
   font-weight: 800;
   cursor: pointer;

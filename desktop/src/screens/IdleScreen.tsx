@@ -84,7 +84,7 @@ export default function IdleScreen() {
         </p>
 
         <p className="idle-mode-prompt">
-          Chạm vào 1 trong 2 chế độ chụp bên dưới để bắt đầu:
+          Chạm vào chế độ chụp để bắt đầu:
         </p>
 
         {/* ── 2 Chế Độ Chụp Tại Màn Hình Chính ── */}
@@ -97,25 +97,24 @@ export default function IdleScreen() {
           >
             <div className="mode-card-badge badge-photobooth">
               <span>⭐️</span>
-              <span>PHỔ BIẾN NHẤT</span>
+              <span>PHỔ BIẾN</span>
             </div>
 
             <div className="mode-card-icon">📸</div>
 
             <h2 className="mode-card-title">Photobooth Cổ Điển</h2>
             <p className="mode-card-subtitle">
-              Chụp lần lượt theo số ô khung hình
+              Chụp lần lượt theo ô khung hình
             </p>
 
             <ul className="mode-card-features">
-              <li>✨ Hỗ trợ chụp dải Strip 2x6 & Postcard 4x6</li>
-              <li>🔄 Cho phép xóa ảnh chưa đẹp để chụp lại (Retake)</li>
-              <li>🎨 Tự chọn theme viền và sticker dễ thương</li>
+              <li>🎞️ Khung Strip 2x6 & Postcard 4x6</li>
+              <li>🔄 Chụp lại ảnh chưa ưng ý</li>
+              <li>🎨 Đổi viền & dán Sticker</li>
             </ul>
 
             <div className="mode-card-action btn-action-photobooth">
-              <span>Bắt Đầu Chụp Photobooth</span>
-              <span className="action-arrow">➔</span>
+              <span>Bắt Đầu Ngay ➔</span>
             </div>
           </div>
 
@@ -127,25 +126,24 @@ export default function IdleScreen() {
           >
             <div className="mode-card-badge badge-selfbooth">
               <span>🔥</span>
-              <span>HOT TREND K-STUDIO</span>
+              <span>K-STUDIO</span>
             </div>
 
             <div className="mode-card-icon">⏱️</div>
 
             <h2 className="mode-card-title">Selfbooth Tự Do</h2>
             <p className="mode-card-subtitle">
-              Chụp không giới hạn trong {selfboothMinutes} phút
+              Chụp không giới hạn {selfboothMinutes} phút
             </p>
 
             <ul className="mode-card-features">
-              <li>⏱️ Thả ga tạo dáng bấm chụp liên tục trong {eventConfig.selfboothDurationSeconds || 60}s</li>
-              <li>🖼️ Tự tay chọn các bức ảnh đẹp nhất đưa vào khung</li>
-              <li>☁️ Tự động tạo thư mục và đẩy lên Google Drive</li>
+              <li>⏱️ Thả ga tạo dáng {eventConfig.selfboothDurationSeconds || 60}s</li>
+              <li>🖼️ Tự chọn những ảnh đẹp nhất</li>
+              <li>☁️ Quét QR tải ảnh Google Drive</li>
             </ul>
 
             <div className="mode-card-action btn-action-selfbooth">
-              <span>Bắt Đầu Chụp Selfbooth</span>
-              <span className="action-arrow">➔</span>
+              <span>Bắt Đầu Ngay ➔</span>
             </div>
           </div>
         </div>

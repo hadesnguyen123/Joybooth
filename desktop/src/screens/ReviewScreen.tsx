@@ -31,6 +31,14 @@ export default function ReviewScreen() {
   const [compositeStripUrl, setCompositeStripUrl] = useState<string>('')
   const [isGeneratingComposite, setIsGeneratingComposite] = useState<boolean>(true)
 
+  // Luôn đồng bộ số bản in chính xác từ phiên thanh toán của khách
+  useEffect(() => {
+    const target = session?.paidCopies || selectedCopies || (selectedFrameSize === '2x6' ? 2 : 1)
+    if (target && target > 0) {
+      setPrintCopies(target)
+    }
+  }, [session?.paidCopies, selectedCopies, selectedFrameSize])
+
   // ── Google Drive & Local Session Folder ──
   const [subfolderName] = useState<string>(() => {
     const now = new Date()
@@ -461,7 +469,15 @@ export default function ReviewScreen() {
             </div>
 
             <div className="print-copies-row">
-              <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Số lượng bản in:</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Số lượng bản in:</span>
+                {session?.paidCopies ? (
+                  <span style={{ fontSize: '0.76rem', color: '#059669', fontWeight: 600 }}>
+                    (Đã thanh toán {session.paidCopies} {selectedFrameSize === '2x6' ? 'dải' : 'tấm'})
+                  </span>
+                ) : null}
+              </div>
+
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <button
                   className="copies-btn-pastel"
@@ -470,11 +486,13 @@ export default function ReviewScreen() {
                 >
                   -
                 </button>
-                <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{printCopies}</span>
+                <span style={{ fontWeight: 900, fontSize: '1.2rem', color: 'var(--color-pink-primary)' }}>
+                  {printCopies}
+                </span>
                 <button
                   className="copies-btn-pastel"
-                  onClick={() => setPrintCopies((c) => Math.min(eventConfig.printCopies || 4, c + 1))}
-                  disabled={printCopies >= (eventConfig.printCopies || 4)}
+                  onClick={() => setPrintCopies((c) => Math.min(12, c + 1))}
+                  disabled={printCopies >= 12}
                 >
                   +
                 </button>

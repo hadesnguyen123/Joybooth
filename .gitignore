@@ -64,3 +64,9 @@ ai-service/data/logs/*
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Local Planning & Roadmap Docs
+JOYBOOTH_CMS_AND_ACCOUNTING_ROADMAP.md
+*ROADMAP*.md
+*PLAN*.md
+docs/local/
