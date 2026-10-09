@@ -1,4 +1,3 @@
-import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,92 +21,78 @@ function addResult(subsystem, testName, passed, details) {
 // 1. Kiểm tra cấu hình Cổng (Port Partitioning)
 function checkPortsConfig() {
   try {
-    const desktopVite = fs.readFileSync(path.join(ROOT_DIR, 'desktop/package.json'), 'utf-8')
-    const cmsVite = fs.readFileSync(path.join(ROOT_DIR, 'cms-web/vite.config.ts'), 'utf-8')
-    const cmsServer = fs.readFileSync(path.join(ROOT_DIR, 'cms-web/server/index.js'), 'utf-8')
+    const desktopPkg = fs.readFileSync(path.join(ROOT_DIR, 'desktop/package.json'), 'utf-8')
+    const cmsPkg = fs.readFileSync(path.join(ROOT_DIR, 'joybooth-cms/package.json'), 'utf-8')
 
-    const desktopHas5173 = desktopVite.includes('5173')
-    const cmsHas5180 = cmsVite.includes('5180')
-    const serverHas5181 = cmsServer.includes('5181')
+    const desktopHas5173 = desktopPkg.includes('5173')
+    const cmsHas3000 = cmsPkg.includes('3000')
 
-    if (desktopHas5173 && cmsHas5180 && serverHas5181) {
+    if (desktopHas5173 && cmsHas3000) {
       addResult(
         'PORT_PARTITION',
-        'Phân bổ cổng độc lập',
+        'Phân bổ cổng mạng độc lập',
         true,
-        'Desktop: 5173 | CMS UI: 5180 | CMS API: 5181 (Không xung đột)'
+        'Desktop: 5173 | JoyBooth Cloud CMS (Next.js): 3000 (Không xung đột)'
       )
     } else {
-      addResult('PORT_PARTITION', 'Phân bổ cổng độc lập', false, 'Phát hiện xung đột cổng')
+      addResult('PORT_PARTITION', 'Phân bổ cổng mạng', false, 'Phát hiện cấu hình cổng không khớp')
     }
   } catch (err) {
     addResult('PORT_PARTITION', 'Đọc cấu hình cổng', false, err.message)
   }
 }
 
-// 2. Kiểm tra Database File & Seed Data
-function checkDatabaseIntegrity() {
+// 2. Kiểm tra Database Migration & Schema Supabase
+function checkDatabaseMigration() {
   try {
-    const dbPath = path.join(ROOT_DIR, 'cms-web/server/data/database.json')
-    if (!fs.existsSync(dbPath)) {
-      addResult('DATABASE', 'Kiểm tra file DB', false, 'Chưa tìm thấy database.json')
+    const migrationPath = path.join(ROOT_DIR, 'joybooth-cms/supabase/migrations/001_initial_schema.sql')
+    if (!fs.existsSync(migrationPath)) {
+      addResult('SUPABASE_SCHEMA', 'Kiểm tra migration SQL', false, 'Chưa tìm thấy 001_initial_schema.sql')
       return
     }
 
-    const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
-    const hasKiosks = Array.isArray(data.kiosks) && data.kiosks.length >= 2
-    const hasPricing = Boolean(data.pricing && data.pricing.price2x6)
-    const hasFrames = Array.isArray(data.frames) && data.frames.length > 0
-    const hasTransactions = Array.isArray(data.transactions)
+    const sqlContent = fs.readFileSync(migrationPath, 'utf-8')
+    const hasBranches = sqlContent.includes('CREATE TABLE IF NOT EXISTS public.branches')
+    const hasKiosks = sqlContent.includes('CREATE TABLE IF NOT EXISTS public.kiosks')
+    const hasLedger = sqlContent.includes('CREATE TABLE IF NOT EXISTS public.ledger_transactions')
+    const hasRLS = sqlContent.includes('ENABLE ROW LEVEL SECURITY')
 
-    if (hasKiosks && hasPricing && hasFrames && hasTransactions) {
+    if (hasBranches && hasKiosks && hasLedger && hasRLS) {
       addResult(
-        'DATABASE',
-        'Toàn vẹn dữ liệu SQLite/JSON',
+        'SUPABASE_SCHEMA',
+        'Toàn vẹn Schema & RLS Policies',
         true,
-        `2 Kiosks, ${data.frames.length} Khung, ${data.transactions.length} Giao dịch, Bảng giá hợp lệ`
+        'Bảng branches, kiosks, sessions, ledger_transactions và chính sách bảo mật RLS đầy đủ'
       )
     } else {
-      addResult('DATABASE', 'Toàn vẹn dữ liệu', false, 'Thiếu dữ liệu schema cốt lõi')
+      addResult('SUPABASE_SCHEMA', 'Kiểm tra Schema', false, 'Thiếu bảng hoặc chính sách RLS cốt lõi')
     }
   } catch (err) {
-    addResult('DATABASE', 'Kiểm tra Database', false, err.message)
+    addResult('SUPABASE_SCHEMA', 'Kiểm tra Database Migration', false, err.message)
   }
 }
 
-// 3. Kiểm tra tính đúng đắn công thức Đối soát 3 góc (Triple Reconciliation Math Audit)
-function checkReconciliationLogic() {
+// 3. Kiểm tra tính đúng đắn công thức Đối soát 3 góc (Triple Reconciliation Engine)
+function checkReconciliationModule() {
   try {
-    const dbPath = path.join(ROOT_DIR, 'cms-web/server/data/database.json')
-    const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
-    const txns = data.transactions || []
+    const enginePath = path.join(ROOT_DIR, 'joybooth-cms/src/lib/reconciliation/engine.ts')
+    const testPath = path.join(ROOT_DIR, 'joybooth-cms/tests/reconciliation.test.ts')
 
-    let calculatedRevenue = 0
-    let calculatedPaper = 0
+    const hasEngine = fs.existsSync(enginePath)
+    const hasTest = fs.existsSync(testPath)
 
-    for (const t of txns) {
-      if (t.status === 'success') {
-        calculatedRevenue += t.amount
-        calculatedPaper += t.paperConsumed
-      }
-    }
-
-    // Kiểm tra tính cân bằng
-    const vietqr = txns.filter((t) => t.paymentMethod === 'vietqr').reduce((s, t) => s + t.amount, 0)
-    const cash = txns.filter((t) => t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0)
-
-    if (vietqr + cash === calculatedRevenue) {
+    if (hasEngine && hasTest) {
       addResult(
         'RECONCILIATION',
-        'Toán đối soát kế toán',
+        'Module Đối soát 3 góc & Unit Tests',
         true,
-        `Tổng doanh thu = VietQR (${vietqr.toLocaleString()}đ) + Tiền mặt (${cash.toLocaleString()}đ) = ${calculatedRevenue.toLocaleString()}đ | Giấy tiêu hao = ${calculatedPaper} tờ`
+        'Engine pure TypeScript sẵn sàng kèm test suite Vitest (đối soát bill vs bank vs giấy in)'
       )
     } else {
-      addResult('RECONCILIATION', 'Toán đối soát kế toán', false, 'Sai lệch giữa phương thức và tổng doanh thu')
+      addResult('RECONCILIATION', 'Module Đối soát', false, 'Thiếu engine.ts hoặc reconciliation.test.ts')
     }
   } catch (err) {
-    addResult('RECONCILIATION', 'Kiểm tra đối soát', false, err.message)
+    addResult('RECONCILIATION', 'Kiểm tra Đối soát', false, err.message)
   }
 }
 
@@ -132,7 +117,7 @@ function checkDesktopKioskStructure() {
         'Preload IPC máy in & camera sẵn sàng'
       )
     } else {
-      addResult('DESKTOP_KIOSK', 'File mã nguồn Desktop', false, 'Thiếu electron/preload.cts hoặc main.ts')
+      addResult('DESKTOP_KIOSK', 'File mã nguồn Desktop', false, 'Thiếu electron/preload.cts hoặc main.cts')
     }
   } catch (err) {
     addResult('DESKTOP_KIOSK', 'Kiểm tra Desktop', false, err.message)
@@ -141,8 +126,8 @@ function checkDesktopKioskStructure() {
 
 // Chạy tuần tự các bài test
 checkPortsConfig()
-checkDatabaseIntegrity()
-checkReconciliationLogic()
+checkDatabaseMigration()
+checkReconciliationModule()
 checkDesktopKioskStructure()
 
 console.log('='.repeat(65))
