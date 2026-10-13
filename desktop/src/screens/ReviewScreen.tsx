@@ -294,7 +294,7 @@ export default function ReviewScreen() {
                 <div className="composite-generating-loader">
                   <span className="loader-spinner-pink" />
                   <span style={{ fontWeight: 700, color: 'var(--color-pink-primary)' }}>
-                    Đang hoàn thiện dải ảnh & sticker...
+                    Đang hoàn thiện dải ảnh in...
                   </span>
                 </div>
               ) : compositeStripUrl ? (
@@ -523,9 +523,9 @@ export default function ReviewScreen() {
           <button
             className="btn btn-pill-white"
             style={{ padding: '12px 20px', color: 'var(--color-dark-text)', borderColor: 'var(--color-border-pink)' }}
-            onClick={() => setScreen('select-sticker')}
+            onClick={() => setScreen('select-filter')}
           >
-            ← Sửa Sticker
+            ← Đổi Bộ Lọc Màu
           </button>
           <button
             className="btn btn-pill-white"

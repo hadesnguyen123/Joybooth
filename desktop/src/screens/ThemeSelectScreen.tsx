@@ -147,9 +147,9 @@ export default function ThemeSelectScreen() {
         <button
           className="btn btn-pink"
           style={{ padding: '14px 44px', fontSize: '1.15rem' }}
-          onClick={() => setScreen('select-sticker')}
+          onClick={() => setScreen('select-filter')}
         >
-          ✨ Tiếp Tục Chọn Sticker
+          ✨ Tiếp Tục Chọn Bộ Lọc Màu
         </button>
       </footer>
     </div>

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppStore, COLOR_FILTERS, BEAUTY_PRESETS, type CapturedPhoto } from '../store/appStore'
 import { joyBoothApi, isBrowser, mockApi } from '../lib/api'
+import { BeautyCameraView, type BeautyCameraHandle } from '../components/BeautyCameraView'
 import './CaptureScreen.css'
 
 export default function CaptureScreen() {
@@ -10,7 +11,6 @@ export default function CaptureScreen() {
     countdownSeconds,
     setCountdownSeconds,
     selectedLayout,
-    selectedFilter,
     selectFilter,
     selectedBeautyPreset,
     applyBeautyPreset,
@@ -27,6 +27,10 @@ export default function CaptureScreen() {
     eventConfig,
     setTimelapseUrl,
     setGdriveUrl,
+    slimFace,
+    setSlimFace,
+    whiteningTone,
+    setWhiteningTone,
     brightnessAdjust,
     contrastAdjust,
     saturationAdjust,
@@ -40,11 +44,13 @@ export default function CaptureScreen() {
     setRosyTone,
     setGlowClarity,
     resetAdjustments,
-    getEffectiveFilterCss,
+    getBeautyFilterCss,
   } = useAppStore()
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const beautyCameraRef = useRef<BeautyCameraHandle>(null)
   const currentStreamRef = useRef<MediaStream | null>(null)
+  const [activeMediaStream, setActiveMediaStream] = useState<MediaStream | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordedChunksRef = useRef<Blob[]>([])
 
@@ -53,7 +59,7 @@ export default function CaptureScreen() {
   const selfboothDuration = eventConfig.selfboothDurationSeconds || 60
 
   const [hasCamera, setHasCamera] = useState<boolean>(false)
-  const [activeFlyout, setActiveFlyout] = useState<'filter' | 'beauty' | 'lighting' | null>(null)
+  const [activeFlyout, setActiveFlyout] = useState<'beauty' | 'lighting' | null>(null)
 
   // ── Trạng thái chung khi chụp ──
   const [isSessionActive, setIsSessionActive] = useState<boolean>(false)
@@ -99,6 +105,7 @@ export default function CaptureScreen() {
       })
 
       currentStreamRef.current = stream
+      setActiveMediaStream(stream)
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
@@ -127,6 +134,11 @@ export default function CaptureScreen() {
       setHasCamera(false)
     }
   }, [selectedCameraId, selectCamera, setCameras])
+
+  useEffect(() => {
+    // Reset bộ lọc về Tự nhiên khi bắt đầu chụp để ảnh gốc luôn sạch
+    selectFilter(COLOR_FILTERS[0])
+  }, [selectFilter])
 
   useEffect(() => {
     startCamera(selectedCameraId || undefined)
@@ -160,27 +172,53 @@ export default function CaptureScreen() {
     return () => clearInterval(timer)
   }, [isSelfboothMode, isSelfboothRunning, isPhotoPickerOpen])
 
-  // Chụp 1 khung hình từ video sang DataURL
+  // Chụp 1 khung hình từ video sang DataURL với bảo đảm không bao giờ trả về ảnh đen
   function grabVideoFrame(): string {
-    if (!videoRef.current) return ''
-    const canvas = document.createElement('canvas')
-    canvas.width = videoRef.current.videoWidth || 1920
-    canvas.height = videoRef.current.videoHeight || 1080
-    const ctx = canvas.getContext('2d')
-
-    if (ctx) {
-      const effFilter = getEffectiveFilterCss()
-      if (effFilter && effFilter !== 'none') {
-        ctx.filter = effFilter
+    // 1. Chụp từ WebGL Beauty Camera (đã có kiểm tra readPixels chống đen do swapchain)
+    if (beautyCameraRef.current) {
+      const liveFrame = beautyCameraRef.current.captureFrame()
+      if (liveFrame && liveFrame.length > 1000 && !liveFrame.startsWith('data:,')) {
+        return liveFrame
       }
+    }
 
-      if (mirrorCamera) {
-        ctx.translate(canvas.width, 0)
-        ctx.scale(-1, 1)
+    // 2. Dự phòng trực tiếp: Canvas 2D lấy từ video element đang chạy
+    const video = beautyCameraRef.current?.getVideoElement() || videoRef.current
+    if (video && (video.videoWidth > 0 || video.readyState >= 2)) {
+      const w = video.videoWidth || 1920
+      const h = video.videoHeight || 1080
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+
+      if (ctx) {
+        const beautyFilter = getBeautyFilterCss()
+        if (beautyFilter && beautyFilter !== 'none') {
+          ctx.filter = beautyFilter
+        }
+
+        if (mirrorCamera) {
+          ctx.translate(w, 0)
+          ctx.scale(-1, 1)
+        }
+
+        if (slimFace > 0) {
+          const scaleXFactor = 1 - (slimFace / 100) * 0.055
+          const scaleYFactor = 1 + (slimFace / 100) * 0.015
+          const cx = w / 2
+          const cy = h / 2
+          ctx.translate(cx, cy)
+          ctx.scale(scaleXFactor, scaleYFactor)
+          ctx.translate(-cx, -cy)
+        }
+
+        ctx.drawImage(video, 0, 0, w, h)
+        const fallbackDataUrl = canvas.toDataURL('image/jpeg', 0.98)
+        if (fallbackDataUrl && fallbackDataUrl.length > 1000) {
+          return fallbackDataUrl
+        }
       }
-
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
-      return canvas.toDataURL('image/jpeg', 0.98)
     }
     return ''
   }
@@ -578,17 +616,8 @@ export default function CaptureScreen() {
 
       {/* ── Main Stage Area: Left Dock + Flyout + Viewfinder ── */}
       <div className="capture-main-stage">
-        {/* Left Floating Dock: Bộ lọc / Làm đẹp / Phát sáng */}
+        {/* Left Floating Dock: Làm đẹp / Phát sáng */}
         <aside className={`left-sidebar-dock ${isSessionActive && !isPhotoboothFull ? 'locked-dimmed' : ''}`}>
-          <button
-            className={`dock-btn ${activeFlyout === 'filter' ? 'active' : ''}`}
-            onClick={() => setActiveFlyout(activeFlyout === 'filter' ? null : 'filter')}
-            title="Chọn bộ lọc màu"
-          >
-            <span className="dock-icon">🫧</span>
-            <span className="dock-label">Bộ lọc</span>
-          </button>
-
           <button
             className={`dock-btn ${activeFlyout === 'beauty' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'beauty' ? null : 'beauty')}
@@ -607,44 +636,6 @@ export default function CaptureScreen() {
             <span className="dock-label">Phát sáng</span>
           </button>
         </aside>
-
-        {/* ── Flyout Panel 1: Bộ lọc màu ── */}
-        {activeFlyout === 'filter' && (
-          <div className="flyout-panel animate-pop">
-            <div className="flyout-header">
-              <span className="flyout-title">🫧 Bộ Lọc Màu Hàn Quốc</span>
-              <button className="flyout-close-btn" onClick={() => setActiveFlyout(null)}>
-                ✕
-              </button>
-            </div>
-
-            <div className="flyout-content">
-              <div className="filter-active-banner">
-                <span>✨ Đang dùng: <strong>{selectedFilter.name}</strong></span>
-                <span style={{ fontSize: '0.78rem' }}>({selectedFilter.tag})</span>
-              </div>
-
-              <div className="filter-list-presets">
-                {COLOR_FILTERS.map((filter) => {
-                  const isSelected = selectedFilter.id === filter.id
-                  return (
-                    <div
-                      key={filter.id}
-                      className={`filter-preset-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => selectFilter(filter)}
-                    >
-                      <div className="filter-card-circle" style={{ background: filter.previewColor }}>
-                        {isSelected && <span className="filter-card-check">✓</span>}
-                      </div>
-                      <span className="filter-card-name">{filter.name}</span>
-                      <span className="filter-card-tag">{filter.tag}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ── Flyout Panel 2: Làm đẹp & Chỉnh sáng ── */}
         {activeFlyout === 'beauty' && (
@@ -680,7 +671,22 @@ export default function CaptureScreen() {
 
               <div className="beauty-section-box">
                 <div className="beauty-section-header">
-                  <span>🌸 Làn Da Hàn Quốc</span>
+                  <span>🌸 Thon Gọn & Làn Da Hàn Quốc</span>
+                </div>
+
+                <div className="beauty-slider-row">
+                  <div className="beauty-slider-label">
+                    <span>Thon Gọn Mặt (V-Line / Mặt nhỏ)</span>
+                    <span className="beauty-val-badge">{slimFace}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={slimFace}
+                    onChange={(e) => setSlimFace(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                  />
                 </div>
 
                 <div className="beauty-slider-row">
@@ -694,6 +700,21 @@ export default function CaptureScreen() {
                     max="100"
                     value={skinSmoothing}
                     onChange={(e) => setSkinSmoothing(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                  />
+                </div>
+
+                <div className="beauty-slider-row">
+                  <div className="beauty-slider-label">
+                    <span>Nâng Tone Trắng Sáng (Whitening)</span>
+                    <span className="beauty-val-badge">{whiteningTone}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={whiteningTone}
+                    onChange={(e) => setWhiteningTone(Number(e.target.value))}
                     style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
                   />
                 </div>
@@ -837,17 +858,36 @@ export default function CaptureScreen() {
         {/* ── Center Camera Viewfinder Stage ── */}
         <div className={`camera-viewfinder-wrapper ${isSessionActive && !isPhotoboothFull ? 'shooting-focus' : ''}`}>
           {hasCamera ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="camera-preview-element"
-              style={{
-                transform: mirrorCamera ? 'scaleX(-1)' : 'none',
-                filter: getEffectiveFilterCss(),
-              }}
-            />
+            <>
+              <BeautyCameraView
+                ref={beautyCameraRef}
+                stream={activeMediaStream}
+                mirrorCamera={mirrorCamera}
+                slimFace={slimFace}
+                skinSmoothing={skinSmoothing}
+                whiteningTone={whiteningTone}
+                rosyTone={rosyTone}
+                glowClarity={glowClarity}
+                className="camera-preview-element"
+              />
+              {/* Thẻ video nguồn dự phòng cấp thấp luôn phát stream camera */}
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                autoPlay
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: 1,
+                  height: 1,
+                  opacity: 0.01,
+                  pointerEvents: 'none',
+                  zIndex: -999,
+                }}
+              />
+            </>
           ) : (
             <div style={{ color: '#fff', textAlign: 'center', padding: 20 }}>
               <p style={{ fontSize: '1.2rem', marginBottom: 12 }}>Đang kết nối camera...</p>

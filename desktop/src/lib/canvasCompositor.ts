@@ -95,9 +95,11 @@ export async function generateStripComposite(opts: RenderOptions): Promise<strin
     if (photoSrc) {
       try {
         const img = await loadImage(photoSrc)
-        // Áp dụng bộ lọc màu nếu photo chưa được nướng sẵn filter
-        if (!photoSrc.startsWith('data:image') && opts.filter.cssFilter && opts.filter.cssFilter !== 'none') {
+        // Áp dụng bộ lọc màu được chọn lên từng ảnh trong dải in
+        if (opts.filter && opts.filter.cssFilter && opts.filter.cssFilter !== 'none') {
           ctx.filter = opts.filter.cssFilter
+        } else {
+          ctx.filter = 'none'
         }
 
         // Fit & Center crop (aspect fill)

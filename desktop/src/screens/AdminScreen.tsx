@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { useAppStore, THEME_OPTIONS } from '../store/appStore'
+import { useState, useEffect } from 'react'
+import { useAppStore, THEME_OPTIONS, BEAUTY_PRESETS } from '../store/appStore'
 import { joyBoothApi, isBrowser, mockApi } from '../lib/api'
+import { BeautyCameraView } from '../components/BeautyCameraView'
 import './AdminScreen.css'
 
-type AdminTab = 'event' | 'frames' | 'hardware' | 'cloud' | 'payment' | 'stats'
+type AdminTab = 'event' | 'beauty' | 'frames' | 'hardware' | 'cloud' | 'payment' | 'stats'
 
 export default function AdminScreen() {
   const {
@@ -15,15 +16,62 @@ export default function AdminScreen() {
     availableCameras,
     selectedCameraId,
     selectCamera,
+    slimFace,
+    setSlimFace,
+    skinSmoothing,
+    setSkinSmoothing,
+    whiteningTone,
+    setWhiteningTone,
+    rosyTone,
+    setRosyTone,
+    glowClarity,
+    setGlowClarity,
+    brightnessAdjust,
+    setBrightnessAdjust,
+    contrastAdjust,
+    setContrastAdjust,
+    saveBeautyConfig,
+    resetAdjustments,
+    applyBeautyPreset,
+    selectedBeautyPreset,
   } = useAppStore()
 
   // PIN Lock State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [pinCode, setPinCode] = useState<string>('')
   const [pinError, setPinError] = useState<boolean>(false)
+  const [saveBeautySuccess, setSaveBeautySuccess] = useState<boolean>(false)
+  const [adminStream, setAdminStream] = useState<MediaStream | null>(null)
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<AdminTab>('event')
+
+  // Khởi động camera preview khi vào tab Làm Đẹp
+  useEffect(() => {
+    let activeStream: MediaStream | null = null
+    if (activeTab === 'beauty' && isAuthenticated) {
+      navigator.mediaDevices
+        ?.getUserMedia({
+          video: {
+            deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        })
+        .then((s) => {
+          activeStream = s
+          setAdminStream(s)
+        })
+        .catch((err) => console.warn('Admin camera preview error:', err))
+    }
+
+    return () => {
+      if (activeStream) {
+        activeStream.getTracks().forEach((t) => t.stop())
+      }
+      setAdminStream(null)
+    }
+  }, [activeTab, isAuthenticated, selectedCameraId])
 
   // Mock stats
   const sessionCount = 42
@@ -141,6 +189,14 @@ export default function AdminScreen() {
           >
             <span>📅</span>
             <span>Cấu Hình Sự Kiện</span>
+          </div>
+
+          <div
+            className={`admin-nav-item ${activeTab === 'beauty' ? 'active' : ''}`}
+            onClick={() => setActiveTab('beauty')}
+          >
+            <span>✨</span>
+            <span>Làm Đẹp & Camera</span>
           </div>
 
           <div
@@ -291,6 +347,301 @@ export default function AdminScreen() {
                     value={eventConfig.idleTimeoutSeconds}
                     onChange={(e) => setEventConfig({ idleTimeoutSeconds: Number(e.target.value) })}
                   />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'beauty' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div>
+                  <h2 className="tab-pane-title" style={{ marginBottom: 4 }}>
+                    ✨ Cấu Hình Làm Đẹp Mặc Định (Mặt Nhỏ & Da Mịn Trắng)
+                  </h2>
+                  <p style={{ fontSize: '0.82rem', color: '#6b7280' }}>
+                    Tự động áp dụng trực tiếp lên camera và mọi ảnh chụp của máy Kiosk. Lưu vĩnh viễn vào thiết bị.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ fontSize: '0.82rem', padding: '8px 16px' }}
+                    onClick={resetAdjustments}
+                  >
+                    🔄 Khôi Phục Mặc Định
+                  </button>
+                  <button
+                    className="btn btn-pink"
+                    style={{ fontSize: '0.85rem', padding: '8px 20px', fontWeight: 800 }}
+                    onClick={() => {
+                      saveBeautyConfig()
+                      setSaveBeautySuccess(true)
+                      setTimeout(() => setSaveBeautySuccess(false), 2500)
+                    }}
+                  >
+                    {saveBeautySuccess ? '✅ Đã Lưu Thành Công!' : '💾 Lưu Mặc Định Cho Máy'}
+                  </button>
+                </div>
+              </div>
+
+              {saveBeautySuccess && (
+                <div
+                  style={{
+                    background: '#ecfdf5',
+                    border: '1.5px solid #10b981',
+                    borderRadius: 10,
+                    padding: '10px 16px',
+                    color: '#065f46',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    marginBottom: 16,
+                  }}
+                >
+                  🎉 Đã lưu cấu hình làm đẹp mặc định (Thon gọn mặt {slimFace}%, Da mịn {skinSmoothing}%, Trắng sáng {whiteningTone}%) cho máy Kiosk!
+                </div>
+              )}
+
+              {/* Presets Nhanh */}
+              <div style={{ marginBottom: 20 }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151', display: 'block', marginBottom: 8 }}>
+                  🌸 CHỌN NHANH PRESET LÀM ĐẸP CHUẨN:
+                </span>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {BEAUTY_PRESETS.map((preset) => {
+                    const isActive = selectedBeautyPreset === preset.id
+                    return (
+                      <button
+                        key={preset.id}
+                        className={`beauty-preset-pill ${isActive ? 'active' : ''}`}
+                        onClick={() => applyBeautyPreset(preset.id)}
+                        style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+                      >
+                        <span style={{ marginRight: 6 }}>{preset.icon}</span>
+                        <span>{preset.name}</span>
+                        {isActive && <span style={{ marginLeft: 6 }}>✓</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                {/* Cột Trái: Các thanh trượt tinh chỉnh chi tiết */}
+                <div className="beauty-section-box" style={{ margin: 0 }}>
+                  <div className="beauty-section-header">
+                    <span>🎛️ THÔNG SỐ LÀM ĐẸP KHUÔN MẶT & LÀN DA</span>
+                  </div>
+
+                  <div className="beauty-slider-row">
+                    <div className="beauty-slider-label">
+                      <span>🌸 Thon Gọn Mặt (Mặt nhỏ / V-Line)</span>
+                      <span className="beauty-val-badge">{slimFace}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={slimFace}
+                      onChange={(e) => setSlimFace(Number(e.target.value))}
+                      style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                    />
+                    <small style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                      Bóp nhẹ tỷ lệ bề ngang và kéo dài cằm V-line tự nhiên (Khuyên dùng: 25% - 45%)
+                    </small>
+                  </div>
+
+                  <div className="beauty-slider-row">
+                    <div className="beauty-slider-label">
+                      <span>🌸 Làm Mịn Da (Skin Smoothing)</span>
+                      <span className="beauty-val-badge">{skinSmoothing}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={skinSmoothing}
+                      onChange={(e) => setSkinSmoothing(Number(e.target.value))}
+                      style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                    />
+                    <small style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                      Micro-blur làm mờ nếp nhăn và thu nhỏ lỗ chân lông (Khuyên dùng: 40% - 60%)
+                    </small>
+                  </div>
+
+                  <div className="beauty-slider-row">
+                    <div className="beauty-slider-label">
+                      <span>🌸 Nâng Tone Trắng Sáng (Whitening)</span>
+                      <span className="beauty-val-badge">{whiteningTone}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={whiteningTone}
+                      onChange={(e) => setWhiteningTone(Number(e.target.value))}
+                      style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                    />
+                    <small style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                      Tăng độ sáng bừng tự nhiên cho làn da trắng sứ (Khuyên dùng: 35% - 55%)
+                    </small>
+                  </div>
+
+                  <div className="beauty-slider-row">
+                    <div className="beauty-slider-label">
+                      <span>🌸 Trắng Hồng Tự Nhiên (Rosy Tone)</span>
+                      <span className="beauty-val-badge">{rosyTone}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={rosyTone}
+                      onChange={(e) => setRosyTone(Number(e.target.value))}
+                      style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                    />
+                    <small style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                      Tươi tắn sắc tố môi và má đào rạng rỡ (Khuyên dùng: 25% - 35%)
+                    </small>
+                  </div>
+
+                  <div className="beauty-slider-row">
+                    <div className="beauty-slider-label">
+                      <span>🌸 Sáng Nét Chi Tiết (Clarity)</span>
+                      <span className="beauty-val-badge">{glowClarity}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={glowClarity}
+                      onChange={(e) => setGlowClarity(Number(e.target.value))}
+                      style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                    />
+                    <small style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                      Tăng tương phản viền mắt, sống mũi và chân mày (Khuyên dùng: 20% - 30%)
+                    </small>
+                  </div>
+                </div>
+
+                {/* Cột Phải: Ánh Sáng Cơ Bản & Mô Tả Trực Quan */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div className="beauty-section-box" style={{ margin: 0 }}>
+                    <div className="beauty-section-header">
+                      <span>💡 TINH CHỈNH ÁNH SÁNG STUDIO</span>
+                    </div>
+
+                    <div className="beauty-slider-row">
+                      <div className="beauty-slider-label">
+                        <span>Độ Sáng Gốc (Brightness)</span>
+                        <span className="beauty-val-badge">{brightnessAdjust}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="80"
+                        max="130"
+                        value={brightnessAdjust}
+                        onChange={(e) => setBrightnessAdjust(Number(e.target.value))}
+                        style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                      />
+                    </div>
+
+                    <div className="beauty-slider-row">
+                      <div className="beauty-slider-label">
+                        <span>Độ Tương Phản Gốc (Contrast)</span>
+                        <span className="beauty-val-badge">{contrastAdjust}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="80"
+                        max="130"
+                        value={contrastAdjust}
+                        onChange={(e) => setContrastAdjust(Number(e.target.value))}
+                        style={{ width: '100%', accentColor: 'var(--color-pink-primary)' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Live WebGL Mirror Preview */}
+                  <div
+                    style={{
+                      background: '#18181b',
+                      borderRadius: 14,
+                      overflow: 'hidden',
+                      height: 230,
+                      position: 'relative',
+                      border: '2px solid rgba(244, 114, 154, 0.45)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    }}
+                  >
+                    {adminStream ? (
+                      <BeautyCameraView
+                        stream={adminStream}
+                        mirrorCamera={true}
+                        slimFace={slimFace}
+                        skinSmoothing={skinSmoothing}
+                        whiteningTone={whiteningTone}
+                        rosyTone={rosyTone}
+                        glowClarity={glowClarity}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#9ca3af',
+                          fontSize: '0.85rem',
+                        }}
+                      >
+                        📷 Đang nạp camera xem trước...
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 8,
+                        left: 8,
+                        background: 'rgba(0,0,0,0.7)',
+                        color: '#fff',
+                        fontSize: '0.72rem',
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        fontWeight: 700,
+                        backdropFilter: 'blur(4px)',
+                      }}
+                    >
+                      ✨ Soi Gương Trực Tiếp (WebGL Shader 60 FPS)
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: '#fdf2f8',
+                      border: '1.5px solid #f4729a',
+                      borderRadius: 14,
+                      padding: 16,
+                      fontSize: '0.85rem',
+                      lineHeight: '1.6',
+                      color: '#831843',
+                    }}
+                  >
+                    <p style={{ fontWeight: 800, marginBottom: 8, fontSize: '0.95rem' }}>
+                      ✨ Cơ chế hoạt động tự động:
+                    </p>
+                    <ul style={{ paddingLeft: 18, margin: 0 }}>
+                      <li>
+                        <b>Mặt nhỏ (V-Line):</b> Tự động thon gọn tỷ lệ khuôn mặt khi khách đứng trước camera mà không gây méo khung nền.
+                      </li>
+                      <li>
+                        <b>Da mịn & Trắng sáng:</b> Tự động xử lý da căng bóng mờ khuyết điểm và nâng tone rực rỡ trực tiếp trên live camera và file ảnh lưu.
+                      </li>
+                      <li>
+                        Bấm <b>"Lưu Mặc Định Cho Máy"</b> để lưu cấu hình này vào bộ nhớ Kiosk, mọi lượt chụp kế tiếp sẽ tự động áp dụng.
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>

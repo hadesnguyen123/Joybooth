@@ -5,7 +5,7 @@ import SelectLayoutScreen from './screens/SelectLayoutScreen'
 import CaptureScreen from './screens/CaptureScreen'
 import PaymentScreen from './screens/PaymentScreen'
 import ThemeSelectScreen from './screens/ThemeSelectScreen'
-import StickerScreen from './screens/StickerScreen'
+import FilterScreen from './screens/FilterScreen'
 import ReviewScreen from './screens/ReviewScreen'
 import AdminScreen from './screens/AdminScreen'
 import './App.css'
@@ -21,7 +21,7 @@ export default function App() {
       {screen === 'payment' && <PaymentScreen />}
       {screen === 'capture' && <CaptureScreen />}
       {screen === 'select-theme' && <ThemeSelectScreen />}
-      {screen === 'select-sticker' && <StickerScreen />}
+      {(screen === 'select-filter' || screen === 'select-sticker') && <FilterScreen />}
       {screen === 'review' && <ReviewScreen />}
       {screen === 'admin' && <AdminScreen />}
     </div>

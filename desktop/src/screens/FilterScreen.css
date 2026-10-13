@@ -1,0 +1,197 @@
+/* ── JoyBooth Filter Screen (CHỌN BỘ LỌC MÀU HÀN QUỐC) ───── */
+
+.filter-screen-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-cream-bg);
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+  padding: 16px 40px;
+}
+
+.filter-main-split {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  gap: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Left Canvas Column with Live Strip Preview */
+.filter-canvas-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.filter-interactive-frame {
+  position: relative;
+  padding: 14px 14px 20px;
+  border-radius: 16px;
+  box-shadow: 0 16px 45px rgba(45, 36, 38, 0.15), 0 0 0 2px rgba(45, 36, 38, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-height: calc(100vh - 220px);
+  user-select: none;
+}
+
+.filter-action-hints {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 420px;
+  margin-top: 10px;
+}
+
+.filter-guide-text {
+  font-size: 0.8rem;
+  color: #4b5563;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(45, 36, 38, 0.08);
+  box-shadow: 0 2px 8px rgba(45, 36, 38, 0.04);
+}
+
+/* Right Side: Filter Selector Panel */
+.filter-selector-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--color-white);
+  padding: 24px 28px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 36px rgba(45, 36, 38, 0.06);
+  border: 1.5px solid rgba(45, 36, 38, 0.08);
+  max-width: 720px;
+}
+
+.filter-active-banner {
+  background: var(--color-pink-soft);
+  border: 1.5px solid var(--color-pink-primary);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-pink-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-active-tag {
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: #ffffff;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-pink-primary);
+}
+
+.filter-list-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.filter-preset-card {
+  background: #f8fafc;
+  border: 2px solid rgba(45, 36, 38, 0.08);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.filter-preset-card:hover {
+  border-color: var(--color-pink-primary);
+  background: var(--color-white);
+  transform: translateY(-2px);
+}
+
+.filter-preset-card.selected {
+  border-color: var(--color-pink-primary);
+  background: #ffffff;
+  box-shadow: 0 0 18px rgba(244, 114, 154, 0.45);
+  transform: scale(1.02);
+}
+
+.filter-card-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(45, 36, 38, 0.15);
+  box-shadow: 0 2px 6px rgba(45, 36, 38, 0.08);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-card-check {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: var(--color-pink-primary);
+  text-shadow: 0 0 3px #ffffff, 0 0 5px #ffffff;
+}
+
+.filter-card-name {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-dark-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-preset-card.selected .filter-card-name {
+  color: var(--color-pink-primary);
+  font-weight: 800;
+}
+
+.filter-card-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  background: rgba(45, 36, 38, 0.06);
+  padding: 3px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.filter-preset-card.selected .filter-card-tag {
+  background: var(--color-pink-soft);
+  color: var(--color-pink-primary);
+}
+
+/* Bottom Bar */
+.filter-bottom-bar {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
