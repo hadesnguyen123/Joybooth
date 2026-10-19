@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename)
 const ROOT_DIR = path.resolve(__dirname, '../../../..')
 
 console.log('='.repeat(65))
-console.log('🔍 [JoyBooth System Verifier] BẮT ĐẦU KIỂM TRA TOÀN DIỆN HỆ THỐNG')
+console.log('🔍 [Fotolism System Verifier] BẮT ĐẦU KIỂM TRA TOÀN DIỆN HỆ THỐNG')
 console.log('='.repeat(65))
 
 const results = []
@@ -32,7 +32,7 @@ function checkPortsConfig() {
         'PORT_PARTITION',
         'Phân bổ cổng mạng độc lập',
         true,
-        'Desktop: 5173 | JoyBooth Cloud CMS (Next.js): 3000 (Không xung đột)'
+        'Desktop: 5173 | Fotolism Cloud CMS (Next.js): 3000 (Không xung đột)'
       )
     } else {
       addResult('PORT_PARTITION', 'Phân bổ cổng mạng', false, 'Phát hiện cấu hình cổng không khớp')

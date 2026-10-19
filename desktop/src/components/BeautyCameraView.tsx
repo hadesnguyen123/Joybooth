@@ -4,17 +4,19 @@ import { getFaceLandmarker, extractFaceData, type FaceDetectionData } from '../l
 export interface BeautyCameraHandle {
   captureFrame: () => string
   getVideoElement: () => HTMLVideoElement | null
+  getImageElement: () => HTMLImageElement | null
   getCanvasElement: () => HTMLCanvasElement | null
 }
 
 interface BeautyCameraViewProps {
-  stream: MediaStream | null
+  stream?: MediaStream | null
+  mjpegUrl?: string
   mirrorCamera: boolean
-  slimFace: number       // 0 - 100 (Thon gọn mặt V-line)
-  skinSmoothing: number  // 0 - 100 (Làm mịn da Bilateral)
-  whiteningTone: number  // 0 - 100 (Nâng tone trắng sáng)
-  rosyTone: number       // 0 - 100 (Trắng hồng tự nhiên)
-  glowClarity: number    // 0 - 100 (Sáng nét chi tiết)
+  slimFace: number // 0 - 100 (Thon gọn mặt V-line)
+  skinSmoothing: number // 0 - 100 (Làm mịn da Bilateral)
+  whiteningTone: number // 0 - 100 (Nâng tone trắng sáng)
+  rosyTone: number // 0 - 100 (Trắng hồng tự nhiên)
+  glowClarity: number // 0 - 100 (Sáng nét chi tiết)
   className?: string
   style?: React.CSSProperties
 }
@@ -180,6 +182,7 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
   (
     {
       stream,
+      mjpegUrl,
       mirrorCamera,
       slimFace,
       skinSmoothing,
@@ -192,6 +195,7 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
     ref
   ) => {
     const videoRef = useRef<HTMLVideoElement | null>(null)
+    const imgRef = useRef<HTMLImageElement | null>(null)
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const glRef = useRef<WebGLRenderingContext | null>(null)
     const programRef = useRef<WebGLProgram | null>(null)
@@ -272,7 +276,57 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
           }
         }
 
-        // 2. Dự phòng tuyệt đối 100%: Chụp trực tiếp từ HTMLVideoElement bằng Canvas 2D
+        // 2. Chụp trực tiếp từ Canon EDSDK MJPEG Image stream nếu đang kích hoạt
+        if (mjpegUrl && imgRef.current && (imgRef.current.naturalWidth > 0 || imgRef.current.width > 0)) {
+          try {
+            const img = imgRef.current
+            const w = img.naturalWidth || 1920
+            const h = img.naturalHeight || 1080
+            const off = document.createElement('canvas')
+            off.width = w
+            off.height = h
+            const ctx = off.getContext('2d')
+            if (ctx) {
+              const filters: string[] = []
+              if (whiteningTone > 0) {
+                filters.push(`brightness(${(1 + (whiteningTone / 100) * 0.12).toFixed(3)})`)
+              }
+              if (skinSmoothing > 0) {
+                filters.push(`blur(${(skinSmoothing * 0.005).toFixed(2)}px)`)
+              }
+              if (rosyTone > 0) {
+                filters.push(`saturate(${(1 + (rosyTone / 100) * 0.15).toFixed(3)}) hue-rotate(-${(rosyTone * 0.08).toFixed(1)}deg)`)
+              }
+              if (filters.length > 0) {
+                ctx.filter = filters.join(' ')
+              }
+
+              if (mirrorCamera) {
+                ctx.translate(w, 0)
+                ctx.scale(-1, 1)
+              }
+              if (slimFace > 0) {
+                const scaleXFactor = 1 - (slimFace / 100) * 0.055
+                const scaleYFactor = 1 + (slimFace / 100) * 0.015
+                const cx = w / 2
+                const cy = h / 2
+                ctx.translate(cx, cy)
+                ctx.scale(scaleXFactor, scaleYFactor)
+                ctx.translate(-cx, -cy)
+              }
+
+              ctx.drawImage(img, 0, 0, w, h)
+              const mjpegDataUrl = off.toDataURL('image/jpeg', 0.98)
+              if (mjpegDataUrl && mjpegDataUrl.length > 1000) {
+                return mjpegDataUrl
+              }
+            }
+          } catch (mjpegErr) {
+            console.warn('MJPEG 2D capture error:', mjpegErr)
+          }
+        }
+
+        // 3. Dự phòng tuyệt đối 100%: Chụp trực tiếp từ HTMLVideoElement bằng Canvas 2D
         const video = videoRef.current
         if (video && (video.videoWidth > 0 || video.readyState >= 2)) {
           try {
@@ -312,7 +366,11 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
                 ctx.translate(-cx, -cy)
               }
 
-              ctx.drawImage(video, 0, 0, w, h)
+              if (mjpegUrl && imgRef.current) {
+                ctx.drawImage(imgRef.current, 0, 0, w, h)
+              } else if (video) {
+                ctx.drawImage(video, 0, 0, w, h)
+              }
               const fallbackUrl = off.toDataURL('image/jpeg', 0.98)
               if (fallbackUrl && fallbackUrl.length > 1000) {
                 return fallbackUrl
@@ -326,21 +384,27 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
         return ''
       },
       getVideoElement: () => videoRef.current,
+      getImageElement: () => imgRef.current,
       getCanvasElement: () => canvasRef.current,
     }))
 
-    // Gán stream cho video ngầm
+    // Gán stream cho video ngầm khi dùng webcam
     useEffect(() => {
       const video = videoRef.current
       if (!video) return
 
-      if (stream) {
+      if (stream && !mjpegUrl) {
         video.srcObject = stream
-        video.play().catch((err) => console.warn('Video play error:', err))
+        const playVideo = () => {
+          video.play().catch((err) => console.warn('Video play error:', err))
+        }
+        video.addEventListener('loadedmetadata', playVideo, { once: true })
+        video.addEventListener('canplay', playVideo, { once: true })
+        playVideo()
       } else {
         video.srcObject = null
       }
-    }, [stream])
+    }, [stream, mjpegUrl])
 
     // Khởi tạo WebGL Pipeline với preserveDrawingBuffer = true (BẮT BUỘC để toDataURL không bị đen)
     useEffect(() => {
@@ -481,12 +545,37 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
       let isRunning = true
 
       function doRender() {
-        if (!gl || !program || !video || !canvas) return false
-        if (video.readyState < video.HAVE_CURRENT_DATA) return false
+        if (!gl || !program || !canvas) return false
+        const isMjpeg = Boolean(mjpegUrl && imgRef.current)
+        const video = videoRef.current
+        const img = imgRef.current
 
-        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-          canvas.width = video.videoWidth || 1920
-          canvas.height = video.videoHeight || 1080
+        let mediaSource: TexImageSource | null = null
+        let srcW = 1920
+        let srcH = 1080
+
+        if (isMjpeg && img) {
+          if (img.naturalWidth <= 0) return false
+          mediaSource = img
+          srcW = img.naturalWidth
+          srcH = img.naturalHeight
+        } else if (video) {
+          if (video.readyState < video.HAVE_CURRENT_DATA) {
+            if (video.paused && stream) {
+              video.play().catch(() => {})
+            }
+            return false
+          }
+          mediaSource = video
+          srcW = video.videoWidth || 1920
+          srcH = video.videoHeight || 1080
+        }
+
+        if (!mediaSource) return false
+
+        if (canvas.width !== srcW || canvas.height !== srcH) {
+          canvas.width = srcW
+          canvas.height = srcH
           gl.viewport(0, 0, canvas.width, canvas.height)
         }
 
@@ -534,9 +623,9 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
           gl.uniform4fv(uFaceJaw, jawData)
         }
 
-        // Nạp khung hình video vào WebGL Texture
+        // Nạp khung hình video/image vào WebGL Texture
         gl.bindTexture(gl.TEXTURE_2D, textureRef.current)
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video)
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, mediaSource)
 
         // Render Shader Quad
         gl.drawArrays(gl.TRIANGLES, 0, 6)
@@ -586,7 +675,14 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
           animIdRef.current = null
         }
       }
-    }, [mirrorCamera, slimFace, skinSmoothing, whiteningTone, rosyTone, glowClarity])
+    }, [stream, mjpegUrl, mirrorCamera, slimFace, skinSmoothing, whiteningTone, rosyTone, glowClarity])
+
+    // Tính toán CSS filter cho MJPEG Image stream
+    const mjpegFilters: string[] = []
+    if (whiteningTone > 0) mjpegFilters.push(`brightness(${(1 + (whiteningTone / 100) * 0.12).toFixed(3)})`)
+    if (skinSmoothing > 0) mjpegFilters.push(`blur(${(skinSmoothing * 0.005).toFixed(2)}px)`)
+    if (rosyTone > 0) mjpegFilters.push(`saturate(${(1 + (rosyTone / 100) * 0.15).toFixed(3)}) hue-rotate(-${(rosyTone * 0.08).toFixed(1)}deg)`)
+    const mjpegFilterStyle = mjpegFilters.length > 0 ? mjpegFilters.join(' ') : 'none'
 
     return (
       <div
@@ -600,35 +696,65 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
           ...style,
         }}
       >
-        {/* Video stream source ngầm (không dùng display: none để Chromium luôn decode frame 60 FPS) */}
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          autoPlay
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: 1,
-            height: 1,
-            opacity: 0.01,
-            pointerEvents: 'none',
-            zIndex: -999,
-          }}
-        />
-
-        {/* WebGL Real-time Shader Output Canvas */}
-        <canvas
-          ref={canvasRef}
-          className="camera-preview-element"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            display: 'block',
-          }}
-        />
+        {/* Hiển thị trực tiếp luồng Canon EDSDK MJPEG độ phân giải cao hoặc WebGL Canvas cho Webcam */}
+        {mjpegUrl ? (
+          <img
+            ref={imgRef}
+            src={mjpegUrl}
+            alt="Canon EDSDK LiveView"
+            crossOrigin="anonymous"
+            className="camera-preview-element"
+            onError={(_e) => {
+              // Tự động kết nối lại sau 1.2s nếu luồng bị ngắt tạm thời
+              setTimeout(() => {
+                if (imgRef.current && mjpegUrl) {
+                  imgRef.current.src = `${mjpegUrl}?retry=${Date.now()}`
+                }
+              }, 1200)
+            }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transform: mirrorCamera ? 'scaleX(-1)' : 'none',
+              filter: mjpegFilterStyle,
+              display: 'block',
+              zIndex: 1,
+            }}
+          />
+        ) : (
+          <>
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              autoPlay
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: 1,
+                height: 1,
+                opacity: 0.01,
+                pointerEvents: 'none',
+                zIndex: -999,
+              }}
+            />
+            {/* WebGL Real-time Shader Output Canvas */}
+            <canvas
+              ref={canvasRef}
+              className="camera-preview-element"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          </>
+        )}
       </div>
     )
   }

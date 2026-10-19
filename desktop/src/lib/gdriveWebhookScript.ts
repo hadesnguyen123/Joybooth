@@ -1,5 +1,5 @@
 /**
- * Google Apps Script Webhook để kết nối JoyBooth với Google Drive
+ * Google Apps Script Webhook để kết nối Fotolism với Google Drive
  * Folder ID đích: 1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU
  * 
  * HƯỚNG DẪN CÀI ĐẶT (Chỉ mất 1 phút):
@@ -10,7 +10,7 @@
  * 5. Chọn loại: "Ứng dụng web" (Web app).
  * 6. Mục "Người có quyền truy cập" (Who has access): Chọn "Bất kỳ ai" (Anyone).
  * 7. Bấm "Triển khai" và sao chép Web App URL (dạng https://script.google.com/macros/s/.../exec).
- * 8. Dán URL vào mục Quản Trị > Google Drive & Timelapse > Webhook URL trong JoyBooth!
+ * 8. Dán URL vào mục Quản Trị > Google Drive & Timelapse > Webhook URL trong Fotolism!
  */
 
 export const GOOGLE_APPS_SCRIPT_SAMPLE = `function doPost(e) {
@@ -19,12 +19,12 @@ export const GOOGLE_APPS_SCRIPT_SAMPLE = `function doPost(e) {
     var parentId = data.parentFolderId || '1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU';
     var parentFolder = DriveApp.getFolderById(parentId);
     
-    // Tự động tạo tên folder theo ngày giờ (VD: JoyBooth_2026-10-08_22h35)
+    // Tự động tạo tên folder theo ngày giờ (VD: Fotolism_2026-10-08_22h35)
     var now = new Date();
     var pad = function(n) { return (n < 10 ? '0' : '') + n; };
     var timeStamp = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + '_' + pad(now.getHours()) + 'h' + pad(now.getMinutes());
     
-    var folderName = data.folderName || ('JoyBooth_' + timeStamp);
+    var folderName = data.folderName || ('Fotolism_' + timeStamp);
     var newFolder = parentFolder.createFolder(folderName);
     
     // Đặt quyền truy cập công khai xem ảnh cho người quét mã QR

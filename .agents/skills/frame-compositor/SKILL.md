@@ -1,9 +1,9 @@
 ---
 name: frame-compositor
-description: Hướng dẫn xử lý khung ảnh, tách lớp PNG transparency, tự động căn crop ảnh và ghép ảnh đa khung (strip 2x6, 4x6).
+description: Hướng dẫn xử lý khung ảnh, tách lớp PNG transparency, tự động căn crop ảnh và ghép ảnh đa khung (strip 2x6, 4x6) cho Fotolism.
 ---
 
-# 🖼️ Frame Compositor Skill — JoyBooth
+# 🖼️ Frame Compositor Skill — Fotolism
 
 ## Mục tiêu
 Tự động ghép ảnh chụp (1 tấm hoặc chuỗi 3–4 tấm) vào các mẫu khung viền sự kiện (PNG Frame):

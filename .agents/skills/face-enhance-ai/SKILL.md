@@ -1,9 +1,9 @@
 ---
 name: face-enhance-ai
-description: Hướng dẫn tích hợp AI làm đẹp khuôn mặt, phục hồi nét (GFPGAN/CodeFormer), làm mịn da và chỉnh sáng Glam Photobooth.
+description: Hướng dẫn tích hợp AI làm đẹp khuôn mặt, phục hồi nét (GFPGAN/CodeFormer), làm mịn da và chỉnh sáng Fotolism Photobooth.
 ---
 
-# 🤖 Face Enhance AI Skill — JoyBooth
+# 🤖 Face Enhance AI Skill — Fotolism
 
 ## Mục tiêu
 Cung cấp pipeline làm đẹp ảnh chân dung tức thì (< 3 giây offline):

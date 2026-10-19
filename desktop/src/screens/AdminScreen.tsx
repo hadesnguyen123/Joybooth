@@ -1,6 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useAppStore, THEME_OPTIONS, BEAUTY_PRESETS } from '../store/appStore'
-import { joyBoothApi, isBrowser, mockApi } from '../lib/api'
+import { fotolismApi, isBrowser, mockApi } from '../lib/api'
+import {
+  BRAND_NAME,
+  SAVE_FOLDER_NAME,
+  SAVE_ROOT_DIR,
+  SESSION_FOLDER_PREFIX,
+  DEFAULT_ADMIN_PIN,
+  DEFAULT_BANK_BIN,
+  DEFAULT_ACCOUNT_NUMBER,
+  DEFAULT_ACCOUNT_HOLDER,
+  DEFAULT_PRICE_2X6,
+  DEFAULT_PRICE_4X6,
+  DEFAULT_EXTRA_COPY_PRICE_2X6,
+  DEFAULT_EXTRA_COPY_PRICE_4X6,
+  DEFAULT_GDRIVE_FOLDER_ID,
+  DEFAULT_GDRIVE_FOLDER_URL,
+} from '../lib/constants'
 import { BeautyCameraView } from '../components/BeautyCameraView'
 import './AdminScreen.css'
 
@@ -46,6 +62,99 @@ export default function AdminScreen() {
   // Active Tab
   const [activeTab, setActiveTab] = useState<AdminTab>('event')
 
+  // Camera & Driver Status (EOS Webcam Utility + digiCamControl)
+  const [cameraDriverStatus, setCameraDriverStatus] = useState<{
+    bundled: boolean
+    installed: boolean
+    cameraConnected: boolean
+    cameraModel?: string
+    setupPath?: string
+    digiCamInstalled?: boolean
+    digiCamBundled?: boolean
+  } | null>(null)
+  const [isInstallingDriver, setIsInstallingDriver] = useState<boolean>(false)
+  const [isInstallingDigiCam, setIsInstallingDigiCam] = useState<boolean>(false)
+  const [driverInstallNotice, setDriverInstallNotice] = useState<string | null>(null)
+  const [isTestingShutter, setIsTestingShutter] = useState<boolean>(false)
+  const [shutterTestResult, setShutterTestResult] = useState<string | null>(null)
+
+  async function handleTestShutter() {
+    setIsTestingShutter(true)
+    setShutterTestResult(null)
+    try {
+      const api = isBrowser ? mockApi : fotolismApi
+      const timestamp = Date.now()
+      const testPath = `${SAVE_ROOT_DIR}/test_r100_${timestamp}.jpg`
+      const res = await api.camera.edsdkCapture(testPath, 1)
+      if (res?.success && res.data) {
+        setShutterTestResult(`🎉 Thành công! Màn trập đã nảy, ảnh gốc 24MP lưu tại: ${res.data.savedPath}`)
+      } else {
+        setShutterTestResult(`❌ ${res?.error || 'Không kích hoạt được màn trập máy ảnh.'}`)
+      }
+    } catch (err: any) {
+      setShutterTestResult(`❌ Lỗi: ${err.message}`)
+    } finally {
+      setIsTestingShutter(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'hardware' && isAuthenticated) {
+      const api = isBrowser ? mockApi : fotolismApi
+      api.camera.getDriverStatus?.().then((res) => {
+        if (res?.success && res.data) {
+          setCameraDriverStatus(res.data)
+        }
+      }).catch(console.warn)
+    }
+  }, [activeTab, isAuthenticated])
+
+  async function handleInstallCanonDriver() {
+    setIsInstallingDriver(true)
+    setDriverInstallNotice(null)
+    try {
+      const api = isBrowser ? mockApi : fotolismApi
+      const res = await api.camera.installCanonDriver()
+      if (res?.success) {
+        setDriverInstallNotice('✅ Đã mở trình cài đặt Canon EOS Webcam Utility. Vui lòng hoàn tất cài đặt theo hướng dẫn trên màn hình.')
+        setTimeout(() => {
+          api.camera.getDriverStatus?.().then((s) => {
+            if (s?.success && s.data) setCameraDriverStatus(s.data)
+          })
+        }, 5000)
+      } else {
+        setDriverInstallNotice(`❌ ${res?.error || 'Không mở được bộ cài driver Canon.'}`)
+      }
+    } catch (err: any) {
+      setDriverInstallNotice(`❌ ${err.message}`)
+    } finally {
+      setIsInstallingDriver(false)
+    }
+  }
+
+  async function handleInstallDigiCam() {
+    setIsInstallingDigiCam(true)
+    setDriverInstallNotice(null)
+    try {
+      const api = isBrowser ? mockApi : fotolismApi
+      const res = await api.camera.installDigiCam?.()
+      if (res?.success) {
+        setDriverInstallNotice('✅ Trình cài đặt digiCamControl đã mở trên màn hình! Vui lòng bấm Install/Next để hoàn tất cài đặt (khoảng 30 giây).')
+        setTimeout(() => {
+          api.camera.getDriverStatus?.().then((s) => {
+            if (s?.success && s.data) setCameraDriverStatus(s.data)
+          })
+        }, 6000)
+      } else {
+        setDriverInstallNotice(`❌ ${res?.error || 'Không mở được bộ cài digiCamControl.'}`)
+      }
+    } catch (err: any) {
+      setDriverInstallNotice(`❌ ${err.message}`)
+    } finally {
+      setIsInstallingDigiCam(false)
+    }
+  }
+
   // Khởi động camera preview khi vào tab Làm Đẹp
   useEffect(() => {
     let activeStream: MediaStream | null = null
@@ -83,7 +192,8 @@ export default function AdminScreen() {
     setPinCode(newPin)
 
     if (newPin.length === 4) {
-      if (newPin === '1234') {
+      const validPin = eventConfig.adminPin || DEFAULT_ADMIN_PIN
+      if (newPin === validPin) {
         setIsAuthenticated(true)
         setPinError(false)
       } else {
@@ -107,10 +217,10 @@ export default function AdminScreen() {
         <div className="admin-lock-screen">
           <div className="pin-pad-card">
             <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--color-gold-primary)' }}>
-              🔒 Quản Trị JoyBooth
+              🔒 Quản Trị {BRAND_NAME}
             </h2>
             <p style={{ color: 'var(--color-text-dim)', fontSize: '0.85rem' }}>
-              Nhập mã PIN để truy cập cài đặt (Mặc định: 1234)
+              Nhập mã PIN để truy cập cài đặt (Mặc định: {DEFAULT_ADMIN_PIN})
             </p>
 
             <div className="pin-display">
@@ -158,7 +268,7 @@ export default function AdminScreen() {
       <header className="admin-header">
         <div className="admin-title">
           <span>⚙️</span>
-          <span>JoyBooth Control Panel</span>
+          <span>{BRAND_NAME} Control Panel</span>
         </div>
 
         <div style={{ display: 'flex', gap: 12 }}>
@@ -219,8 +329,8 @@ export default function AdminScreen() {
             className={`admin-nav-item ${activeTab === 'cloud' ? 'active' : ''}`}
             onClick={() => setActiveTab('cloud')}
           >
-            <span>☁️</span>
-            <span>Google Drive & Timelapse</span>
+            <span>🎬</span>
+            <span>Video Timelapse & Google Drive</span>
           </div>
 
           <div
@@ -262,7 +372,7 @@ export default function AdminScreen() {
                     type="text"
                     className="form-input"
                     value={eventConfig.operatorName}
-                    placeholder="VD: JoyBooth Team"
+                    placeholder={`VD: ${BRAND_NAME} Team`}
                     onChange={(e) => setEventConfig({ operatorName: e.target.value })}
                   />
                 </div>
@@ -347,6 +457,37 @@ export default function AdminScreen() {
                     value={eventConfig.idleTimeoutSeconds}
                     onChange={(e) => setEventConfig({ idleTimeoutSeconds: Number(e.target.value) })}
                   />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">🎬 Quay Video Timelapse Hậu Trường</label>
+                  <select
+                    className="form-input"
+                    value={eventConfig.timelapseEnabled ? 'yes' : 'no'}
+                    onChange={(e) => setEventConfig({ timelapseEnabled: e.target.value === 'yes' })}
+                  >
+                    <option value="yes">🟢 Bật (Tự động quay video hậu trường & xuất WebM)</option>
+                    <option value="no">⚪ Tắt (Không quay video hậu trường)</option>
+                  </select>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)', marginTop: 4, display: 'block' }}>
+                    Tự động ghi lại quá trình tạo dáng trong lúc đếm ngược và tạo video tua nhanh cho khách.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">⚡ Tốc Độ Tua Nhanh Timelapse</label>
+                  <select
+                    className="form-input"
+                    value={eventConfig.timelapseSpeed || 2.5}
+                    onChange={(e) => setEventConfig({ timelapseSpeed: Number(e.target.value) })}
+                    disabled={!eventConfig.timelapseEnabled}
+                  >
+                    <option value={1.5}>1.5x (Chậm, xem rõ biểu cảm)</option>
+                    <option value={2.0}>2.0x (Tự nhiên)</option>
+                    <option value={2.5}>2.5x (Mặc định - Chuẩn Hàn Quốc Haru/Life4Cuts)</option>
+                    <option value={3.0}>3.0x (Nhanh & Sôi động)</option>
+                    <option value={4.0}>4.0x (Siêu tốc - TikTok / Reels Vibe)</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -577,7 +718,7 @@ export default function AdminScreen() {
                     {adminStream ? (
                       <BeautyCameraView
                         stream={adminStream}
-                        mirrorCamera={true}
+                        mirrorCamera={false}
                         slimFace={slimFace}
                         skinSmoothing={skinSmoothing}
                         whiteningTone={whiteningTone}
@@ -612,7 +753,7 @@ export default function AdminScreen() {
                         backdropFilter: 'blur(4px)',
                       }}
                     >
-                      ✨ Soi Gương Trực Tiếp (WebGL Shader 60 FPS)
+                      ✨ Xem Trực Tiếp Live View (WebGL Shader 60 FPS)
                     </div>
                   </div>
 
@@ -669,7 +810,190 @@ export default function AdminScreen() {
 
           {activeTab === 'hardware' && (
             <div>
-              <h2 className="tab-pane-title">Thiết Bị Ngoại Vi</h2>
+              <h2 className="tab-pane-title">Thiết Bị Ngoại Vi & Điều Khiển Camera</h2>
+
+              {/* CARD: DRIVER & CAMERA TETHERING STATUS */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #18181b 0%, #27272a 100%)',
+                  borderRadius: 16,
+                  padding: 20,
+                  marginBottom: 20,
+                  color: '#fff',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#f4729a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>📷</span>
+                      <span>Máy Ảnh Canon EOS & Bộ Điều Khiển Shutter 24MP</span>
+                    </h3>
+                    <p style={{ fontSize: '0.8rem', color: '#a1a1aa', margin: '4px 0 0 0' }}>
+                      Kích hoạt màn trập máy ảnh thật để chụp ảnh gốc độ phân giải cao 24MP (thay vì cắt khung webcam).
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {!cameraDriverStatus?.digiCamInstalled && (
+                      <button
+                        className="btn btn-pink"
+                        style={{
+                          padding: '10px 18px',
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: '0 4px 18px rgba(244, 114, 154, 0.45)',
+                          cursor: isInstallingDigiCam ? 'not-allowed' : 'pointer',
+                          opacity: isInstallingDigiCam ? 0.7 : 1,
+                        }}
+                        disabled={isInstallingDigiCam}
+                        onClick={handleInstallDigiCam}
+                      >
+                        {isInstallingDigiCam ? <>⏳ Đang mở...</> : <>⚡ Cài Đặt digiCamControl (24MP)</>}
+                      </button>
+                    )}
+                    {!cameraDriverStatus?.installed && (
+                      <button
+                        className="btn btn-ghost"
+                        style={{
+                          padding: '10px 18px',
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          color: '#fff',
+                        }}
+                        disabled={isInstallingDriver}
+                        onClick={handleInstallCanonDriver}
+                      >
+                        {isInstallingDriver ? <>⏳ Đang mở...</> : <>Cài Driver Live View</>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Thông báo kết quả cài đặt */}
+                {driverInstallNotice && (
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 8,
+                      fontSize: '0.82rem',
+                      marginBottom: 14,
+                      background: driverInstallNotice.startsWith('✅') ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      border: driverInstallNotice.startsWith('✅') ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
+                      color: driverInstallNotice.startsWith('✅') ? '#4ade80' : '#f87171',
+                    }}
+                  >
+                    {driverInstallNotice}
+                  </div>
+                )}
+
+                {/* Grid trạng thái thiết bị */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: 12,
+                    background: 'rgba(0,0,0,0.3)',
+                    padding: 14,
+                    borderRadius: 12,
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Cáp USB Máy Ảnh
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: cameraDriverStatus?.cameraConnected ? '#22c55e' : '#eab308' }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: cameraDriverStatus?.cameraConnected ? '#4ade80' : '#fde047' }}>
+                        {cameraDriverStatus?.cameraConnected ? (cameraDriverStatus.cameraModel || 'Canon EOS (Đã kết nối)') : 'Chưa cắm cáp USB'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Live View (Màn Hình Chờ)
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: cameraDriverStatus?.installed ? '#22c55e' : '#f97316' }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: cameraDriverStatus?.installed ? '#4ade80' : '#fb923c' }}>
+                        {cameraDriverStatus?.installed ? 'Đã sẵn sàng' : 'Chưa cài EOS Webcam'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Chụp Shutter 24MP Thật
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: cameraDriverStatus?.digiCamInstalled ? '#22c55e' : '#ef4444' }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: cameraDriverStatus?.digiCamInstalled ? '#4ade80' : '#f87171' }}>
+                        {cameraDriverStatus?.digiCamInstalled ? 'Sẵn Sàng (24MP)' : 'Chưa cài digiCamControl'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nút Test Bấm Màn Trập Canon R100 Trực Tiếp */}
+                <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={isTestingShutter}
+                    onClick={handleTestShutter}
+                    style={{
+                      fontSize: '0.88rem',
+                      padding: '10px 20px',
+                      background: 'linear-gradient(135deg, #0284c7, #0ea5e9)',
+                      border: 'none',
+                      cursor: isTestingShutter ? 'not-allowed' : 'pointer',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {isTestingShutter ? '⏳ Đang gửi lệnh TakePicture()...' : '📸 Bấm Thử Màn Trập Canon R100 (24MP)'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ fontSize: '0.8rem', padding: '8px 14px' }}
+                    onClick={() => {
+                      const api = isBrowser ? mockApi : fotolismApi
+                      api.camera.getDriverStatus?.().then((s) => {
+                        if (s?.success && s.data) setCameraDriverStatus(s.data)
+                      })
+                    }}
+                  >
+                    🔄 Làm mới trạng thái
+                  </button>
+                </div>
+
+                {shutterTestResult && (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      padding: '10px 14px',
+                      borderRadius: 8,
+                      fontSize: '0.82rem',
+                      background: shutterTestResult.startsWith('🎉') ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      border: shutterTestResult.startsWith('🎉') ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
+                      color: shutterTestResult.startsWith('🎉') ? '#4ade80' : '#f87171',
+                      fontWeight: 600,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {shutterTestResult}
+                  </div>
+                )}
+              </div>
+
               <div className="admin-form-grid">
                 <div className="form-group">
                   <label className="form-label">Camera Sử Dụng ({availableCameras.length} thiết bị phát hiện)</label>
@@ -700,30 +1024,30 @@ export default function AdminScreen() {
                 </div>
 
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="form-label">📁 Thư Mục Lưu Ảnh Mặc Định (Downloads)</label>
+                  <label className="form-label">📁 Thư Mục Lưu Ảnh Mặc Định (Ổ D:\)</label>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <input
                       type="text"
                       className="form-input"
                       style={{ flex: 1, backgroundColor: '#f8fafc' }}
-                      value={eventConfig.saveDirectory || 'Downloads/JoyBooth'}
+                      value={eventConfig.saveDirectory || SAVE_ROOT_DIR}
                       onChange={(e) => setEventConfig({ saveDirectory: e.target.value })}
-                      placeholder="Downloads/JoyBooth"
+                      placeholder={SAVE_ROOT_DIR}
                     />
                     <button
                       className="btn btn-pink"
                       style={{ padding: '10px 18px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
                       onClick={() => {
-                        const api = isBrowser ? mockApi : joyBoothApi
+                        const api = isBrowser ? mockApi : fotolismApi
                         api.storage.openFolder()
                       }}
-                      title="Mở thư mục Downloads trong Finder / File Explorer"
+                      title="Mở thư mục lưu ảnh trong File Explorer"
                     >
                       📂 Mở Thư Mục
                     </button>
                   </div>
                   <p style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: 6 }}>
-                    ⚡ <strong>Mặc định:</strong> Ảnh chụp đơn và dải ảnh in hoàn chỉnh sẽ được tự động lưu trực tiếp vào thư mục <strong>Downloads/JoyBooth</strong> của máy tính này.
+                    ⚡ <strong>Mặc định:</strong> Ảnh chụp đơn và dải ảnh in hoàn chỉnh sẽ được tự động lưu trực tiếp vào thư mục <strong>D:\{SAVE_FOLDER_NAME}</strong> của máy tính này.
                   </p>
                 </div>
               </div>
@@ -732,7 +1056,7 @@ export default function AdminScreen() {
 
           {activeTab === 'cloud' && (
             <div>
-              <h2 className="tab-pane-title">Google Drive & Video Timelapse</h2>
+              <h2 className="tab-pane-title">🎬 Video Timelapse & Google Drive</h2>
 
               {/* Card 1: Video Timelapse */}
               <div
@@ -748,10 +1072,10 @@ export default function AdminScreen() {
                   <div>
                     <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-pink-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span>🎬</span>
-                      <span>Video Timelapse Tự Động</span>
+                      <span>Video Timelapse Tự Động Hậu Trường</span>
                     </h3>
                     <p style={{ fontSize: '0.82rem', color: '#666', marginTop: 4 }}>
-                      Quay video hậu trường tua nhanh trong suốt buổi chụp bằng 1 camera duy nhất.
+                      Tự động ghi lại quá trình tạo dáng vui nhộn của khách trong lúc đếm ngược và tạo video tua nhanh (.webm).
                     </p>
                   </div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
@@ -761,8 +1085,26 @@ export default function AdminScreen() {
                       onChange={(e) => setEventConfig({ timelapseEnabled: e.target.checked })}
                       style={{ width: 18, height: 18, accentColor: 'var(--color-pink-primary)' }}
                     />
-                    <span>{eventConfig.timelapseEnabled ? 'Đang Bật' : 'Tắt'}</span>
+                    <span style={{ color: eventConfig.timelapseEnabled ? '#16a34a' : '#64748b', fontWeight: 800 }}>
+                      {eventConfig.timelapseEnabled ? '🟢 ĐANG BẬT' : '⚪ ĐANG TẮT'}
+                    </span>
                   </label>
+                </div>
+
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: 12,
+                    marginBottom: 16,
+                    background: eventConfig.timelapseEnabled ? '#f0fdf4' : '#fff1f2',
+                    border: `1.5px solid ${eventConfig.timelapseEnabled ? '#86efac' : '#fecdd3'}`,
+                  }}
+                >
+                  <p style={{ fontSize: '0.84rem', margin: 0, color: eventConfig.timelapseEnabled ? '#166534' : '#9f1239', fontWeight: 600 }}>
+                    {eventConfig.timelapseEnabled
+                      ? '✅ Video hậu trường sẽ tự động ghi hình xuyên suốt phiên chụp (hỗ trợ cả Canon EOS EDSDK và Webcam), hiển thị ngay tại màn hình Đánh Giá và đồng bộ lên Google Drive.'
+                      : '⏸️ Tính năng Timelapse đang tắt. Hệ thống sẽ chỉ tạo ảnh in tĩnh.'}
+                  </p>
                 </div>
 
                 <div className="admin-form-grid">
@@ -774,12 +1116,23 @@ export default function AdminScreen() {
                       onChange={(e) => setEventConfig({ timelapseSpeed: Number(e.target.value) })}
                       disabled={!eventConfig.timelapseEnabled}
                     >
-                      <option value={1.5}>1.5x (Chuyển động nhẹ nhàng)</option>
-                      <option value={2.0}>2.0x (Tiêu chuẩn)</option>
-                      <option value={2.5}>2.5x (Khuyên dùng - Nhanh vừa & Vui nhộn)</option>
-                      <option value={3.0}>3.0x (Tua nhanh sống động)</option>
-                      <option value={4.0}>4.0x (Siêu nhanh / Boomerang style)</option>
+                      <option value={1.5}>1.5x (Chậm, chuyển động nhẹ nhàng)</option>
+                      <option value={2.0}>2.0x (Tiêu chuẩn vừa phải)</option>
+                      <option value={2.5}>2.5x (Khuyên dùng - Chuẩn Photobooth Hàn Quốc)</option>
+                      <option value={3.0}>3.0x (Tua nhanh sôi động)</option>
+                      <option value={4.0}>4.0x (Siêu nhanh - TikTok / Reels Vibe)</option>
                     </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Định Dạng & Lưu Trữ</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value="WebM (VP8/VP9) • F:\Fotolism_image\fotolism_timelapse_*.webm"
+                      disabled
+                      style={{ background: '#f8fafc', color: '#475569', fontWeight: 600 }}
+                    />
                   </div>
                 </div>
 
@@ -787,8 +1140,8 @@ export default function AdminScreen() {
                   <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e3a8a', marginBottom: 4 }}>
                     💡 Cơ chế hoạt động với 1 Camera duy nhất:
                   </h4>
-                  <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.5 }}>
-                    Trong khi khách hàng chụp, JoyBooth tận dụng trực tiếp luồng stream video liên tục của camera thông qua phần cứng (MediaRecorder). Tại mỗi lần đếm ngược chụp ảnh, khung hình tĩnh chất lượng cao được lưu độc lập mà không hề làm gián đoạn việc ghi video liên tục.
+                  <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.5, margin: 0 }}>
+                    Trong khi khách hàng tạo dáng, hệ thống tự động ghi lại luồng video liên tục. Khi màn trập nổ, khung hình tĩnh chất lượng cao được lưu độc lập mà không hề làm gián đoạn việc ghi video hậu trường.
                   </p>
                 </div>
               </div>
@@ -842,12 +1195,12 @@ export default function AdminScreen() {
                       type="text"
                       className="form-input"
                       value={eventConfig.gdriveFolderUrl || ''}
-                      placeholder="https://drive.google.com/drive/folders/1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU"
+                      placeholder={DEFAULT_GDRIVE_FOLDER_URL}
                       onChange={(e) => setEventConfig({ gdriveFolderUrl: e.target.value })}
                       disabled={!eventConfig.gdriveEnabled}
                     />
                     <small style={{ color: '#888', fontSize: '0.75rem', marginTop: 4, display: 'block' }}>
-                      Thư mục cha chứa các folder con theo ngày & giờ chụp (JoyBooth_YYYY-MM-DD_HH-mm).
+                      Thư mục cha chứa các folder con theo ngày & giờ chụp ({SESSION_FOLDER_PREFIX}_YYYY-MM-DD_HH-mm).
                     </small>
                   </div>
 
@@ -857,7 +1210,7 @@ export default function AdminScreen() {
                       type="text"
                       className="form-input"
                       value={eventConfig.gdriveFolderId || ''}
-                      placeholder="1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU"
+                      placeholder={DEFAULT_GDRIVE_FOLDER_ID}
                       onChange={(e) => setEventConfig({ gdriveFolderId: e.target.value })}
                       disabled={!eventConfig.gdriveEnabled}
                     />
@@ -871,7 +1224,7 @@ export default function AdminScreen() {
                       onChange={(e) => setEventConfig({ gdriveAutoSync: e.target.value === 'yes' })}
                       disabled={!eventConfig.gdriveEnabled}
                     >
-                      <option value="yes">Bật (Tạo folder JoyBooth_YYYY-MM-DD_HH-mm & Đẩy lên)</option>
+                      <option value="yes">Bật (Tạo folder {SESSION_FOLDER_PREFIX}_YYYY-MM-DD_HH-mm & Đẩy lên)</option>
                       <option value="no">Tắt (Chỉ lưu cục bộ trên máy)</option>
                     </select>
                   </div>
@@ -889,7 +1242,7 @@ export default function AdminScreen() {
                       disabled={!eventConfig.gdriveEnabled}
                     />
                     <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 4, display: 'block' }}>
-                      Nếu có Webhook, JoyBooth sẽ tự động gọi Google Drive API tạo folder con thật sự trên Cloud và sinh link chia sẻ trực tiếp cho mã QR.
+                      Nếu có Webhook, Fotolism sẽ tự động gọi Google Drive API tạo folder con thật sự trên Cloud và sinh link chia sẻ trực tiếp cho mã QR.
                     </small>
                   </div>
                 </div>
@@ -981,7 +1334,7 @@ export default function AdminScreen() {
                     <label className="form-label">Ngân Hàng Thụ Hưởng</label>
                     <select
                       className="form-input"
-                      value={eventConfig.bankBin || '970422'}
+                      value={eventConfig.bankBin || DEFAULT_BANK_BIN}
                       onChange={(e) => {
                         const bin = e.target.value
                         const bankNames: Record<string, string> = {
@@ -1014,7 +1367,7 @@ export default function AdminScreen() {
                       type="text"
                       className="form-input"
                       value={eventConfig.accountNumber || ''}
-                      placeholder="VD: 0388889999"
+                      placeholder={`VD: ${DEFAULT_ACCOUNT_NUMBER}`}
                       onChange={(e) => setEventConfig({ accountNumber: e.target.value })}
                     />
                   </div>
@@ -1025,7 +1378,7 @@ export default function AdminScreen() {
                       type="text"
                       className="form-input"
                       value={eventConfig.accountHolder || ''}
-                      placeholder="VD: NGUYEN VAN A"
+                      placeholder={`VD: ${DEFAULT_ACCOUNT_HOLDER}`}
                       onChange={(e) => setEventConfig({ accountHolder: e.target.value.toUpperCase() })}
                     />
                   </div>
@@ -1036,7 +1389,7 @@ export default function AdminScreen() {
                       type="number"
                       step={5000}
                       className="form-input"
-                      value={eventConfig.price2x6 || 50000}
+                      value={eventConfig.price2x6 || DEFAULT_PRICE_2X6}
                       onChange={(e) => setEventConfig({ price2x6: Number(e.target.value) })}
                     />
                   </div>
@@ -1047,7 +1400,7 @@ export default function AdminScreen() {
                       type="number"
                       step={5000}
                       className="form-input"
-                      value={eventConfig.price4x6 || 70000}
+                      value={eventConfig.price4x6 || DEFAULT_PRICE_4X6}
                       onChange={(e) => setEventConfig({ price4x6: Number(e.target.value) })}
                     />
                   </div>
@@ -1058,7 +1411,7 @@ export default function AdminScreen() {
                       type="number"
                       step={5000}
                       className="form-input"
-                      value={eventConfig.extraCopyPrice2x6 || 25000}
+                      value={eventConfig.extraCopyPrice2x6 || DEFAULT_EXTRA_COPY_PRICE_2X6}
                       onChange={(e) => setEventConfig({ extraCopyPrice2x6: Number(e.target.value) })}
                     />
                   </div>
@@ -1069,7 +1422,7 @@ export default function AdminScreen() {
                       type="number"
                       step={5000}
                       className="form-input"
-                      value={eventConfig.extraCopyPrice4x6 || 35000}
+                      value={eventConfig.extraCopyPrice4x6 || DEFAULT_EXTRA_COPY_PRICE_4X6}
                       onChange={(e) => setEventConfig({ extraCopyPrice4x6: Number(e.target.value) })}
                     />
                   </div>

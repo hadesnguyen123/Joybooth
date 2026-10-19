@@ -5,6 +5,7 @@ import type {
   ColorFilterItem,
   FrameSize,
 } from '../store/appStore'
+import { DEFAULT_EVENT_NAME } from './constants'
 
 interface RenderOptions {
   photos: string[] // data URLs or image URLs
@@ -158,7 +159,7 @@ export async function generateStripComposite(opts: RenderOptions): Promise<strin
   // Tiêu đề sự kiện (Font Cute bo tròn)
   ctx.font = '800 28px "Baloo 2", "Quicksand", sans-serif'
   ctx.letterSpacing = '1px'
-  ctx.fillText(opts.eventName.toUpperCase(), width / 2, height - 85)
+  ctx.fillText((opts.eventName || DEFAULT_EVENT_NAME).toUpperCase(), width / 2, height - 85)
 
   // Ngày tháng & Bộ lọc
   ctx.font = '700 16px "Quicksand", sans-serif'

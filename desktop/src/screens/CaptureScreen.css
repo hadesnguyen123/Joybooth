@@ -1,4 +1,4 @@
-/* ── JoyBooth Korea Studio Capture Screen ────────────────────────────── */
+/* ── Fotolism Korea Studio Capture Screen ────────────────────────────── */
 
 .capture-screen-pastel {
   width: 100vw;
@@ -1270,5 +1270,67 @@
 .picker-confirm-btn {
   padding: 14px 44px;
   font-size: 1.15rem;
+}
+
+/* ── Floating Camera Switcher on Viewfinder ────────────────────────────── */
+.viewfinder-camera-floating-tag {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(20, 16, 18, 0.78);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.38);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.camera-live-indicator {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: pulseLive 1.5s infinite;
+}
+
+@keyframes pulseLive {
+  0% { transform: scale(0.92); opacity: 0.8; }
+  50% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(0.92); opacity: 0.8; }
+}
+
+.camera-current-name {
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viewfinder-switch-btn {
+  background: var(--color-pink-primary);
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 5px 14px;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(244, 114, 154, 0.4);
+  transition: all 0.2s ease;
+}
+
+.viewfinder-switch-btn:hover {
+  background: var(--color-pink-hover);
+  transform: scale(1.05);
 }
 

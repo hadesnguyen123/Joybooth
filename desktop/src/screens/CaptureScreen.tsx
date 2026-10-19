@@ -1,8 +1,37 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppStore, COLOR_FILTERS, BEAUTY_PRESETS, type CapturedPhoto } from '../store/appStore'
-import { joyBoothApi, isBrowser, mockApi } from '../lib/api'
+import { fotolismApi, isBrowser, mockApi } from '../lib/api'
+import {
+  FILE_PREFIX_SHOT,
+  FILE_PREFIX_SELF,
+  FILE_PREFIX_TIMELAPSE,
+  SESSION_FOLDER_PREFIX,
+} from '../lib/constants'
 import { BeautyCameraView, type BeautyCameraHandle } from '../components/BeautyCameraView'
 import './CaptureScreen.css'
+
+// ── Giả lập âm thanh màn trập cơ học "TÁCH!" dứt khoát 1 lần duy nhất qua Web Audio API ──
+function playCameraShutterSound() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    if (!AudioContextClass) return
+    const ctx = new AudioContextClass()
+    const now = ctx.currentTime
+
+    // 1 Tiếng "TÁCH!" cơ học dứt khoát duy nhất (Single crisp shutter click)
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'triangle'
+    osc.frequency.setValueAtTime(1100, now)
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.045)
+    gain.gain.setValueAtTime(0.45, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start(now)
+    osc.stop(now + 0.05)
+  } catch {}
+}
 
 export default function CaptureScreen() {
   const {
@@ -53,6 +82,9 @@ export default function CaptureScreen() {
   const [activeMediaStream, setActiveMediaStream] = useState<MediaStream | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordedChunksRef = useRef<Blob[]>([])
+  const timelapseCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const timelapseTimerRef = useRef<number | null>(null)
+  const [isTimelapseRecording, setIsTimelapseRecording] = useState<boolean>(false)
 
   const totalShots = selectedLayout.photosCount || 4
   const isSelfboothMode = eventConfig.captureMode === 'selfbooth'
@@ -66,8 +98,9 @@ export default function CaptureScreen() {
   const [isCapturingShot, setIsCapturingShot] = useState<boolean>(false)
   const [currentCountdown, setCurrentCountdown] = useState<number>(3)
   const [showFlash, setShowFlash] = useState<boolean>(false)
-  const [snapshotFlyer, setSnapshotFlyer] = useState<{ photoUrl: string; slotIndex: number } | null>(null)
+  const [snapshotFlyer, setSnapshotFlyer] = useState<{ photoUrl: string; slotIndex: number; isEdsdk?: boolean } | null>(null)
   const [justCapturedSlot, setJustCapturedSlot] = useState<number | null>(null)
+  const [cameraFreezeFrame, setCameraFreezeFrame] = useState<string | null>(null)
 
   // ── Chế độ PHOTOBOOTH CỔ ĐIỂN (Có Retake / Xóa ô xấu) ──
   const [slots, setSlots] = useState<(CapturedPhoto | null)[]>(Array(totalShots).fill(null))
@@ -80,32 +113,140 @@ export default function CaptureScreen() {
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState<boolean>(false)
   const [pickedSlots, setPickedSlots] = useState<(CapturedPhoto | null)[]>(Array(totalShots).fill(null))
   const [activeSlotToPick, setActiveSlotToPick] = useState<number>(0)
+  const [isCanonDaemonActive, setIsCanonDaemonActive] = useState<boolean>(false)
 
   // Khởi động Camera thiết bị
   const startCamera = useCallback(async (deviceId?: string) => {
+    // 0. Kiểm tra Canon Persistent Daemon (Direct EDSDK)
+    let daemonActive = false
+    try {
+      const daemonRes = await (isBrowser ? mockApi : fotolismApi).camera.canonDaemonStatus?.()
+      if (daemonRes?.success && daemonRes.data?.running) {
+        daemonActive = true
+      }
+    } catch {}
+
+    // Lấy toàn bộ danh sách thiết bị video của hệ thống
+    let allDevices: MediaDeviceInfo[] = []
+    try {
+      allDevices = await navigator.mediaDevices.enumerateDevices()
+    } catch {}
+
+    // Kiểm tra xem người dùng có đang cố tình chọn một webcam phụ (ví dụ webcam laptop) hay không
+    const isExplicitNonCanonWebcam =
+      Boolean(deviceId) &&
+      deviceId !== 'canon-daemon-stream' &&
+      !/canon|eos/i.test(deviceId || '') &&
+      allDevices.some((d) => d.deviceId === deviceId && !/canon|eos/i.test(d.label))
+
+    // NẾU Canon Daemon đang hoạt động và không chọn webcam phụ khác -> BẮT BUỘC dùng luồng Canon EDSDK trực tiếp
+    if (daemonActive && !isExplicitNonCanonWebcam) {
+      if (currentStreamRef.current) {
+        currentStreamRef.current.getTracks().forEach((track) => track.stop())
+        currentStreamRef.current = null
+      }
+      setActiveMediaStream(null)
+      setIsCanonDaemonActive(true)
+      selectCamera('canon-daemon-stream')
+      setHasCamera(true)
+
+      // Lọc bỏ HOÀN TOÀN driver ảo EOS Webcam Utility (DirectShow) để không bao giờ chiếm cổng USB của máy ảnh
+      const nonCanonDevices = allDevices
+        .filter((d) => d.kind === 'videoinput' && !/eos|canon/i.test(d.label))
+        .map((d, index) => ({
+          id: d.deviceId,
+          name: d.label || `Webcam ${index + 1}`,
+        }))
+
+      const cameraList = [
+        {
+          id: 'canon-daemon-stream',
+          name: '📸 Máy ảnh Canon EOS (EDSDK Trực Tiếp - Chuẩn)',
+        },
+        ...nonCanonDevices,
+      ]
+      setCameras(cameraList)
+      return
+    }
+
+    setIsCanonDaemonActive(false)
     if (currentStreamRef.current) {
       currentStreamRef.current.getTracks().forEach((track) => track.stop())
       currentStreamRef.current = null
     }
 
     try {
+      // 1. Quét danh sách thiết bị webcam thông thường
+      const videoDevices = allDevices
+        .filter((d) => d.kind === 'videoinput')
+        .map((d, index) => {
+          let displayName = d.label || `Camera ${index + 1}`
+          if (/eos|canon/i.test(displayName)) {
+            displayName = '📷 Máy ảnh Canon EOS (DirectShow)'
+          }
+          return {
+            id: d.deviceId,
+            name: displayName,
+          }
+        })
+
+      if (daemonActive) {
+        videoDevices.unshift({
+          id: 'canon-daemon-stream',
+          name: '📸 Máy ảnh Canon EOS (EDSDK Trực Tiếp - Chuẩn)',
+        })
+      }
+
+      if (videoDevices.length > 0) {
+        setCameras(videoDevices)
+      }
+
+      // Ưu tiên chọn camera
+      let targetId = deviceId
+      if (!targetId) {
+        const storedId = useAppStore.getState().selectedCameraId
+        const storedDev = videoDevices.find((d) => d.id === storedId)
+        if (storedDev) {
+          targetId = storedId || undefined
+        } else {
+          targetId = videoDevices[0]?.id
+          if (targetId) selectCamera(targetId)
+        }
+      }
+
+      if (targetId === 'canon-daemon-stream') {
+        setIsCanonDaemonActive(true)
+        setHasCamera(true)
+        return
+      }
+
       const videoConstraints: MediaTrackConstraints = {
         width: { ideal: 1920 },
         height: { ideal: 1080 },
         frameRate: { ideal: 30 },
       }
 
-      if (deviceId) {
-        videoConstraints.deviceId = { exact: deviceId }
+      let stream: MediaStream
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: targetId ? { ...videoConstraints, deviceId: { exact: targetId } } : videoConstraints,
+          audio: false,
+        })
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: targetId ? { ...videoConstraints, deviceId: { ideal: targetId } } : true,
+          audio: false,
+        })
       }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: videoConstraints,
-        audio: false,
-      })
 
       currentStreamRef.current = stream
       setActiveMediaStream(stream)
+
+      const actualTrack = stream.getVideoTracks()[0]
+      const actualDeviceId = actualTrack?.getSettings()?.deviceId || targetId
+      if (actualDeviceId) {
+        selectCamera(actualDeviceId)
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
@@ -113,46 +254,66 @@ export default function CaptureScreen() {
       }
 
       setHasCamera(true)
-
-      const devices = await navigator.mediaDevices.enumerateDevices()
-      const videoDevices = devices
-        .filter((d) => d.kind === 'videoinput')
-        .map((d, index) => ({
-          id: d.deviceId,
-          name: d.label || `Camera ${index + 1} (${d.deviceId.slice(0, 6)}...)`,
-        }))
-
-      if (videoDevices.length > 0) {
-        setCameras(videoDevices)
-        if (!selectedCameraId) {
-          const track = stream.getVideoTracks()[0]
-          selectCamera(track.getSettings().deviceId || videoDevices[0].id)
-        }
-      }
     } catch (err) {
-      console.warn('Cannot connect camera:', err)
-      setHasCamera(false)
+      console.warn('Cannot connect camera with constraints, trying fallback:', err)
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+        currentStreamRef.current = fallbackStream
+        setActiveMediaStream(fallbackStream)
+        const actualTrack = fallbackStream.getVideoTracks()[0]
+        const fallbackId = actualTrack?.getSettings()?.deviceId
+        if (fallbackId) {
+          selectCamera(fallbackId)
+        }
+        if (videoRef.current) {
+          videoRef.current.srcObject = fallbackStream
+          videoRef.current.play().catch(() => {})
+        }
+        setHasCamera(true)
+      } catch (fallbackErr) {
+        console.error('All camera attempts failed:', fallbackErr)
+        setHasCamera(false)
+      }
     }
-  }, [selectedCameraId, selectCamera, setCameras])
+  }, [setCameras, selectCamera])
+
+  // Chuyển đổi nhanh 1-chạm giữa các camera khả dụng (Laptop Camera <-> Canon EOS)
+  const handleCycleCamera = useCallback(() => {
+    if (availableCameras.length <= 1) return
+    const currentIndex = availableCameras.findIndex((c) => c.id === selectedCameraId)
+    const nextIndex = (currentIndex + 1) % availableCameras.length
+    const nextCam = availableCameras[nextIndex]
+    selectCamera(nextCam.id)
+    startCamera(nextCam.id)
+  }, [availableCameras, selectedCameraId, selectCamera, startCamera])
 
   useEffect(() => {
     // Reset bộ lọc về Tự nhiên khi bắt đầu chụp để ảnh gốc luôn sạch
     selectFilter(COLOR_FILTERS[0])
-  }, [selectFilter])
+    // Gương luôn luôn tắt theo quy chuẩn chất lượng ảnh chụp
+    setMirrorCamera(false)
+  }, [selectFilter, setMirrorCamera])
 
   useEffect(() => {
-    startCamera(selectedCameraId || undefined)
-
-    const handleDeviceChange = () => startCamera(selectedCameraId || undefined)
-    navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange)
+    const initialId = useAppStore.getState().selectedCameraId
+    startCamera(initialId || undefined)
 
     return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange)
+      if (timelapseTimerRef.current) {
+        clearInterval(timelapseTimerRef.current)
+        timelapseTimerRef.current = null
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try { mediaRecorderRef.current.stop() } catch {}
+      }
       if (currentStreamRef.current) {
         currentStreamRef.current.getTracks().forEach((track) => track.stop())
+        currentStreamRef.current = null
       }
     }
-  }, [selectedCameraId, startCamera])
+  }, [startCamera])
+
+  const finishSelfboothRef = useRef<() => void>(() => {})
 
   // Đếm ngược thời gian phiên Selfbooth
   useEffect(() => {
@@ -162,7 +323,7 @@ export default function CaptureScreen() {
       setSelfboothTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
-          handleFinishSelfboothSession()
+          finishSelfboothRef.current()
           return 0
         }
         return prev - 1
@@ -225,15 +386,65 @@ export default function CaptureScreen() {
 
   // Khởi động quay Timelapse
   function startTimelapse() {
-    if (!eventConfig.timelapseEnabled || !currentStreamRef.current) return
+    if (!eventConfig.timelapseEnabled) return
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') return
 
     try {
       recordedChunksRef.current = []
+
+      // 1. Thu thập luồng MediaStream để ghi hình:
+      // - Nếu có stream webcam trực tiếp (currentStreamRef.current), dùng trực tiếp
+      // - Nếu đang dùng Canon Daemon MJPEG hoặc không có stream trực tiếp: dùng canvas.captureStream(20)
+      let streamToRecord: MediaStream | null = null
+
+      if (currentStreamRef.current && currentStreamRef.current.active && currentStreamRef.current.getVideoTracks().length > 0) {
+        streamToRecord = currentStreamRef.current
+      } else {
+        // Universal Canvas Stream: dùng cho Canon EDSDK MJPEG hoặc khi không có MediaStream trực tiếp
+        if (!timelapseCanvasRef.current) {
+          const c = document.createElement('canvas')
+          c.width = 960
+          c.height = 540
+          timelapseCanvasRef.current = c
+        }
+        const canvas = timelapseCanvasRef.current
+        const ctx = canvas.getContext('2d')
+
+        if (ctx) {
+          if (timelapseTimerRef.current) {
+            clearInterval(timelapseTimerRef.current)
+          }
+
+          // Vẽ khung hình định kỳ vào recording canvas ở tốc độ 20 FPS
+          timelapseTimerRef.current = window.setInterval(() => {
+            const img = beautyCameraRef.current?.getImageElement()
+            const glCanvas = beautyCameraRef.current?.getCanvasElement()
+            const video = beautyCameraRef.current?.getVideoElement() || videoRef.current
+
+            if (img && img.naturalWidth > 0) {
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+            } else if (glCanvas && glCanvas.width > 0) {
+              ctx.drawImage(glCanvas, 0, 0, canvas.width, canvas.height)
+            } else if (video && video.videoWidth > 0) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+            }
+          }, 50)
+
+          if (typeof canvas.captureStream === 'function') {
+            streamToRecord = canvas.captureStream(20)
+          }
+        }
+      }
+
+      if (!streamToRecord) {
+        console.warn('[Timelapse] Không thể khởi tạo MediaStream để ghi video')
+        return
+      }
+
       const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8')
         ? 'video/webm;codecs=vp8'
         : 'video/webm'
-      const recorder = new MediaRecorder(currentStreamRef.current, { mimeType })
+      const recorder = new MediaRecorder(streamToRecord, { mimeType })
       recorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
           recordedChunksRef.current.push(event.data)
@@ -241,6 +452,8 @@ export default function CaptureScreen() {
       }
       recorder.start(250)
       mediaRecorderRef.current = recorder
+      setIsTimelapseRecording(true)
+      console.log('🎬 [Timelapse] Đã bắt đầu ghi hình video hậu trường!')
     } catch (err) {
       console.warn('Failed to start MediaRecorder for timelapse:', err)
     }
@@ -248,25 +461,34 @@ export default function CaptureScreen() {
 
   // Dừng quay Timelapse
   async function stopTimelapse() {
+    if (timelapseTimerRef.current) {
+      clearInterval(timelapseTimerRef.current)
+      timelapseTimerRef.current = null
+    }
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       await new Promise<void>((resolve) => {
         if (!mediaRecorderRef.current) return resolve()
         mediaRecorderRef.current.onstop = () => {
+          setIsTimelapseRecording(false)
           try {
-            const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
-            const videoUrl = URL.createObjectURL(blob)
-            setTimelapseUrl(videoUrl)
+            if (recordedChunksRef.current.length > 0) {
+              const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
+              const videoUrl = URL.createObjectURL(blob)
+              setTimelapseUrl(videoUrl)
+              console.log(`🎬 [Timelapse] Hoàn tất ghi video! Kích thước: ${(blob.size / 1024).toFixed(1)} KB`)
 
-            const reader = new FileReader()
-            reader.onloadend = () => {
-              const dataUrl = reader.result as string
-              if (dataUrl && dataUrl.startsWith('data:')) {
-                const fileName = `joybooth_timelapse_${Date.now()}.webm`
-                const api = isBrowser ? mockApi : joyBoothApi
-                api.storage.savePhoto(dataUrl, fileName).catch((err) => console.warn('Save timelapse error:', err))
+              const reader = new FileReader()
+              reader.onloadend = () => {
+                const dataUrl = reader.result as string
+                if (dataUrl && dataUrl.startsWith('data:')) {
+                  const fileName = `${FILE_PREFIX_TIMELAPSE}_${Date.now()}.webm`
+                  const api = isBrowser ? mockApi : fotolismApi
+                  api.storage.savePhoto(dataUrl, fileName).catch((err) => console.warn('Save timelapse error:', err))
+                }
               }
+              reader.readAsDataURL(blob)
             }
-            reader.readAsDataURL(blob)
           } catch (err) {
             console.warn('Error creating timelapse blob:', err)
           }
@@ -274,6 +496,8 @@ export default function CaptureScreen() {
         }
         mediaRecorderRef.current.stop()
       })
+    } else {
+      setIsTimelapseRecording(false)
     }
   }
 
@@ -298,67 +522,116 @@ export default function CaptureScreen() {
     setIsSessionActive(true)
     setIsCapturingShot(true)
 
-    // Khởi động timelapse nếu là bức ảnh đầu tiên
-    if (filledSlotsCount === 0) {
-      startTimelapse()
-    }
-
-    // Đếm ngược (3s, 5s hoặc 10s)
-    for (let c = countdownSeconds; c >= 1; c--) {
-      setCurrentCountdown(c)
-      await new Promise((r) => setTimeout(r, 1000))
-    }
-
-    // Chớp Flash & Chụp ảnh
-    setShowFlash(true)
-    setTimeout(() => setShowFlash(false), 450)
-
-    const photoDataUrl = grabVideoFrame()
-    const timestamp = Date.now()
-    const photoPath = photoDataUrl || `photo_${timestamp}_${targetIndex + 1}.jpg`
-
-    const newPhoto: CapturedPhoto = {
-      id: `photo_${timestamp}_${targetIndex + 1}`,
-      rawPath: photoPath,
-      enhancedPath: photoPath,
-      compositedPath: photoPath,
-      timestamp,
-    }
-
-    // Cập nhật ô slot
-    const nextSlots = [...slots]
-    nextSlots[targetIndex] = newPhoto
-    setSlots(nextSlots)
-
-    // Reset lại retake index sau khi chụp xong
-    setRetakeSlotIndex(null)
-
-    // Hiệu ứng bay vào ô thumbnail
-    setSnapshotFlyer({ photoUrl: photoPath, slotIndex: targetIndex })
-    setJustCapturedSlot(targetIndex)
-
-    // Tự động lưu ảnh vào máy tính
-    if (photoDataUrl && photoDataUrl.startsWith('data:image')) {
-      const fileName = `joybooth_shot_${targetIndex + 1}_${timestamp}.jpg`
-      const api = isBrowser ? mockApi : joyBoothApi
-      api.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save photo error:', err))
-    }
-
-    setTimeout(() => setSnapshotFlyer(null), 950)
-    setTimeout(() => setJustCapturedSlot(null), 1500)
-    setIsCapturingShot(false)
-
-    // Nếu sau lần chụp này đã full tất cả các ô:
-    // Dừng timelapse nhưng KHÔNG tự động chuyển màn hình ngay!
-    // Giữ nguyên để khách xem lại, xóa ảnh không đẹp hoặc bấm Tiếp tục.
-    if (nextSlots.every(Boolean)) {
-      await stopTimelapse()
-      if (eventConfig.gdriveEnabled) {
-        const folderLink =
-          eventConfig.gdriveFolderUrl ||
-          `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || 'JoyBooth_Demo'}`
-        setGdriveUrl(folderLink)
+    try {
+      // Khởi động timelapse nếu là bức ảnh đầu tiên
+      if (filledSlotsCount === 0) {
+        startTimelapse()
       }
+
+      const timestamp = Date.now()
+      const fileName = `${FILE_PREFIX_SHOT}_${targetIndex + 1}_${timestamp}.jpg`
+
+      const canonSavePath = `F:\\Fotolism_image\\${fileName}`
+      const api = isBrowser ? mockApi : fotolismApi
+
+      // Đếm ngược mượt mà (3s, 5s hoặc 10s), giữ nguyên luồng video cho người dùng tạo dáng
+      for (let c = countdownSeconds; c >= 1; c--) {
+        setCurrentCountdown(c)
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+
+      // ── BẮT ẢNH TỨC THÌ TẠI 0s (KHÔNG BỊ LỆCH TƯ THẾ) ──────────────
+      // 1. Chớp Flash và âm thanh màn trập cơ học "TÁCH!" dứt khoát
+      if (!isCanonDaemonActive) {
+        playCameraShutterSound()
+      }
+      setCurrentCountdown(0)
+      setShowFlash(true)
+      setTimeout(() => setShowFlash(false), 450)
+
+      // 2. Chụp khung hình tại đúng 0s (người dùng đã cười tươi tạo dáng xong)
+      const photoDataUrl = grabVideoFrame()
+      if (photoDataUrl) {
+        setCameraFreezeFrame(photoDataUrl)
+      }
+      const photoPath = photoDataUrl || `photo_${timestamp}_${targetIndex + 1}.jpg`
+
+      const newPhoto: CapturedPhoto = {
+        id: `photo_${timestamp}_${targetIndex + 1}`,
+        rawPath: photoPath,
+        enhancedPath: photoPath,
+        compositedPath: photoPath,
+        timestamp,
+      }
+
+      // 3. Đẩy ảnh vào ô khung hình (Slot) NGAY LẬP TỨC (< 0.1s sau 0s)
+      const nextSlots = [...slots]
+      nextSlots[targetIndex] = newPhoto
+      setSlots(nextSlots)
+
+      // Reset lại retake index sau khi chụp xong
+      setRetakeSlotIndex(null)
+
+      // 4. Kích hoạt hiệu ứng bay vào ô thumbnail ngay lập tức (Tổng delay < 0.4s!)
+      setSnapshotFlyer({ photoUrl: photoPath, slotIndex: targetIndex, isEdsdk: false })
+      setJustCapturedSlot(targetIndex)
+
+      // 5. Lưu ảnh vào đĩa trong nền bất đồng bộ (không chặn giao diện người dùng)
+      if (photoDataUrl && photoDataUrl.startsWith('data:image')) {
+        api.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save photo error:', err))
+      }
+
+      // 6. PHƯƠNG ÁN 2: KÍCH HOẠT MÁY ẢNH CANON EOS THẬT (24MP FULL EXIF)
+      await api.camera.edsdkCapture(canonSavePath, targetIndex)
+        .then((res) => {
+          if (res && res.success && res.data && res.data.dataUrl) {
+            const canonData = res.data
+            console.log(`[Method 2] Canon EOS 24MP captured: ${canonData.savedPath}`)
+            setSlots((prev) => {
+              const next = [...prev]
+              if (next[targetIndex]) {
+                next[targetIndex] = {
+                  ...next[targetIndex]!,
+                  rawPath: canonData.savedPath,
+                  enhancedPath: canonData.dataUrl,
+                  compositedPath: canonData.dataUrl,
+                }
+              }
+              return next
+            })
+            setSnapshotFlyer((prev) =>
+              prev && prev.slotIndex === targetIndex ? { ...prev, photoUrl: canonData.dataUrl, isEdsdk: true } : prev
+            )
+          }
+        })
+        .catch((err) => {
+          console.warn('[Method 2] Canon hardware capture fallback:', err)
+        })
+        .finally(() => {
+          setTimeout(() => setCameraFreezeFrame(null), 300)
+        })
+
+      setTimeout(() => setSnapshotFlyer(null), 850)
+      setTimeout(() => setJustCapturedSlot(null), 1400)
+
+
+      // Nếu sau lần chụp này đã full tất cả các ô:
+      // Dừng timelapse nhưng KHÔNG tự động chuyển màn hình ngay!
+      // Giữ nguyên để khách xem lại, xóa ảnh không đẹp hoặc bấm Tiếp tục.
+      if (nextSlots.every(Boolean)) {
+        await stopTimelapse()
+        if (eventConfig.gdriveEnabled) {
+          const folderLink =
+            eventConfig.gdriveFolderUrl ||
+            `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || `${SESSION_FOLDER_PREFIX}_Demo`}`
+          setGdriveUrl(folderLink)
+        }
+      }
+    } catch (shootErr) {
+      console.error('Error during photobooth shot:', shootErr)
+    } finally {
+      setCurrentCountdown(0)
+      setIsCapturingShot(false)
     }
   }
 
@@ -400,41 +673,84 @@ export default function CaptureScreen() {
 
     setIsCapturingShot(true)
 
-    // Đếm ngược ngắn 2 giây để tạo dáng nhanh vui vẻ
-    for (let c = 2; c >= 1; c--) {
-      setCurrentCountdown(c)
-      await new Promise((r) => setTimeout(r, 1000))
+    try {
+      const timestamp = Date.now()
+      const photoNum = selfboothLibrary.length + 1
+      const fileName = `${FILE_PREFIX_SELF}_${photoNum}_${timestamp}.jpg`
+
+      const canonSelfPath = `F:\\Fotolism_image\\${fileName}`
+      const selfApi = isBrowser ? mockApi : fotolismApi
+
+      // Đếm ngược ngắn 2 giây để tạo dáng nhanh vui vẻ
+      for (let c = 2; c >= 1; c--) {
+        setCurrentCountdown(c)
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+
+      // ── BẮT ẢNH TỨC THÌ TỪ LUỒNG MÁY ẢNH CANON SELFBOOTH ──────────────
+      if (!isCanonDaemonActive) {
+        playCameraShutterSound()
+      }
+      setCurrentCountdown(0)
+      setShowFlash(true)
+      setTimeout(() => setShowFlash(false), 450)
+
+      const photoDataUrl = grabVideoFrame()
+      if (photoDataUrl) {
+        setCameraFreezeFrame(photoDataUrl)
+      }
+      const photoPath = photoDataUrl || `selfbooth_${timestamp}_${photoNum}.jpg`
+
+      const newPhoto: CapturedPhoto = {
+        id: `selfbooth_${timestamp}_${photoNum}`,
+        rawPath: photoPath,
+        enhancedPath: photoPath,
+        compositedPath: photoPath,
+        timestamp,
+      }
+
+      setSelfboothLibrary((prev) => [...prev, newPhoto])
+
+      // Lưu ảnh vào máy trong nền bất đồng bộ
+      if (photoDataUrl && photoDataUrl.startsWith('data:image')) {
+        selfApi.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save selfbooth photo error:', err))
+      }
+
+      // PHƯƠNG ÁN 2 cho Selfbooth: Chụp ảnh thật từ cảm biến máy ảnh Canon
+      await selfApi.camera.edsdkCapture(canonSelfPath, photoNum)
+        .then((res) => {
+          if (res && res.success && res.data && res.data.dataUrl) {
+            const canonData = res.data
+            console.log(`[Method 2 Selfbooth] Canon 24MP captured: ${canonData.savedPath}`)
+            setSelfboothLibrary((prev) =>
+              prev.map((p) =>
+                p.id === newPhoto.id
+                  ? {
+                      ...p,
+                      rawPath: canonData.savedPath,
+                      enhancedPath: canonData.dataUrl,
+                      compositedPath: canonData.dataUrl,
+                    }
+                  : p
+              )
+            )
+          }
+        })
+        .catch((err) => console.warn('[Method 2] Selfbooth Canon capture fallback:', err))
+        .finally(() => {
+          setTimeout(() => setCameraFreezeFrame(null), 300)
+        })
+
+      // Hiệu ứng bay lên ngay lập tức (< 0.4s)
+      setSnapshotFlyer({ photoUrl: photoPath, slotIndex: 0, isEdsdk: false })
+      setTimeout(() => setSnapshotFlyer(null), 800)
+
+    } catch (shootErr) {
+      console.error('Error during selfbooth shot:', shootErr)
+    } finally {
+      setCurrentCountdown(0)
+      setIsCapturingShot(false)
     }
-
-    setShowFlash(true)
-    setTimeout(() => setShowFlash(false), 450)
-
-    const photoDataUrl = grabVideoFrame()
-    const timestamp = Date.now()
-    const photoNum = selfboothLibrary.length + 1
-    const photoPath = photoDataUrl || `selfbooth_${timestamp}_${photoNum}.jpg`
-
-    const newPhoto: CapturedPhoto = {
-      id: `selfbooth_${timestamp}_${photoNum}`,
-      rawPath: photoPath,
-      enhancedPath: photoPath,
-      compositedPath: photoPath,
-      timestamp,
-    }
-
-    setSelfboothLibrary((prev) => [...prev, newPhoto])
-
-    // Lưu ảnh vào máy
-    if (photoDataUrl && photoDataUrl.startsWith('data:image')) {
-      const fileName = `joybooth_self_${photoNum}_${timestamp}.jpg`
-      const api = isBrowser ? mockApi : joyBoothApi
-      api.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save selfbooth photo error:', err))
-    }
-
-    // Hiệu ứng bay lên
-    setSnapshotFlyer({ photoUrl: photoPath, slotIndex: 0 })
-    setTimeout(() => setSnapshotFlyer(null), 800)
-    setIsCapturingShot(false)
   }
 
   // Kết thúc phiên chụp Selfbooth (Hết giờ hoặc bấm "Xong Sớm")
@@ -445,7 +761,7 @@ export default function CaptureScreen() {
     if (eventConfig.gdriveEnabled) {
       const folderLink =
         eventConfig.gdriveFolderUrl ||
-        `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || 'JoyBooth_Demo'}`
+        `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || `${SESSION_FOLDER_PREFIX}_Demo`}`
       setGdriveUrl(folderLink)
     }
 
@@ -464,6 +780,10 @@ export default function CaptureScreen() {
 
     setIsPhotoPickerOpen(true)
   }
+
+  useEffect(() => {
+    finishSelfboothRef.current = handleFinishSelfboothSession
+  })
 
   // Chọn ảnh từ gallery gán vào slot trong Photo Picker
   function handleAssignPhotoToSlot(photo: CapturedPhoto) {
@@ -536,7 +856,7 @@ export default function CaptureScreen() {
       {isSessionActive && !isPhotoPickerOpen && <div className="focus-dim-backdrop" />}
 
       {/* ── Top Bar: Countdown Pills + Locked Badge + Utilities ── */}
-      <header className={`capture-top-bar ${isSessionActive && !isPhotoboothFull ? 'locked-dimmed' : ''}`}>
+      <header className="capture-top-bar">
         {!isSelfboothMode ? (
           <div className="countdown-capsule-group">
             {[3, 5, 10].map((sec) => (
@@ -574,26 +894,37 @@ export default function CaptureScreen() {
           {availableCameras.length > 0 && (
             <select
               className="utility-pill-btn camera-select-pill"
-              value={selectedCameraId || ''}
+              value={selectedCameraId || (availableCameras[0]?.id ?? '')}
               onChange={(e) => {
                 selectCamera(e.target.value)
                 startCamera(e.target.value)
               }}
+              title="Chọn camera hiển thị trực tiếp (Live View)"
             >
               {availableCameras.map((cam) => (
                 <option key={cam.id} value={cam.id}>
-                  📷 {cam.name}
+                  {cam.name}
                 </option>
               ))}
             </select>
           )}
 
+          {availableCameras.length > 1 && (
+            <button
+              className="utility-pill-btn"
+              onClick={handleCycleCamera}
+              title="Chuyển nhanh giữa Camera Laptop và Canon EOS"
+            >
+              🔄 Đổi Camera
+            </button>
+          )}
+
           <button
             className="utility-pill-btn"
-            onClick={() => setMirrorCamera(!mirrorCamera)}
-            title="Lật gương camera"
+            onClick={() => startCamera(selectedCameraId || undefined)}
+            title="Khôi phục / làm mới luồng video trực tiếp"
           >
-            {mirrorCamera ? '🪞 Gương: Bật' : '🪞 Gương: Tắt'}
+            ⚡ Làm mới luồng
           </button>
 
           <button
@@ -861,7 +1192,8 @@ export default function CaptureScreen() {
             <>
               <BeautyCameraView
                 ref={beautyCameraRef}
-                stream={activeMediaStream}
+                stream={isCanonDaemonActive ? null : activeMediaStream}
+                mjpegUrl={isCanonDaemonActive ? 'http://127.0.0.1:8899/liveview' : undefined}
                 mirrorCamera={mirrorCamera}
                 slimFace={slimFace}
                 skinSmoothing={skinSmoothing}
@@ -870,6 +1202,21 @@ export default function CaptureScreen() {
                 glowClarity={glowClarity}
                 className="camera-preview-element"
               />
+              {cameraFreezeFrame && (
+                <img
+                  src={cameraFreezeFrame}
+                  alt="Capture Freeze"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
               {/* Thẻ video nguồn dự phòng cấp thấp luôn phát stream camera */}
               <video
                 ref={videoRef}
@@ -887,13 +1234,59 @@ export default function CaptureScreen() {
                   zIndex: -999,
                 }}
               />
+              {/* Floating Quick Camera Switcher on Viewfinder */}
+              <div className="viewfinder-camera-floating-tag">
+                <span className="camera-live-indicator" />
+                <span className="camera-current-name">
+                  {isCanonDaemonActive
+                    ? '📸 Máy ảnh Canon EOS (Direct EDSDK)'
+                    : availableCameras.find((c) => c.id === selectedCameraId)?.name || 'Camera Trực Tiếp'}
+                </span>
+                {availableCameras.length > 1 && (
+                  <button
+                    className="viewfinder-switch-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCycleCamera()
+                    }}
+                    title="Bấm để đổi sang camera khác"
+                  >
+                    🔄 Đổi Camera
+                  </button>
+                )}
+              </div>
             </>
           ) : (
-            <div style={{ color: '#fff', textAlign: 'center', padding: 20 }}>
-              <p style={{ fontSize: '1.2rem', marginBottom: 12 }}>Đang kết nối camera...</p>
-              <button className="btn btn-primary" onClick={() => startCamera(selectedCameraId || undefined)}>
-                Thử lại Camera
-              </button>
+            <div style={{ color: '#fff', textAlign: 'center', padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+              <div style={{ fontSize: '3.2rem', animation: 'pulse 1.8s infinite' }}>📷</div>
+              <p style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--color-pink-primary)' }}>
+                Luồng hình ảnh trực tiếp chưa hiển thị
+              </p>
+              <p style={{ fontSize: '0.92rem', color: '#ccc', maxWidth: 520, margin: 0, lineHeight: 1.5 }}>
+                Đang kết nối luồng máy ảnh Canon EOS R100. Hãy bật ON công tắc máy ảnh, kiểm tra cáp USB hoặc bấm chọn camera bên dưới:
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 10, justifyContent: 'center' }}>
+                {availableCameras.map((cam) => (
+                  <button
+                    key={cam.id}
+                    className="btn btn-secondary"
+                    style={{ padding: '8px 18px', fontSize: '0.9rem' }}
+                    onClick={() => {
+                      selectCamera(cam.id)
+                      startCamera(cam.id)
+                    }}
+                  >
+                    {/eos|canon/i.test(cam.name) ? '📸 Dùng Canon EOS (Ưu tiên)' : '💻 Dùng ' + cam.name}
+                  </button>
+                ))}
+                <button
+                  className="btn btn-primary"
+                  style={{ padding: '8px 20px', fontSize: '0.9rem' }}
+                  onClick={() => startCamera(selectedCameraId || undefined)}
+                >
+                  ⚡ Thử lại luồng
+                </button>
+              </div>
             </div>
           )}
 
@@ -909,7 +1302,7 @@ export default function CaptureScreen() {
           )}
 
           {/* Timelapse Recording Indicator */}
-          {eventConfig.timelapseEnabled && isSessionActive && (
+          {eventConfig.timelapseEnabled && (isTimelapseRecording || isSessionActive) && (
             <div className="timelapse-recording-badge">
               <span className="rec-dot" />
               <span>REC TIMELAPSE ({eventConfig.timelapseSpeed || 2.5}x)</span>
@@ -917,7 +1310,7 @@ export default function CaptureScreen() {
           )}
 
           {/* Countdown digits overlay */}
-          {isCapturingShot && (
+          {isCapturingShot && currentCountdown > 0 && (
             <div className="multi-shot-countdown-overlay">
               <div className="countdown-digits-translucent">{currentCountdown}</div>
             </div>
@@ -928,10 +1321,21 @@ export default function CaptureScreen() {
             <div className="snapshot-flying-overlay">
               <div className="snapshot-card-animate">
                 <img src={snapshotFlyer.photoUrl} alt="Just Captured" />
-                <div className="snapshot-card-badge">
+                <div
+                  className="snapshot-card-badge"
+                  style={
+                    snapshotFlyer.isEdsdk
+                      ? { background: 'linear-gradient(135deg, #0284c7, #0ea5e9)', color: '#ffffff', fontWeight: 800 }
+                      : undefined
+                  }
+                >
                   {isSelfboothMode
-                    ? `✨ Đã thêm vào bộ sưu tập (${selfboothLibrary.length} ảnh)`
-                    : `✨ Đã lưu vào ô ${snapshotFlyer.slotIndex + 1}`}
+                    ? snapshotFlyer.isEdsdk
+                      ? `📸 Canon R100 (24MP) • Đã lưu ảnh ${selfboothLibrary.length}`
+                      : `✨ Đã thêm vào bộ sưu tập (${selfboothLibrary.length} ảnh)`
+                    : snapshotFlyer.isEdsdk
+                      ? `📸 Canon R100 (24MP) ➔ Ô ${snapshotFlyer.slotIndex + 1}`
+                      : `✨ Đã lưu vào ô ${snapshotFlyer.slotIndex + 1}`}
                 </div>
               </div>
             </div>

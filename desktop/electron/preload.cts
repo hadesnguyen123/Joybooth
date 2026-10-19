@@ -34,6 +34,38 @@ const api = {
 
     capture: (cameraId: string, savePath: string): IpcResponse =>
       ipcRenderer.invoke('camera:capture', { cameraId, savePath }),
+
+    getDriverStatus: (): IpcResponse<{
+      bundled: boolean
+      installed: boolean
+      cameraConnected: boolean
+      cameraModel?: string
+      setupPath?: string
+      digiCamInstalled?: boolean
+      digiCamBundled?: boolean
+    }> => ipcRenderer.invoke('camera:get-driver-status'),
+
+    installCanonDriver: (): IpcResponse<{ message?: string }> =>
+      ipcRenderer.invoke('camera:install-canon-driver'),
+
+    installDigiCam: (): IpcResponse<{ message?: string }> =>
+      ipcRenderer.invoke('camera:install-digicam'),
+
+    /** EDSDK: Kích hoạt chụp ảnh máy ảnh thật, trả về dataUrl ảnh gốc 24MP */
+    edsdkCapture: (savePath: string, shotIndex: number): IpcResponse<{
+      savedPath: string
+      dataUrl: string
+      source: string
+      resolution: string
+    }> => ipcRenderer.invoke('camera:edsdk-capture', { savePath, shotIndex }),
+
+    /** EDSDK: Lấy 1 frame Live View chất lượng cao từ máy ảnh */
+    edsdkLiveviewFrame: (): IpcResponse<{ dataUrl: string }> =>
+      ipcRenderer.invoke('camera:edsdk-liveview-frame'),
+
+    /** Canon Persistent Daemon Status */
+    canonDaemonStatus: (): IpcResponse<{ running: boolean; url: string }> =>
+      ipcRenderer.invoke('camera:canon-daemon-status'),
   },
 
   // ── Config ───────────────────────────────────────────────────────────────
@@ -71,7 +103,11 @@ const api = {
   },
 }
 
-contextBridge.exposeInMainWorld('joyBooth', api)
+// Expose as 'fotolism' (new brand), keep 'joyBooth' alias for backward compat
+contextBridge.exposeInMainWorld('fotolism', api)
+contextBridge.exposeInMainWorld('joyBooth', api) // backward compat alias
 
 // TypeScript type declaration cho renderer
+export type FotolismAPI = typeof api
+/** @deprecated Use FotolismAPI */
 export type JoyBoothAPI = typeof api

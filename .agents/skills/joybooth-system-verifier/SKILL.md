@@ -1,12 +1,12 @@
 ---
 name: joybooth-system-verifier
-description: Trợ lý chuyên kiểm thử tự động, ra lệnh và đối soát xác minh từng phân hệ (Desktop Kiosk, CMS Web, Backend API, Port Partitioning, Kế toán 3 bên) trong hệ sinh thái JoyBooth.
+description: Trợ lý chuyên kiểm thử tự động, ra lệnh và đối soát xác minh từng phân hệ (Desktop Kiosk, CMS Web, Backend API, Port Partitioning, Kế toán 3 bên) trong hệ sinh thái Fotolism.
 ---
 
-# 🛠️ JoyBooth System Verifier Skill
+# 🛠️ Fotolism System Verifier Skill
 
 ## Mục tiêu cốt lõi
-Skill này được thiết kế để **ra lệnh (command orchestration)** và **xác minh tự động (automated verification)** toàn diện từng phân hệ của JoyBooth:
+Skill này được thiết kế để **ra lệnh (command orchestration)** và **xác minh tự động (automated verification)** toàn diện từng phân hệ của Fotolism:
 1. **Kiểm tra phân bổ cổng mạng**: Đảm bảo không xung đột giữa Desktop Kiosk (`5173`), CMS Web UI (`5180`), và CMS Backend MVC Server (`5181`).
 2. **Kiểm tra tính toàn vẹn Database & API MVC**: Kiểm tra dữ liệu Kiosks, Frames, Pricing, Coupons, Transactions và tính bền vững khi ghi đĩa.
 3. **Kiểm thử logic Đối soát kế toán 3 bên (Reconciliation Audit)**: Đối chiếu doanh thu VietQR ngân hàng + tiền mặt thực tế vs lượng giấy in tiêu hao của máy in nhiệt.

@@ -1,9 +1,9 @@
 ---
 name: cms-backoffice
-description: Hướng dẫn quản trị hệ thống Cloud CMS, giám sát Kiosks đa điểm, đồng bộ khung hình, bảng giá và kế toán đối soát doanh thu JoyBooth.
+description: Hướng dẫn quản trị hệ thống Cloud CMS, giám sát Kiosks đa điểm, đồng bộ khung hình, bảng giá và kế toán đối soát doanh thu Fotolism.
 ---
 
-# ☁️ CMS Backoffice & Cloud Accounting Skill — JoyBooth
+# ☁️ CMS Backoffice & Cloud Accounting Skill — Fotolism
 
 ## Mục tiêu
 Quản trị toàn diện mạng lưới Kiosks Photobooth từ xa thông qua nền tảng Web CMS Cloud tập trung:

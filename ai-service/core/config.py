@@ -18,9 +18,9 @@ for folder in STORAGE.values():
     folder.mkdir(parents=True, exist_ok=True)
 
 # Port & Hosts
-HOST = os.getenv("JOYBOOTH_HOST", "0.0.0.0")
-PORT = int(os.getenv("JOYBOOTH_PORT", "8000"))
+HOST = os.getenv("FOTOLISM_HOST", os.getenv("JOYBOOTH_HOST", "0.0.0.0"))
+PORT = int(os.getenv("FOTOLISM_PORT", os.getenv("JOYBOOTH_PORT", "8000")))
 
 # AI Settings
 DEFAULT_BEAUTY_LEVEL = 70
-USE_GPU = os.getenv("JOYBOOTH_USE_GPU", "false").lower() == "true"
+USE_GPU = os.getenv("FOTOLISM_USE_GPU", os.getenv("JOYBOOTH_USE_GPU", "false")).lower() == "true"

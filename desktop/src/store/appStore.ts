@@ -1,4 +1,26 @@
 import { create } from 'zustand'
+import {
+  DEFAULT_EVENT_NAME,
+  DEFAULT_ADMIN_PIN,
+  DEFAULT_ACCOUNT_HOLDER,
+  DEFAULT_COUPON_CODE,
+  DEFAULT_BANK_BIN,
+  DEFAULT_BANK_NAME,
+  DEFAULT_ACCOUNT_NUMBER,
+  DEFAULT_PRICE_2X6,
+  DEFAULT_PRICE_4X6,
+  DEFAULT_EXTRA_COPY_PRICE_2X6,
+  DEFAULT_EXTRA_COPY_PRICE_4X6,
+  DEFAULT_IDLE_TIMEOUT_SECONDS,
+  DEFAULT_SELFBOOTH_DURATION_SECONDS,
+  DEFAULT_TIMELAPSE_SPEED,
+  DEFAULT_GDRIVE_FOLDER_ID,
+  DEFAULT_GDRIVE_FOLDER_URL,
+  DEFAULT_GDRIVE_WEBHOOK_URL,
+  SAVE_ROOT_DIR,
+  LS_BEAUTY_CONFIG_KEY,
+  LS_EVENT_CONFIG_KEY,
+} from '../lib/constants'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,7 +56,7 @@ export const FRAME_SIZE_OPTIONS: FrameSizeOption[] = [
     id: '2x6',
     name: 'KHUNG 2X6 INCH',
     subtitle: 'Dải Strip Photobooth Cổ Điển',
-    price: '50.000đ',
+    price: `${new Intl.NumberFormat('vi-VN').format(DEFAULT_PRICE_2X6)}đ`,
     aspectRatio: '1 / 3',
     description: 'Bản in dải strip đôi thời thượng, lý tưởng để kẹp ví hoặc dán ốp lưng',
     previewImage: 'strip_2x6',
@@ -43,7 +65,7 @@ export const FRAME_SIZE_OPTIONS: FrameSizeOption[] = [
     id: '4x6',
     name: 'KHUNG 4X6 INCH',
     subtitle: 'Bưu Thiếp Postcard Tiêu Chuẩn',
-    price: '70.000đ',
+    price: `${new Intl.NumberFormat('vi-VN').format(DEFAULT_PRICE_4X6)}đ`,
     aspectRatio: '2 / 3',
     description: 'Khổ ảnh bưu thiếp sang trọng, chứa được nhiều người và bố cục đa dạng',
     previewImage: 'postcard_4x6',
@@ -219,7 +241,7 @@ export interface DiscountCoupon {
 }
 
 export const DEFAULT_DISCOUNT_COUPONS: DiscountCoupon[] = [
-  { code: 'JOYBOOTH10', type: 'percent', value: 10, description: 'Giảm 10% tổng hóa đơn' },
+  { code: DEFAULT_COUPON_CODE, type: 'percent', value: 10, description: 'Giam 10% tong hoa don' },
   { code: 'GIAM20K', type: 'fixed', value: 20000, description: 'Giảm trực tiếp 20.000đ' },
   { code: 'FREE', type: 'percent', value: 100, description: 'Miễn phí trải nghiệm (0đ)' },
   { code: 'VIP2026', type: 'percent', value: 20, description: 'Khách hàng thân thiết VIP (-20%)' },
@@ -271,21 +293,27 @@ export interface BeautyConfig {
 }
 
 export const DEFAULT_BEAUTY_CONFIG: BeautyConfig = {
-  slimFace: 35,          // Mặc định mặt thon nhỏ V-Line
-  skinSmoothing: 50,     // Mặc định da mịn màng
-  whiteningTone: 45,     // Mặc định nâng tone trắng sáng
-  rosyTone: 30,          // Mặc định trắng hồng tự nhiên
-  glowClarity: 25,       // Mặc định sáng nét
-  brightnessAdjust: 106,
-  contrastAdjust: 98,
-  saturationAdjust: 100,
+  slimFace: 0,          // Mặc định gốc, không biến dạng mặt
+  skinSmoothing: 0,     // Mặc định gốc, không làm mờ mịn
+  whiteningTone: 0,     // Mặc định gốc, không nâng sáng giả lập
+  rosyTone: 0,          // Mặc định gốc, không ám hồng
+  glowClarity: 0,       // Mặc định gốc, không gắt nét
+  brightnessAdjust: 100, // 100% trung tính chuẩn máy ảnh
+  contrastAdjust: 100,   // 100% trung tính chuẩn máy ảnh
+  saturationAdjust: 100, // 100% trung tính chuẩn máy ảnh
 }
 
 export function loadSavedBeautyConfig(): BeautyConfig {
   try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem('joybooth_beauty_config') : null
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(LS_BEAUTY_CONFIG_KEY) : null
     if (raw) {
-      return { ...DEFAULT_BEAUTY_CONFIG, ...JSON.parse(raw) }
+      const parsed = JSON.parse(raw)
+      // Tự động dọn dẹp cấu hình cũ nếu trước đó có lưu các giá trị thử nghiệm (50%, 45%)
+      if (parsed.skinSmoothing === 50 && parsed.whiteningTone === 45) {
+        localStorage.removeItem(LS_BEAUTY_CONFIG_KEY)
+        return DEFAULT_BEAUTY_CONFIG
+      }
+      return { ...DEFAULT_BEAUTY_CONFIG, ...parsed }
     }
   } catch {}
   return DEFAULT_BEAUTY_CONFIG
@@ -293,10 +321,23 @@ export function loadSavedBeautyConfig(): BeautyConfig {
 
 export const BEAUTY_PRESETS: BeautyPreset[] = [
   {
+    id: 'none',
+    name: 'Gốc (Máy ảnh)',
+    icon: '📷',
+    description: '100% thuần khiết, giữ nguyên màu sắc, nhiệt độ và thông số gốc từ máy ảnh Canon',
+    slimFace: 0,
+    smoothing: 0,
+    whitening: 0,
+    rosyTone: 0,
+    glowClarity: 0,
+    brightness: 100,
+    contrast: 100,
+  },
+  {
     id: 'korean_glass',
     name: 'Trắng Hồng Hàn Quốc',
     icon: '🌸',
-    description: 'Làn da sứ trong veo, căng bóng mịn màng chuẩn K-Beauty (Khuyên Dùng)',
+    description: 'Làn da sứ trong veo, căng bóng mịn màng chuẩn K-Beauty',
     slimFace: 35,
     smoothing: 50,
     whitening: 45,
@@ -396,6 +437,8 @@ export interface EventConfig {
   gdriveAutoSync: boolean
   // Storage Settings
   saveDirectory: string
+  // Security
+  adminPin: string
 }
 
 // ─── Global App Store ─────────────────────────────────────────────────────────
@@ -508,7 +551,7 @@ function generateSessionId(): string {
 }
 
 const DEFAULT_EVENT_CONFIG: EventConfig = {
-  eventName: 'FUN STUDIO PHOTOBOOTH',
+  eventName: DEFAULT_EVENT_NAME,
   eventLogo: null,
   date: new Date().toISOString().split('T')[0],
   operatorName: '',
@@ -516,31 +559,40 @@ const DEFAULT_EVENT_CONFIG: EventConfig = {
   printEnabled: true,
   printCopies: 2,
   qrEnabled: true,
-  // Chế độ chụp Photobooth vs Selfbooth
   captureMode: 'photobooth',
-  selfboothDurationSeconds: 60,
-  // VietQR Kiosk Payment Settings
+  selfboothDurationSeconds: DEFAULT_SELFBOOTH_DURATION_SECONDS,
   paymentQrEnabled: true,
   paymentRequiredForPhotobooth: true,
   paymentRequiredForSelfbooth: false,
-  bankBin: '970422', // MB Bank
-  bankName: 'MB Bank (Quân Đội)',
-  accountNumber: '0388889999',
-  accountHolder: 'JOYBOOTH VIETNAM',
-  price2x6: 50000,
-  price4x6: 70000,
-  extraCopyPrice2x6: 25000,
-  extraCopyPrice4x6: 35000,
+  bankBin: DEFAULT_BANK_BIN,
+  bankName: DEFAULT_BANK_NAME,
+  accountNumber: DEFAULT_ACCOUNT_NUMBER,
+  accountHolder: DEFAULT_ACCOUNT_HOLDER,
+  price2x6: DEFAULT_PRICE_2X6,
+  price4x6: DEFAULT_PRICE_4X6,
+  extraCopyPrice2x6: DEFAULT_EXTRA_COPY_PRICE_2X6,
+  extraCopyPrice4x6: DEFAULT_EXTRA_COPY_PRICE_4X6,
   discountCoupons: DEFAULT_DISCOUNT_COUPONS,
-  idleTimeoutSeconds: 60,
+  idleTimeoutSeconds: DEFAULT_IDLE_TIMEOUT_SECONDS,
   timelapseEnabled: true,
-  timelapseSpeed: 2.5,
+  timelapseSpeed: DEFAULT_TIMELAPSE_SPEED,
   gdriveEnabled: true,
-  gdriveFolderId: '1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU',
-  gdriveFolderUrl: 'https://drive.google.com/drive/folders/1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU',
-  gdriveWebhookUrl: 'https://script.google.com/macros/s/AKfycbwaxURdY_LUzje8k_IXilHcQiCXnvICL5Xo767cm6RwPsYjE2yJp-I3bE_jpQ3i66J7/exec',
+  gdriveFolderId: DEFAULT_GDRIVE_FOLDER_ID,
+  gdriveFolderUrl: DEFAULT_GDRIVE_FOLDER_URL,
+  gdriveWebhookUrl: DEFAULT_GDRIVE_WEBHOOK_URL,
   gdriveAutoSync: true,
-  saveDirectory: 'Downloads/JoyBooth',
+  saveDirectory: SAVE_ROOT_DIR,
+  adminPin: DEFAULT_ADMIN_PIN,
+}
+
+export function loadSavedEventConfig(): Partial<EventConfig> {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(LS_EVENT_CONFIG_KEY) : null
+    if (raw) {
+      return JSON.parse(raw)
+    }
+  } catch {}
+  return {}
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -646,6 +698,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         discountAmount: 0,
       },
       placedStickers: [],
+      mirrorCamera: false,
     }),
 
   addPhoto: (photo) =>
@@ -685,7 +738,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       eventConfig: { ...state.eventConfig, selfboothDurationSeconds },
     })),
 
-  clearSession: () => set({ session: null, placedStickers: [] }),
+  clearSession: () => set({ session: null, placedStickers: [], mirrorCamera: false }),
 
   setQr: (url, imagePath) =>
     set((state) => ({
@@ -707,7 +760,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   selectedFilter: COLOR_FILTERS[0],
   selectFilter: (filter) => set({ selectedFilter: filter }),
 
-  selectedBeautyPreset: 'korean_glass',
+  selectedBeautyPreset: 'none',
   ...(() => {
     const saved = loadSavedBeautyConfig()
     return {
@@ -760,7 +813,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('joybooth_beauty_config', JSON.stringify(updated))
+        localStorage.setItem(LS_BEAUTY_CONFIG_KEY, JSON.stringify(updated))
       }
     } catch (e) {
       console.warn('Failed to save beauty config to localStorage:', e)
@@ -771,7 +824,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   resetAdjustments: () => {
     const def = DEFAULT_BEAUTY_CONFIG
     set({
-      selectedBeautyPreset: 'korean_glass',
+      selectedBeautyPreset: 'none',
+      mirrorCamera: false,
       ...def,
     })
   },
@@ -834,7 +888,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     return parts.length > 0 ? parts.join(' ') : 'none'
   },
 
-  ringLightEnabled: true,
+  ringLightEnabled: false,
   ringLightLevel: 75,
   setRingLightEnabled: (ringLightEnabled) => set({ ringLightEnabled }),
   setRingLightLevel: (ringLightLevel) => set({ ringLightLevel }),
@@ -846,13 +900,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
       eventConfig: { ...state.eventConfig, countdownSeconds },
     })),
 
-  eventConfig: DEFAULT_EVENT_CONFIG,
+  eventConfig: { ...DEFAULT_EVENT_CONFIG, ...loadSavedEventConfig() },
   setEventConfig: (config) =>
-    set((state) => ({ eventConfig: { ...state.eventConfig, ...config } })),
+    set((state) => {
+      const updated = { ...state.eventConfig, ...config }
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(LS_EVENT_CONFIG_KEY, JSON.stringify(updated))
+        }
+      } catch (err) {
+        console.warn('Failed to persist event config to localStorage:', err)
+      }
+      return { eventConfig: updated }
+    }),
 
   availableCameras: [],
   selectedCameraId: null,
-  mirrorCamera: true,
+  mirrorCamera: false,
   setCameras: (cameras) => set({ availableCameras: cameras }),
   selectCamera: (id) => set({ selectedCameraId: id }),
   setMirrorCamera: (mirrorCamera) => set({ mirrorCamera }),

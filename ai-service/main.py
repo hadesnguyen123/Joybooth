@@ -1,5 +1,5 @@
 """
-JoyBooth AI Service — FastAPI Application
+Fotolism AI Service — FastAPI Application
 Chạy local: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 """
 from contextlib import asynccontextmanager
@@ -15,16 +15,16 @@ async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     # Startup
     await init_db()
-    print("✅ JoyBooth AI Service ready on http://localhost:8000")
+    print("✅ Fotolism AI Service ready on http://localhost:8000")
     yield
     # Shutdown
-    print("🛑 JoyBooth AI Service shutting down")
+    print("🛑 Fotolism AI Service shutting down")
 
 
 app = FastAPI(
-    title="JoyBooth AI Service",
+    title="Fotolism AI Service",
     version="0.1.0",
-    description="Local AI backend for JoyBooth photobooth software",
+    description="Local AI backend for Fotolism photobooth software",
     lifespan=lifespan,
 )
 
@@ -48,4 +48,4 @@ app.include_router(config.router,    prefix="/config",   tags=["Config"])
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "JoyBooth AI", "version": "0.1.0"}
+    return {"status": "ok", "service": "Fotolism AI", "version": "0.1.0"}

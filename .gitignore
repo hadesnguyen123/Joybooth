@@ -72,3 +72,9 @@ JOYBOOTH_CMS_AND_ACCOUNTING_ROADMAP.md
 *ROADMAP*.md
 *PLAN*.md
 docs/local/
+
+# Drivers & Heavy Third-Party Installers
+desktop/resources/drivers/digiCamControl/
+desktop/resources/drivers/*.zip
+desktop/resources/drivers/*.log
+desktop/resources/drivers/**/*.log

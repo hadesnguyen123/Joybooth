@@ -1,4 +1,5 @@
 import { useAppStore, ALL_LAYOUTS, type LayoutCategory, type GridLayoutItem } from '../store/appStore'
+import { DEFAULT_PRICE_2X6, DEFAULT_PRICE_4X6 } from '../lib/constants'
 import './SelectLayoutScreen.css'
 
 export default function SelectLayoutScreen() {
@@ -24,9 +25,12 @@ export default function SelectLayoutScreen() {
 
   const currentCategoryLayouts = ALL_LAYOUTS[selectedCategory] || ALL_LAYOUTS[4]
 
-  const basePriceFormatted = new Intl.NumberFormat('vi-VN').format(
-    selectedFrameSize === '2x6' ? eventConfig.price2x6 : eventConfig.price4x6
-  )
+  const basePrice =
+    selectedFrameSize === '2x6'
+      ? eventConfig.price2x6 || DEFAULT_PRICE_2X6
+      : eventConfig.price4x6 || DEFAULT_PRICE_4X6
+
+  const basePriceFormatted = new Intl.NumberFormat('vi-VN').format(basePrice)
 
   function handleChooseLayout(layout: GridLayoutItem) {
     selectLayout(layout)

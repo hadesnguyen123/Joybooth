@@ -24,7 +24,7 @@ class MultiCutRequest(BaseModel):
     rows: int = 4
     themeBgColor: str = "#FFF8F2"
     themeTextColor: str = "#2D2426"
-    eventName: str = "JOYBOOTH PHOTOBOOTH"
+    eventName: str = "FOTOLISM PHOTOBOOTH"
     eventDate: str = ""
     stickers: list[StickerItem] = []
 
@@ -147,7 +147,7 @@ async def composite_multi_cut(req: MultiCutRequest):
         event_text = req.eventName.upper()
         draw.text((width // 2, height - 85), event_text, fill=text_rgb, anchor="mm", font=font_title)
         
-        sub_text = f"{req.eventDate}  •  JOYBOOTH" if req.eventDate else "JOYBOOTH PHOTOBOOTH"
+        sub_text = f"{req.eventDate}  •  FOTOLISM" if req.eventDate else "FOTOLISM PHOTOBOOTH"
         draw.text((width // 2, height - 48), sub_text, fill=text_rgb, anchor="mm", font=font_sub)
 
         # Lưu ảnh JPEG chất lượng cao

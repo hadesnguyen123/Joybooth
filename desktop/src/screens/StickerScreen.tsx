@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAppStore, STICKER_LIBRARY, type StickerCategory } from '../store/appStore'
+import { DEFAULT_EVENT_NAME } from '../lib/constants'
 import './StickerScreen.css'
 
 export default function StickerScreen() {
@@ -256,7 +257,7 @@ export default function StickerScreen() {
                   textTransform: 'uppercase',
                 }}
               >
-                {eventConfig.eventName}
+                {eventConfig.eventName || DEFAULT_EVENT_NAME}
               </span>
             </div>
           </div>

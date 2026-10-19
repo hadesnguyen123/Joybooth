@@ -1,8 +1,12 @@
 import { useAppStore, type FrameSize } from '../store/appStore'
+import { DEFAULT_PRICE_2X6, DEFAULT_PRICE_4X6 } from '../lib/constants'
 import './SelectFrameSizeScreen.css'
 
 export default function SelectFrameSizeScreen() {
-  const { setScreen, selectFrameSize, selectedFrameSize } = useAppStore()
+  const { setScreen, selectFrameSize, selectedFrameSize, eventConfig } = useAppStore()
+
+  const price2x6Text = `${Math.round((eventConfig.price2x6 || DEFAULT_PRICE_2X6) / 1000)}k`
+  const price4x6Text = `${Math.round((eventConfig.price4x6 || DEFAULT_PRICE_4X6) / 1000)}k`
 
   function handleChooseSize(size: FrameSize) {
     selectFrameSize(size)
@@ -23,7 +27,7 @@ export default function SelectFrameSizeScreen() {
           className={`size-option-card ${selectedFrameSize === '2x6' ? 'selected' : ''}`}
           onClick={() => handleChooseSize('2x6')}
         >
-          <div className="price-sticker-tag">50k</div>
+          <div className="price-sticker-tag">{price2x6Text}</div>
           <h2 className="card-title-header">KHUNG 2X6 INCH</h2>
 
           <div className="size-mockup-wrapper">
@@ -53,7 +57,7 @@ export default function SelectFrameSizeScreen() {
           className={`size-option-card ${selectedFrameSize === '4x6' ? 'selected' : ''}`}
           onClick={() => handleChooseSize('4x6')}
         >
-          <div className="price-sticker-tag">70k</div>
+          <div className="price-sticker-tag">{price4x6Text}</div>
           <h2 className="card-title-header">KHUNG 4X6 INCH</h2>
 
           <div className="size-mockup-wrapper">

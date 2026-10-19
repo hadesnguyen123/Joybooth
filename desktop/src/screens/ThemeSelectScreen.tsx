@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAppStore, THEME_OPTIONS, type ThemeCategory } from '../store/appStore'
+import { DEFAULT_EVENT_NAME } from '../lib/constants'
 import './ThemeSelectScreen.css'
 
 export default function ThemeSelectScreen() {
@@ -73,7 +74,7 @@ export default function ThemeSelectScreen() {
                   textTransform: 'uppercase',
                 }}
               >
-                {eventConfig.eventName}
+                {eventConfig.eventName || DEFAULT_EVENT_NAME}
               </span>
             </div>
           </div>

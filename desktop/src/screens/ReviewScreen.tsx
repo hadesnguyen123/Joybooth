@@ -1,7 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAppStore } from '../store/appStore'
-import { joyBoothApi, isBrowser, mockApi } from '../lib/api'
+import { fotolismApi, isBrowser, mockApi } from '../lib/api'
 import { generateStripComposite } from '../lib/canvasCompositor'
+import {
+  FILE_PREFIX_SHOT,
+  FILE_PREFIX_FINAL,
+  FILE_PREFIX_TIMELAPSE,
+  SESSION_FOLDER_PREFIX,
+  BRAND_NAME,
+  DEFAULT_GDRIVE_FOLDER_ID,
+  DEFAULT_GDRIVE_FOLDER_URL,
+  DEFAULT_IDLE_TIMEOUT_SECONDS,
+} from '../lib/constants'
 import QRCode from 'qrcode'
 import './ReviewScreen.css'
 
@@ -27,17 +37,13 @@ export default function ReviewScreen() {
   const [printCopies, setPrintCopies] = useState<number>(defaultCopies)
   const [isPrinting, setIsPrinting] = useState<boolean>(false)
   const [printSuccess, setPrintSuccess] = useState<boolean>(false)
-  const [timeLeft, setTimeLeft] = useState<number>(eventConfig.idleTimeoutSeconds || 60)
+  const [timeLeft, setTimeLeft] = useState<number>(
+    eventConfig.idleTimeoutSeconds || DEFAULT_IDLE_TIMEOUT_SECONDS
+  )
   const [compositeStripUrl, setCompositeStripUrl] = useState<string>('')
   const [isGeneratingComposite, setIsGeneratingComposite] = useState<boolean>(true)
 
-  // Luôn đồng bộ số bản in chính xác từ phiên thanh toán của khách
-  useEffect(() => {
-    const target = session?.paidCopies || selectedCopies || (selectedFrameSize === '2x6' ? 2 : 1)
-    if (target && target > 0) {
-      setPrintCopies(target)
-    }
-  }, [session?.paidCopies, selectedCopies, selectedFrameSize])
+
 
   // ── Google Drive & Local Session Folder ──
   const [subfolderName] = useState<string>(() => {
@@ -45,24 +51,27 @@ export default function ReviewScreen() {
     const pad = (n: number) => String(n).padStart(2, '0')
     const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
     const timeStr = `${pad(now.getHours())}h${pad(now.getMinutes())}`
-    return `JoyBooth_${dateStr}_${timeStr}`
+    return `${SESSION_FOLDER_PREFIX}_${dateStr}_${timeStr}`
   })
   const [cloudFolderUrl, setCloudFolderUrl] = useState<string>(
-    eventConfig.gdriveFolderUrl || 'https://drive.google.com/drive/folders/1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU'
+    eventConfig.gdriveFolderUrl || DEFAULT_GDRIVE_FOLDER_URL
   )
   const [isSyncingDrive, setIsSyncingDrive] = useState<boolean>(false)
   const [driveSyncDone, setDriveSyncDone] = useState<boolean>(false)
   const [localFolderDir, setLocalFolderDir] = useState<string>('')
 
-  const photos = session?.photos && session.photos.length > 0 ? session.photos : [
-    { id: '1', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 1 },
-    { id: '2', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 2 },
-    { id: '3', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 3 },
-    { id: '4', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 4 },
-  ]
+  const photos = useMemo(() => {
+    if (session?.photos && session.photos.length > 0) return session.photos
+    return [
+      { id: '1', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 1 },
+      { id: '2', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 2 },
+      { id: '3', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 3 },
+      { id: '4', rawPath: '', enhancedPath: '', compositedPath: '', timestamp: 4 },
+    ]
+  }, [session?.photos])
 
   // Link đích của mã QR: Google Drive Subfolder hoặc Gallery
-  const targetCloudUrl = cloudFolderUrl || `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || '1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU'}`
+  const targetCloudUrl = cloudFolderUrl || `https://drive.google.com/drive/folders/${eventConfig.gdriveFolderId || DEFAULT_GDRIVE_FOLDER_ID}`
 
   // Tạo mã QR Code
   useEffect(() => {
@@ -108,7 +117,7 @@ export default function ReviewScreen() {
           // 1. Dải ảnh in hoàn chỉnh
           if (stripUrl) {
             filesToUpload.push({
-              name: `joybooth_final_${selectedFrameSize}.jpg`,
+              name: `${FILE_PREFIX_FINAL}_${selectedFrameSize}.jpg`,
               dataUrl: stripUrl,
             })
           }
@@ -118,7 +127,7 @@ export default function ReviewScreen() {
             const dataUrl = p.compositedPath || p.enhancedPath || p.rawPath
             if (dataUrl && dataUrl.startsWith('data:image')) {
               filesToUpload.push({
-                name: `shot_${idx + 1}.jpg`,
+                name: `${FILE_PREFIX_SHOT}_${idx + 1}.jpg`,
                 dataUrl,
               })
             }
@@ -127,14 +136,14 @@ export default function ReviewScreen() {
           // 3. Video Timelapse nếu có dữ liệu dataUrl
           if (session?.timelapseUrl && session.timelapseUrl.startsWith('data:')) {
             filesToUpload.push({
-              name: `joybooth_timelapse.webm`,
+              name: `${FILE_PREFIX_TIMELAPSE}.webm`,
               dataUrl: session.timelapseUrl,
             })
           }
 
-          const api = isBrowser ? mockApi : joyBoothApi
+          const api = isBrowser ? mockApi : fotolismApi
           const res = await api.storage.uploadDriveSession({
-            parentFolderId: eventConfig.gdriveFolderId || '1FcgyAe79bpnZnYgxR4i4b4qM_42oB5eU',
+            parentFolderId: eventConfig.gdriveFolderId || DEFAULT_GDRIVE_FOLDER_ID,
             subfolderName,
             files: filesToUpload,
             webhookUrl: eventConfig.gdriveWebhookUrl,
@@ -204,7 +213,7 @@ export default function ReviewScreen() {
     setPrintSuccess(false)
 
     try {
-      const api = isBrowser ? mockApi : joyBoothApi
+      const api = isBrowser ? mockApi : fotolismApi
       const pathToPrint = compositeStripUrl || photos[0]?.compositedPath || ''
       await api.print.send(pathToPrint, printCopies)
       setTimeout(() => {
@@ -221,7 +230,7 @@ export default function ReviewScreen() {
     if (!compositeStripUrl) return
     const a = document.createElement('a')
     a.href = compositeStripUrl
-    a.download = `joybooth_${selectedFrameSize}_${Date.now()}.jpg`
+    a.download = `${FILE_PREFIX_FINAL}_${selectedFrameSize}_${Date.now()}.jpg`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -231,14 +240,14 @@ export default function ReviewScreen() {
     if (!session?.timelapseUrl) return
     const a = document.createElement('a')
     a.href = session.timelapseUrl
-    a.download = `joybooth_timelapse_${Date.now()}.webm`
+    a.download = `${FILE_PREFIX_TIMELAPSE}_${Date.now()}.webm`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
   }
 
   function handleOpenLocalFolder() {
-    const api = isBrowser ? mockApi : joyBoothApi
+    const api = isBrowser ? mockApi : fotolismApi
     api.storage.openFolder(localFolderDir || undefined)
   }
 
@@ -301,7 +310,7 @@ export default function ReviewScreen() {
                 <div className="final-rendered-strip-box animate-pop">
                   <img
                     src={compositeStripUrl}
-                    alt="JoyBooth Final Print"
+                    alt={`${BRAND_NAME} Final Print`}
                     className={`final-rendered-strip-img ${selectedFrameSize === '2x6' ? 'strip-2x6-view' : 'postcard-4x6-view'}`}
                   />
                 </div>
@@ -336,7 +345,7 @@ export default function ReviewScreen() {
 
                   <div className="strip-footer-deco">
                     <span className="strip-logo-text" style={{ color: selectedTheme.textColor }}>
-                      JoyBooth
+                      {BRAND_NAME}
                     </span>
                     <span className="strip-date-text" style={{ color: selectedTheme.textColor }}>
                       {eventConfig.date}

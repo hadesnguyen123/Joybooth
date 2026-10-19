@@ -1,9 +1,9 @@
 ---
 name: camera-integration
-description: Hướng dẫn kết nối và điều khiển camera USB Webcam & DSLR (Canon, Nikon, Sony) cho JoyBooth photobooth.
+description: Hướng dẫn kết nối và điều khiển camera USB Webcam & DSLR (Canon, Nikon, Sony) cho Fotolism photobooth.
 ---
 
-# 📸 Camera Integration Skill — JoyBooth
+# 📸 Camera Integration Skill — Fotolism
 
 ## Mục tiêu
 Quản lý luồng video preview thời gian thực và kích hoạt chụp ảnh chất lượng cao từ thiết bị:

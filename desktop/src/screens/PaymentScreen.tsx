@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useAppStore, type DiscountCoupon } from '../store/appStore'
+import {
+  DEFAULT_ACCOUNT_HOLDER,
+  DEFAULT_COUPON_CODE,
+  DEFAULT_BANK_BIN,
+  DEFAULT_ACCOUNT_NUMBER,
+  DEFAULT_PRICE_2X6,
+  DEFAULT_PRICE_4X6,
+  DEFAULT_EXTRA_COPY_PRICE_2X6,
+  DEFAULT_EXTRA_COPY_PRICE_4X6,
+} from '../lib/constants'
 import './PaymentScreen.css'
 
 export default function PaymentScreen() {
@@ -23,16 +33,20 @@ export default function PaymentScreen() {
   const [couponError, setCouponError] = useState<string | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<'vietqr' | 'cash'>('vietqr')
 
-  const [orderCode] = useState(() => `JB${Date.now().toString().slice(-6)}`)
+  const [orderCode] = useState(() => `FTL${Date.now().toString().slice(-6)}`)
   const [secondsLeft, setSecondsLeft] = useState(120)
   const [isProcessing, setIsProcessing] = useState(false)
 
   // 1. Tính giá cơ bản và giá bản in thêm
-  const basePrice = selectedFrameSize === '2x6' ? (eventConfig.price2x6 || 50000) : (eventConfig.price4x6 || 70000)
+  const basePrice =
+    selectedFrameSize === '2x6'
+      ? eventConfig.price2x6 || DEFAULT_PRICE_2X6
+      : eventConfig.price4x6 || DEFAULT_PRICE_4X6
   const extraCopies = Math.max(0, copies - minCopies)
-  const extraPricePerUnit = selectedFrameSize === '2x6'
-    ? ((eventConfig.extraCopyPrice2x6 || 25000) / 2) // giá mỗi dải thêm
-    : (eventConfig.extraCopyPrice4x6 || 35000)      // giá mỗi postcard thêm
+  const extraPricePerUnit =
+    selectedFrameSize === '2x6'
+      ? (eventConfig.extraCopyPrice2x6 || DEFAULT_EXTRA_COPY_PRICE_2X6) / 2 // giá mỗi dải thêm
+      : eventConfig.extraCopyPrice4x6 || DEFAULT_EXTRA_COPY_PRICE_4X6 // giá mỗi postcard thêm
   const extraTotal = extraCopies * extraPricePerUnit
 
   const subTotal = basePrice + extraTotal
@@ -52,7 +66,7 @@ export default function PaymentScreen() {
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num)
 
   // Link ảnh VietQR động chuẩn NAPAS 24/7
-  const vietQrImageUrl = `https://img.vietqr.io/image/${eventConfig.bankBin || '970422'}-${eventConfig.accountNumber || '0388889999'}-compact2.png?amount=${finalAmount}&addInfo=${orderCode}&accountName=${encodeURIComponent(eventConfig.accountHolder || 'JOYBOOTH VIETNAM')}`
+  const vietQrImageUrl = `https://img.vietqr.io/image/${eventConfig.bankBin || DEFAULT_BANK_BIN}-${eventConfig.accountNumber || DEFAULT_ACCOUNT_NUMBER}-compact2.png?amount=${finalAmount}&addInfo=${orderCode}&accountName=${encodeURIComponent(eventConfig.accountHolder || DEFAULT_ACCOUNT_HOLDER)}`
 
   // Đếm ngược phiên thanh toán (120 giây)
   useEffect(() => {
@@ -188,7 +202,7 @@ export default function PaymentScreen() {
               <div className="coupon-input-group">
                 <input
                   type="text"
-                  placeholder="Nhập mã (VD: JOYBOOTH10, GIAM20K)"
+                  placeholder={`Nhập mã (VD: ${DEFAULT_COUPON_CODE}, GIAM20K)`}
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
@@ -295,7 +309,7 @@ export default function PaymentScreen() {
                 </div>
                 <div className="bank-meta-row">
                   <span>Chủ tài khoản:</span>
-                  <b>{eventConfig.accountHolder || 'JOYBOOTH VIETNAM'}</b>
+                  <b>{eventConfig.accountHolder || DEFAULT_ACCOUNT_HOLDER}</b>
                 </div>
                 <div className="bank-meta-row">
                   <span>Số tiền:</span>

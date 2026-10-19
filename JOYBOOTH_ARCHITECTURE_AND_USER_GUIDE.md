@@ -1,261 +1,212 @@
-# 🌸 JOYBOOTH — TÀI LIỆU KIẾN TRÚC HỆ THỐNG & HƯỚNG DẪN VẬN HÀNH
-> **Phiên bản:** 1.0 (Pink Pastel Edition)  
-> **Ngày phát hành:** 02/10/2026  
+# 📷 FOTOLISM — TÀI LIỆU KIẾN TRÚC HỆ THỐNG & HƯỚNG DẪN VẬN HÀNH
+> **Hệ sinh thái:** Fotolism AI-Powered Photobooth Suite  
+> **Phiên bản:** 2.0 (High-Reliability & EDSDK Native Edition)  
+> **Cập nhật gần nhất:** 17/10/2026  
 > **Ngôn ngữ:** Tiếng Việt  
 
 ---
 
 ## 🏛️ 1. TỔNG QUAN KIẾN TRÚC HỆ THỐNG (SYSTEM ARCHITECTURE)
 
-JoyBooth được thiết kế theo mô hình **Desktop Hybrid Architecture (Offline-First)**: kết hợp sức mạnh giao diện mượt mà của **React 18**, tính bảo mật native phần cứng của **Electron Shell**, và năng lực xử lý hình ảnh/AI chuyên sâu của **Python FastAPI**.
+Fotolism được xây dựng theo mô hình **Desktop Hybrid Architecture (Offline-First & Hardware-Resilient)**: kết hợp giao diện cảm ứng Kiosk thời thượng của **React 19 + Vite**, nhân native điều khiển phần cứng của **Electron Shell (Node.js)**, và phân hệ xử lý máy ảnh cơ **Canon EOS R100 (EDSDK)** cùng **Python AI Service**.
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                   MÀN HÌNH PHOTOBOOTH JOYBOOTH (TOUCH SCREEN)          │
-│                                                                        │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │                    ELECTRON SHELL (DESKTOP)                      │  │
-│  │                                                                  │  │
-│  │  ┌───────────────────────────┐    ┌───────────────────────────┐  │  │
-│  │  │   Renderer Process (UI)   │    │    Main Process (Bridge)  │  │  │
-│  │  │   - React 18 + TypeScript │◄──►│    - Kiosk / Window Mgmt  │  │  │
-│  │  │   - Zustand State Store   │IPC │    - Context Isolation    │  │  │
-│  │  │   - Pink Pastel UI Engine │    │    - Win32 Native Access  │  │  │
-│  │  └───────────────────────────┘    └─────────────┬─────────────┘  │  │
-│  └─────────────────────────────────────────────────┼────────────────┘  │
-│                                                    │ localhost REST    │
-│  ┌─────────────────────────────────────────────────▼────────────────┐  │
-│  │             JOYBOOTH AI SERVICE (Python FastAPI 8000)            │  │
-│  │                                                                  │  │
-│  │  [Camera Engine]    [AI Beauty/Filter]   [Frame Compositor]      │  │
-│  │  - Webcam OpenCV    - Bilateral Filter   - Pillow Alpha Merge    │  │
-│  │  - DSLR Canon Tether- Skin Smoothing     - Multi-slot Slicing    │  │
-│  │                                                                  │  │
-│  │  [Print Manager]    [QR Code Delivery]   [Local Database]        │  │
-│  │  - Win32Print Queue - Local LAN Hotspot  - SQLite (Zero Config)  │  │
-│  │  - Paper Tracker    - Cloud CDN Optional - Sessions & Photos     │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                   MÀN HÌNH CẢM ỨNG KIOSK FOTOLISM (TOUCH SCREEN)                       │
+│                                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
+│  │                    ELECTRON SHELL RUNTIME (DESKTOP)                              │  │
+│  │                                                                                  │  │
+│  │  ┌─────────────────────────────────┐      ┌───────────────────────────────────┐  │  │
+│  │  │      Renderer Process (UI)      │      │       Main Process (Bridge)       │  │  │
+│  │  │  - React 19 + TypeScript + Vite │      │  - Kiosk / Window Management      │  │  │
+│  │  │  - Zustand Global Store         │◄────►│  - Context Isolation Bridge       │  │  │
+│  │  │  - Photobooth & Selfbooth Modes │ IPC  │  - Async CLI Runner (Zero-Block)  │  │  │
+│  │  │  - 3.5s Client Timeout Race     │      │  - Centralized Disk I/O (D:\)     │  │  │
+│  │  └─────────────────────────────────┘      └─────────────────┬─────────────────┘  │  │
+│  └─────────────────────────────────────────────────────────────┼────────────────────┘  │
+│                                                                │                       │
+│             ┌──────────────────────────────────────────────────┼────────────────┐      │
+│             │ USB Native Protocol / EDSDK Direct               │ REST localhost │      │
+│             ▼                                                  ▼                ▼      │
+│  ┌──────────────────────────────┐              ┌────────────────────────────────────┐  │
+│  │ CANON EOS R100 DSLR / EDSDK  │              │    FOTOLISM BACKEND SERVICES       │  │
+│  │                              │              │                                    │  │
+│  │ - digiCamControl CLI Native  │              │ [Python AI Service - Port 8000]    │  │
+│  │ - Non-blocking /wait 0 flag  │              │ - EDSDK Bridge & Face Beautify     │  │
+│  │ - Shutter /capturenoaf       │              │ - Frame Compositor & QR Generator  │  │
+│  │ - 24MP Ultra HD Raw Snapshot │              │                                    │  │
+│  │                              │              │ [Local Storage Engine]             │  │
+│  │ [Webcam HD Stream Fallback]  │              │ - D:\Fotolism_image (Primary)      │  │
+│  │ - Instant 60fps Live Preview │              │ - Dual Base64 / Local File Sync    │  │
+│  │ - Auto Fail-Safe Snapshot    │              │ - Google Drive Auto-Sync Webhook   │  │
+│  └──────────────────────────────┘              └────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
-
-### 1.1 Phân tầng chức năng
-1. **Presentation Layer (Giao diện người dùng):**
-   * Xây dựng bằng **React 18 + TypeScript + Vite**.
-   * Hệ thống theme chuẩn **Pink Pastel & Warm Cream**, lấy cảm hứng từ các photobooth Hàn Quốc hàng đầu (*Photoism, Life4Cuts, Haru Film*).
-   * Quản lý trạng thái toàn cục với **Zustand** (`appStore.ts`): lưu trữ thiết bị camera, bộ lọc màu, layout khung lưới, thời gian countdown và hàng đợi ảnh.
-2. **Shell & Native Layer (Electron):**
-   * Khóa màn hình Kiosk mode tự động toàn màn hình khi chạy sự kiện.
-   * Cung cấp cầu nối `contextBridge` (`window.joyBooth`) an toàn, ngăn chặn tấn công XSS hoặc thoát app ngoài ý muốn.
-3. **Local Core & AI Backend (Python FastAPI):**
-   * Chạy ngầm tại `http://localhost:8000`.
-   * Cung cấp các REST API độc lập: `/camera`, `/enhance`, `/composite`, `/qr`, `/print`, `/config`.
-   * Cơ sở dữ liệu **SQLite** (`joybooth.db`) ghi nhận lịch sử mọi phiên chụp, số lượng ảnh xuất và lệnh in cục bộ ngay cả khi mất mạng Internet.
 
 ---
 
-## 🎨 2. BẢNG MÀU CHỦ ĐẠO & THIẾT KẾ (EXACT REQUESTED PALETTE)
+## ⚡ 2. CƠ CHẾ ĐIỀU KHIỂN MÁY ẢNH & CHỐNG NGHẼN (HARDWARE RESILIENCE)
 
-| Mã màu | Tên màu | Vai trò giao diện |
+### 2.1 Kiến trúc chụp ảnh kép: Canon EOS R100 & Webcam Fallback
+Để mang lại chất lượng ảnh studio 24MP mà vẫn đảm bảo Kiosk không bao giờ bị đứng máy khi vận hành đông khách:
+
+```
+┌─────────────────────────────────┐
+│       Người dùng nhấn chụp      │
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│     Đếm ngược (3s, 5s, 10s)     │
+│   Reset đếm ngược về 0 ngay     │
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│  Kích hoạt Flash & Timeout Race │
+└────────────────┬────────────────┘
+                 │
+        ┌────────┴───────────────────────────┐
+        ▼ (Ưu tiên)                          ▼ (Song song)
+┌───────────────────────────────┐   ┌───────────────────────────────┐
+│  Gửi lệnh EDSDK / DigiCam     │   │  Bộ đếm Timer 3.5 Giây        │
+│  - /capturenoaf (Bỏ qua AF)   │   │  - Client-side Promise.race   │
+│  - /wait 0 (Thoát ngay)       │   │  - Ngăn chặn kẹt tiến trình   │
+│  - Async subprocess           │   │                               │
+└───────────────┬───────────────┘   └───────────────┬───────────────┘
+                │                                   │
+                ├───────────────┬───────────────────┤
+                ▼ Thành công    ▼ Quá 3.5s / Lỗi    ▼
+        ┌──────────────────┐    ┌───────────────────────────┐
+        │  Ảnh DSLR 24MP   │    │  Webcam Fallback Frame    │
+        │  Chất lượng cao  │    │  Trích xuất từ luồng trực │
+        │  tiếp không gián │    │  tiếp tức thì             │
+        └─────────┬────────┘    └─────────────┬─────────────┘
+                  │                           │
+                  └─────────────┬─────────────┘
+                                ▼
+                ┌───────────────────────────┐
+                │ Cập nhật ô Slot & Bay vào │
+                │ Giải phóng isCapturingShot│
+                │ Sẵn sàng cho ô tiếp theo  │
+                └───────────────────────────┘
+```
+
+### 2.2 Các cải tiến cốt lõi đã giải quyết triệt để lỗi nghẽn
+1. **Loại bỏ hoàn toàn `execSync`:**
+   - Trước đây `execSync` khóa cứng Electron main thread đến 15 giây khiến màn hình đơ cứng tại số `1`.
+   - Hiện tại sử dụng `runAsyncCommand` (dựa trên `child_process.exec` bất đồng bộ) kèm timeout ngắt tự động 4 giây.
+2. **Cờ `/wait 0` & `/capturenoaf`:**
+   - Ngăn `CameraControlCmd.exe` gọi `Console.ReadLine()` chờ phím Enter từ terminal.
+   - Bỏ qua khóa lấy nét tự động (`capturenoaf`) giúp máy ảnh chụp ngay lập tức kể cả khi khách di chuyển nhanh.
+3. **Khối `try ... finally` cưỡng chế giải phóng UI:**
+   - Bọc toàn bộ hàm `handleTakePhotoboothShot` và `handleTakeSelfboothShot` trong khối `finally { setCurrentCountdown(0); setIsCapturingShot(false); }`.
+   - Ngay cả khi xảy ra lỗi bất ngờ, UI luôn được mở khóa để khách tiếp tục trải nghiệm.
+4. **Chuẩn hóa đường dẫn tập tin Windows:**
+   - Sử dụng `path.join` để đồng nhất dấu gạch chéo `\` trên Windows, tránh xung đột đường dẫn khi gọi CLI bên ngoài.
+
+---
+
+## 📁 3. CƠ CHẾ LƯU TRỮ TẬP TRUNG (`Fotolism_image`)
+
+Toàn bộ hình ảnh, dải in và video hậu trường được quản lý tập trung và nhất quán theo quy chuẩn:
+
+| Cấu hình | Giá trị mặc định | Mô tả |
 |---|---|---|
-| `#FFF8F2` | **Cream Background** | Màu nền bao quanh tổng thể booth, tạo không gian ấm áp, thanh lịch |
-| `#F4729A` | **Pink Primary** | Nút chụp chính *"Bắt đầu chụp"*, viền chọn khung lưới, countdown timer |
-| `#D94F78` | **Dark Pink** | Màu hover, viền nhấn, bóng đổ chiều sâu |
-| `#2D2426` | **Dark Text** | Màu chữ hiển thị chính, độ tương phản sắc nét và mềm mại |
-| `#FFFFFF` | **White** | Nền các menu Flyout (`Khung lưới`, `Bộ lọc`, `Phát sáng`), card ảnh, viền ảnh |
+| **Thư mục chính** | `D:\Fotolism_image` | Ổ cứng tốc độ cao được ưu tiên lưu trữ |
+| **Thư mục dự phòng 1** | `F:\Fotolism_image` | Tự động kích hoạt nếu máy tính booth cấu hình ổ F:\ |
+| **Thư mục dự phòng 2** | `%USERPROFILE%\Downloads\Fotolism_image` | Fallback an toàn nếu không có quyền ghi ổ đĩa ngoài |
+| **Tiền tố ảnh đơn** | `fotolism_shot_{index}_{timestamp}.jpg` | Từng bức ảnh chụp đơn lẻ (24MP hoặc 1080p) |
+| **Tiền tố dải in** | `fotolism_strip_{layout}_{timestamp}.jpg` | Dải ảnh hoàn chỉnh đã ghép khung, theme & sticker |
+| **Tiền tố video** | `fotolism_timelapse_{timestamp}.webm` | Video tua nhanh quá trình tạo dáng của khách |
+| **Tiền tố phiên chụp**| `fotolism_session_{timestamp}` | Thư mục con đóng gói toàn bộ media của một phiên |
 
 ---
 
-## 📸 3. TÍNH NĂNG CHÍNH ĐÃ TRIỂN KHAI
+## 🎨 4. HAI CHẾ ĐỘ CHỤP LINH HOẠT
 
-### 3.1 Khung lưới đa ảnh (Layout Presets)
-Hỗ trợ chuyển đổi nhanh giữa các kiểu dải ảnh hot trend:
-* **2 ảnh:** Ngang (Horizontal) / Dọc (Vertical).
-* **3 ảnh:** Dải ảnh 3 tấm phong cách cổ điển.
-* **4 ảnh (Strip):** Dải ảnh dọc kinh điển 4 ô (phổ biến nhất tại các photobooth Hàn Quốc).
-* **4 ảnh (Grid):** Lưới vuông 2x2 hiện đại.
-* **6 ảnh:** Lưới 2x3 cho nhóm đông người.
+### 4.1 Chế độ Photobooth Cổ Điển (Classic Photobooth)
+* Chụp lần lượt từng ô theo bố cục đã chọn (1, 3, 4, 6 hoặc 8 ảnh).
+* **Live Slot Bar:** Dải ô ảnh trực tiếp hiển thị ảnh vừa chụp, ô chưa chụp có dấu `+` đứt nét.
+* **Tính năng Retake thông minh:** Khách chỉ cần bấm dấu `✕` trên bất kỳ ô nào chưa ưng ý để chụp lại riêng ô đó mà không phải chụp lại từ đầu cả dải.
+* Sau khi đủ ảnh, hệ thống giữ nguyên giao diện để khách kiểm tra kỹ càng trước khi bấm *"Hài Lòng & Tiếp Tục ➔"*.
 
-### 3.2 Bộ lọc màu thời thượng & Tinh chỉnh ánh sáng (Color Filters & Fine-tuning)
-Áp dụng trực tiếp theo thời gian thực (Real-time Preview 60fps) trên luồng camera:
-* 🤍 **Tự nhiên (Normal):** Giữ nguyên 100% màu sắc chân thực gốc từ cảm biến camera.
-* 🌸 **Hồng Pastel (Rosy Pastel - HOT):** Tông màu trắng hồng, làm da mịn màng, má ửng hồng chuẩn Photobooth Hàn Quốc.
-* 🫧 **Hàn Quốc Soft (TREND):** Giảm tương phản nhẹ, tăng độ sáng trong trẻo phong cách studio Seoul.
-* 📷 **Film Kodak Portra (FILM):** Tông film kinh điển, ấm áp, chuyển sắc da mềm mại và chiều sâu hoài niệm.
-* ❄️ **Cool Tone Xanh Lạnh (Y2K):** Ám sắc xanh cyan trong trẻo, da trắng sứ thời thượng phong cách Gen Z.
-* 🍑 **Đào Cam Mọng (Peachy Glow):** Nâng sắc cam đào tươi tắn, rạng rỡ và tràn đầy năng lượng.
-* ☁️ **Nhật Bản Trong Trẻo (Tokyo Airy):** Nâng sáng high-key, ánh sáng mềm dịu như truyện tranh Nhật Bản.
-* 🎞️ **Cổ điển B&W (Noir):** Đen trắng tương phản cao nghệ thuật retro.
-* 🖤 **Monochrome Moody:** Đen trắng sâu thẳm, tương phản mạnh mẽ cá tính.
-* 📼 **Retro 90s:** Tông màu những năm 90, ám sepia và hạt màu film cổ xưa.
-* 🌅 **Nắng Hoàng Hôn (Warm Sunset):** Ánh hoàng hôn vàng cam ấm áp, tôn da dưới ánh chiều.
-
-**🎛️ Bảng điều khiển tinh chỉnh thủ công (Manual Fine-Tuning):**
-* **Độ sáng (Brightness):** Tùy chỉnh từ 80% đến 130%.
-* **Độ tương phản (Contrast):** Tùy chỉnh từ 80% đến 130%.
-* **Độ bão hòa (Saturation):** Tùy chỉnh từ 70% đến 150%.
-* Nút **Đặt lại (Reset):** Nhanh chóng đưa các thông số về mặc định ban đầu.
-
-### 3.3 Đèn phát sáng (Ring Light & Glam Glow)
-* Tích hợp hiệu ứng viền đèn trợ sáng Studio (Ring Light) bao quanh camera.
-* Tự động bù sáng cho khuôn mặt khách hàng trong không gian thiếu sáng hoặc sự kiện tiệc tối.
-* Tùy chỉnh cường độ sáng từ 20% đến 100%.
-
-### 3.4 Kỹ thuật xuất Video Timelapse với 1 Camera duy nhất (Single-Camera Timelapse & Capture)
-* **Thách thức:** Chỉ có 1 chiếc camera (Webcam hoặc DSLR tethering), làm thế nào vừa ghi được video hậu trường tua nhanh vừa chụp được các bức ảnh tĩnh có độ phân giải cao?
-* **Giải pháp kiến trúc:**
-  1. **Tách luồng xử lý (Stream Demultiplexing):** Khi bắt đầu chuỗi chụp nhiều ảnh, hệ thống kích hoạt `MediaRecorder` ghi nhận liên tục luồng `MediaStream` phần cứng của camera (30 fps) vào bộ đệm bộ nhớ đệm (RAM buffer) mà không làm suy giảm hiệu năng.
-  2. **Trích xuất ảnh tĩnh tức thời (Non-blocking Snapshot):** Tại thời điểm đồng hồ đếm ngược kết thúc (3s, 5s hoặc 10s), canvas trích xuất trực tiếp khung hình hiện tại ở độ phân giải gốc mà không làm tạm dừng (pause) hay ngắt quãng tiến trình ghi video.
-  3. **Tua nhanh & Tối ưu hiệu ứng (Timelapse Speedup):** Kết thúc phiên, đoạn video WebM/MP4 được đóng gói và gán tốc độ tua nhanh tùy chọn ($1.5\times$, $2.0\times$, $2.5\times$, $3.0\times$, $4.0\times$). Khách hàng có thể xem lại video chuyển động nhộn nhịp, vui vẻ của cả nhóm trong lúc đổi dáng.
-
-### 3.5 Đồng bộ Đám mây Google Drive & Quét QR Tải Toàn Bộ Media
-* Mỗi phiên chụp hoàn tất sẽ tự động đóng gói bộ tài nguyên:
-  1. Trọn bộ ảnh gốc độ phân giải cao (`photo_1.jpg`, `photo_2.jpg`, ...)
-  2. Dải ảnh thành phẩm đã ghép khung & sticker (`strip_2x6.jpg` hoặc `postcard_4x6.jpg`)
-  3. Video Timelapse hậu trường (`timelapse.webm`)
-* Tự động đưa lên thư mục sự kiện trên **Google Drive** (`gdriveFolderUrl`).
-* **Mã QR tại màn hình kết quả:** Trỏ trực tiếp đến thư mục Google Drive để khách chỉ cần quét bằng Camera iPhone/Android hoặc ứng dụng Zalo là có thể xem và tải về máy toàn bộ ảnh và video ngay lập tức.
-
-
-### 3.6 Bộ chọn thời gian đếm ngược (Countdown Timer)
-* 3 nút chọn nhanh dạng capsule ngay phía trên màn hình:
-  * **⏱️ 3s:** Chụp nhanh, dành cho các phiên chụp đông khách cần tiết kiệm thời gian.
-  * **⏱️ 5s:** Chuẩn bị vừa vặn, thời gian lý tưởng nhất để tạo dáng.
-  * **⏱️ 10s:** Dành cho nhóm đông người hoặc trang phục phức tạp.
+### 4.2 Chế độ Selfbooth Tự Do (Selfbooth Studio)
+* Chụp tự do không giới hạn số lượng ảnh trong khoảng thời gian đếm lùi (mặc định 3 phút hoặc 5 phút).
+* Đếm ngược nhanh 2 giây giữa mỗi lần bấm giúp khách liên tục thay đổi phong cách tạo dáng.
+* Hết giờ, hệ thống mở thư viện ảnh để khách tự do chọn ra các bức ảnh đẹp nhất đưa vào dải in hoàn chỉnh.
 
 ---
 
-## 🛠️ 4. HƯỚNG DẪN CÀI ĐẶT & CHẠY PHẦN MỀM
+## 💳 5. HỆ THỐNG THANH TOÁN ĐA PHƯƠNG THỨC
 
-### 4.1 Yêu cầu hệ thống (Đa nền tảng Windows & macOS)
-* **Hệ điều hành:**
-  * **Windows:** Windows 10 / 11 (64-bit).
-  * **macOS:** macOS 12+ Monterey, Ventura, Sonoma, Sequoia (Hỗ trợ 100% cả chip **Apple Silicon M1/M2/M3/M4** lẫn chip Intel).
-* **Phần mềm nền tảng:**
-  * Node.js v18+ hoặc v20+ LTS.
-  * Python 3.10+ (với `pip`).
-* **Thiết bị ngoại vi trên Mac:**
-  * **Camera:** Webcam tích hợp FaceTime HD, Webcam USB ngoài (Logitech, Elgato...), **iPhone Continuity Camera** (dùng iPhone làm webcam không dây 4K), hoặc máy ảnh DSLR qua Canon/Sony Webcam Utility.
-  * **Máy in:** Máy in nhiệt Photobooth (HiTi, DNP, Citizen, Canon Selphy) qua hệ thống in chuẩn macOS CUPS / AirPrint.
+```
+┌────────────────────────────────────────────────────────┐
+│               MÀN HÌNH THANH TOÁN KIOSK                │
+│                                                        │
+│  [ Cột Trái: Đơn Hàng ]      [ Cột Phải: Phương Thức ] │
+│  - Khổ ảnh & Bố cục          - Tab 1: VietQR Napas 24/7│
+│  - Mã đơn: FTLxxxxxx         - Tab 2: Tiền mặt (Cash)  │
+│  - Chọn số lượng bản in      - Đồng hồ đếm lùi 120s    │
+│  - Áp dụng mã Coupon         - Nút xác nhận thanh toán │
+│  - Tổng tiền (VND)           - Nút Test Mode (Bỏ qua)  │
+└────────────────────────────────────────────────────────┘
+```
+
+1. **VietQR NAPAS 24/7:**
+   - Tự động sinh mã VietQR động chứa số tài khoản, mã ngân hàng (BIN), số tiền chính xác theo số bản in và mã đơn hàng `FTLxxxxxx`.
+   - Khách chỉ cần mở bất kỳ ứng dụng ngân hàng hoặc ví điện tử quét mã là thanh toán tức thì.
+2. **Tiền mặt (Cash):**
+   - Hướng dẫn đưa tiền cho nhân viên trực booth.
+   - Nhân viên kiểm tra và bấm nút *"Xác nhận đã nhận tiền"* để mở camera.
+3. **Mã ưu đãi (Discount Coupon):**
+   - Hỗ trợ giảm theo phần trăm (%) hoặc trừ tiền trực tiếp.
+4. **Chế độ kiểm thử nhanh (Test Mode):**
+   - Cho phép nhân viên kỹ thuật hoặc quản trị viên booth bỏ qua bước thanh toán khi kiểm tra định kỳ.
 
 ---
 
-### 4.2 Khởi chạy giao diện Desktop (React + Vite)
+## 🛠️ 6. HƯỚNG DẪN CÀI ĐẶT & VẬN HÀNH
 
-Mở terminal PowerShell tại thư mục:
+### 6.1 Khởi chạy môi trường phát triển (Development)
+Tại thư mục gốc `f:\JoyBooth`:
+```powershell
+# Chạy đồng thời Vite Frontend (5173) và Electron Desktop
+npm run dev
+```
+
+### 6.2 Biên dịch mã nguồn Electron & Frontend
+Khi có thay đổi trong `desktop/electron/main.cts` hoặc các màn hình React:
+```powershell
+# 1. Biên dịch Electron Main Process
+cd f:\JoyBooth\desktop
+npx tsc -p electron/tsconfig.json
+
+# 2. Kiểm tra lỗi kiểu dữ liệu TypeScript
+npx tsc --noEmit
+```
+
+### 6.3 Đóng gói ứng dụng Kiosk chạy độc lập (.exe)
 ```powershell
 cd f:\JoyBooth\desktop
+npm run build:win
 ```
-
-1. **Cài đặt thư viện (nếu mới clone):**
-   ```powershell
-   npm install
-   ```
-
-2. **Chạy máy chủ phát triển (Dev Server):**
-   ```powershell
-   npm run dev:vite
-   ```
-   👉 Truy cập trực tiếp tại trình duyệt: **`http://localhost:5173`**
-
-3. **Chạy chế độ Desktop hoàn chỉnh (React + Electron Shell):**
-   ```powershell
-   npm run dev
-   ```
-
-4. **Biên dịch đóng gói bản cài đặt Windows (.exe installer):**
-   ```bash
-   npm run build:win
-   ```
-   *File cài đặt `JoyBooth Setup 0.1.0.exe` sẽ được xuất tại thư mục `desktop/release/`*.
-
-5. **Biên dịch đóng gói bản cài đặt macOS (.dmg installer):**
-   Chạy lệnh này trực tiếp trên máy Mac:
-   ```bash
-   npm run build:mac
-   ```
-   *File cài đặt `JoyBooth-0.1.0.dmg` sẽ được xuất tại thư mục `desktop/release/`. Chỉ cần mở file và kéo thả vào thư mục `Applications` là hoàn tất!*
-
-6. **Tự động đóng gói .DMG qua GitHub Actions (Không cần máy Mac):**
-   Đã cấu hình sẵn file [`.github/workflows/build-mac.yml`](file:///f:/JoyBooth/.github/workflows/build-mac.yml). Khi bạn push code lên GitHub, máy chủ đám mây macOS của GitHub sẽ tự động build và xuất file `.dmg` để bạn tải về máy.
+*Tập tin cài đặt `Fotolism Setup.exe` sẽ được tạo tại thư mục `desktop/release/`.*
 
 ---
 
-### 4.3 Khởi chạy dịch vụ AI Backend (Python FastAPI)
+## 📋 7. QUY TRÌNH VẬN HÀNH TẠI SỰ KIỆN (OPERATOR CHECKLIST)
 
-Mở một cửa sổ PowerShell mới:
-```powershell
-cd f:\JoyBooth\ai-service
-```
-
-1. **Cài đặt dependencies:**
-   ```powershell
-   pip install -r requirements.txt
-   ```
-
-2. **Chạy server Uvicorn:**
-   ```powershell
-   python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-   *Dịch vụ sẽ tự động khởi tạo cơ sở dữ liệu `joybooth.db` và các thư mục lưu trữ ảnh.*
-
----
-
-## 📋 5. HƯỚNG DẪN DÀNH CHO NGƯỜI VẬN HÀNH (OPERATOR GUIDE)
-
-### 5.1 Bắt đầu một ca làm việc tại sự kiện
-1. Bật máy tính booth, cắm nguồn camera và máy in ảnh.
-2. Khởi động phần mềm **JoyBooth**.
-3. Tại màn hình chờ (Idle), click vào biểu tượng **⚙️ (Bánh răng)** ở góc dưới bên phải màn hình.
-4. Nhập mã PIN mặc định: **`1234`**.
-5. Trong bảng **Cấu Hình Sự Kiện**:
-   * Đổi **Tên sự kiện** (vd: *"Wedding Linh & Nam"*, *"Sinh Nhật 18"*...).
-   * Chọn thời gian đếm ngược mặc định (3s hoặc 5s).
-   * Kiểm tra máy in và camera trong tab **Thiết Bị & Máy In**.
-6. Bấm **"📸 Vào Chế Độ Chụp"** để đón khách.
-
----
-
-### 5.2 Luồng trải nghiệm của khách hàng (Chuẩn 6 Bước Kiosk Studio)
-
-1. **Bước 1 — Màn hình chờ (Idle Screen):**
-   * Khách hàng chạm bất kỳ đâu hoặc bấm nút *"Chạm để bắt đầu"*.
-
-2. **Bước 2 — Chọn Khung Hình (Frame Size - Ảnh 1):**
-   * Màn hình hiển thị 2 lựa chọn kích thước khổ in tiêu chuẩn:
-     * **KHUNG 2X6 INCH (50k):** Dải ảnh strip đôi kinh điển.
-     * **KHUNG 4X6 INCH (70k):** Bưu thiếp postcard khổ lớn.
-
-3. **Bước 3 — Chọn Bố Cục (Layout Selection - Ảnh 2):**
-   * Khách chọn số lượng ảnh mong muốn qua các tab danh mục:
-     * **1 ảnh** | **3 ảnh** | **4 ảnh** | **6 ảnh** | **8 ảnh**
-   * Mỗi danh mục hiển thị trực quan sơ đồ các ô ảnh kèm giá tiền tương ứng.
-
-4. **Bước 4 — Chụp Ảnh Với Dải Slot Tiến Trình Trực Tiếp (Capture - Ảnh 5):**
-   * Trên đỉnh màn hình: Khách chọn thời gian đếm ngược **3s**, **5s** hoặc **10s**.
-   * Bên dưới camera: **Thanh dải ô slot trực tiếp (Live Slot Progress Bar)** hiển thị số ô cần chụp (vd: `3/6`).
-   * Mỗi lần bấm máy, ảnh vừa chụp lập tức xuất hiện vào ô tương ứng, ô chưa chụp hiển thị dấu `+` viền đứt nét.
-   * Hệ thống tự động đếm ngược và chụp liên hoàn đủ số lượng ảnh theo bố cục đã chọn.
-
-5. **Bước 5 — Chọn Chủ Đề Khung Hình (Theme Selection - Ảnh 3):**
-   * Bên trái: Hiển thị bản xem trước dải ảnh đã chụp của khách hàng.
-   * Bên phải: Các danh mục chủ đề (`Một màu`, `Ngày lễ`, `Thời trang`, `Trào lưu`, `Khác`) với hơn 10+ mẫu viền hoa văn (Cánh bướm tím, Giáng sinh, Nấm cute, Y2K Checkerboard...).
-
-6. **Bước 6 — Chọn Sticker Trang Trí (Sticker Customization - Ảnh 4):**
-   * Khách thỏa sức gắn sticker trực tiếp lên dải ảnh: Trái tim (`Heart`), Mèo/Thỏ (`Cute`), Biểu cảm (`Emoji`), Sự kiện (`Event`), Kính râm/Vương miện (`Styles`).
-   * Có thể chạm vào sticker đã dán để xóa hoặc điều chỉnh.
-
-7. **Bước 7 — Nhận Ảnh, Tải Về & In Tức Thì (Review, Download & Delivery):**
-   * Xem trọn bộ dải ảnh thành phẩm hoàn chỉnh với chủ đề & sticker được căn ghép sắc nét.
-   * **Bản vẽ Composite 300 DPI:** Hệ thống tự động sinh bản vẽ dải ảnh tiêu chuẩn (600x1800 px cho 2x6 hoặc 1200x1800 px cho 4x6) hỗ trợ cả Canvas phía Frontend lẫn endpoint Python `/api/composite/multi-cut`.
-   * **Nút Tải dải strip về máy (`💾 Tải Dải Strip Về Máy`):** Cho phép lưu ngay file ảnh chất lượng cao mà không cần mạng.
-   * **Quét Mã QR:** Quét bằng Camera điện thoại hoặc Zalo để tải toàn bộ ảnh gốc và dải strip về máy.
-   * **In ảnh nhiệt (`[ 🖨️ In ngay ]`):** Tự động chuyển dải ảnh đã ghép hoàn chỉnh sang máy in nhiệt chuyên dụng (DNP, HiTi, Citizen) với số lượng bản in tùy chọn.
-   * **Linh hoạt điều chỉnh:** Khách có thể bấm `[← Sửa Sticker]`, `[🎨 Đổi Theme]`, hoặc `[📸 Chụp Lại]` nếu muốn thay đổi mà không bị mất ảnh.
-   * Bấm **`[ ✅ Hoàn tất & Về Trang Đầu ]`** để tự động reset phiên cho khách hàng tiếp theo.
-
----
-
-> 💡 **Mẹo vận hành:**
-> * Để ảnh chân dung đẹp nhất, hãy bật chế độ **"Phát sáng"** và chọn bộ lọc **"Hồng Pastel"**.
-> * Nếu cần hỗ trợ kỹ thuật hoặc mở rộng thêm tính năng thanh toán VNPay/MoMo, xem thêm các bộ Agent Skills tại thư mục [`.agents/skills/`](file:///f:/JoyBooth/.agents/skills/).
-
+1. **Kiểm tra đầu ca:**
+   * Cắm cáp USB máy ảnh Canon EOS R100 vào cổng USB 3.0 máy tính.
+   * Bật nguồn máy ảnh Canon, gạt cần sang chế độ chụp ảnh tĩnh (`P` hoặc `M`, khuyến nghị `1/125s, f/4.0, ISO 400 - 800`).
+   * Cắm nguồn máy in ảnh nhiệt (DNP / HiTi), đảm bảo đủ giấy in và mực ribbon.
+2. **Mở phần mềm Fotolism:**
+   * Mở ứng dụng Fotolism.
+   * Chạm vào biểu tượng **⚙️ (Bánh răng)** tại màn hình chờ, nhập mã PIN quản trị mặc định: `1234`.
+   * Kiểm tra thông số sự kiện, máy in mặc định và kết nối camera.
+   * Nhấn nút *"📸 Vào Chế Độ Chụp"* để sẵn sàng đón khách.
+3. **Xử lý sự cố nhanh (Troubleshooting):**
+   * *Máy ảnh không nhận lệnh chụp:* Kiểm tra xem ứng dụng Canon EOS Utility chính hãng có đang chạy đè hay không. Fotolism sẽ tự động giải phóng xung đột, nhưng nếu cần có thể rút cắm lại cáp USB hoặc ấn nhẹ nút chụp trên thân máy để đánh thức máy khỏi chế độ ngủ (Auto Sleep).
+   * *Hết giấy in:* Thay cuộn giấy mới, vào menu Admin bấm *"Kiểm tra máy in"* để in bản test.

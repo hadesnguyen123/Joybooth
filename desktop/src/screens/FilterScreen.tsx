@@ -1,4 +1,5 @@
 import { useAppStore, COLOR_FILTERS, type ColorFilterItem } from '../store/appStore'
+import { DEFAULT_EVENT_NAME } from '../lib/constants'
 import './FilterScreen.css'
 
 export default function FilterScreen() {
@@ -78,7 +79,7 @@ export default function FilterScreen() {
                   textTransform: 'uppercase',
                 }}
               >
-                {eventConfig.eventName}
+                {eventConfig.eventName || DEFAULT_EVENT_NAME}
               </span>
             </div>
           </div>

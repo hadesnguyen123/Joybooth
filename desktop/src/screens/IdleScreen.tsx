@@ -1,4 +1,12 @@
 import { useAppStore, type CaptureMode } from '../store/appStore'
+import {
+  BRAND_NAME,
+  BRAND_NAME_UPPER,
+  DEFAULT_EVENT_NAME,
+  APP_YEAR,
+  DEFAULT_ADMIN_PIN,
+  DEFAULT_SELFBOOTH_DURATION_SECONDS,
+} from '../lib/constants'
 import './IdleScreen.css'
 
 export default function IdleScreen() {
@@ -30,7 +38,7 @@ export default function IdleScreen() {
           <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #fbcfe8, #f4729a)' }}>✨</div>
           <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #f4729a, #d94f78)' }}>💖</div>
           <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #d94f78, #b8325c)' }}>📸</div>
-          <div className="idle-strip-footer">JOYBOOTH • 2026</div>
+          <div className="idle-strip-footer">{BRAND_NAME_UPPER} • {APP_YEAR}</div>
         </div>
       </div>
 
@@ -59,7 +67,7 @@ export default function IdleScreen() {
             e.stopPropagation()
             setScreen('admin')
           }}
-          title="Vào cài đặt hệ thống (PIN: 1234)"
+          title={`Vào cài đặt hệ thống (PIN: ${eventConfig.adminPin || DEFAULT_ADMIN_PIN})`}
         >
           <span className="admin-icon">⚙️</span>
           <span className="admin-text">Quản Trị Hệ Thống</span>
@@ -73,16 +81,16 @@ export default function IdleScreen() {
           {eventConfig.eventLogo ? (
             <img src={eventConfig.eventLogo} alt="Event Logo" />
           ) : (
-            <h1 className="idle-logo-title">JoyBooth</h1>
+            <h1 className="idle-logo-title">{BRAND_NAME}</h1>
           )}
         </div>
 
         <p className="idle-event-subtitle">
-          {eventConfig.eventName || 'FUN STUDIO PHOTOBOOTH'}
+          {eventConfig.eventName || DEFAULT_EVENT_NAME}
         </p>
 
         <p className="idle-mode-prompt">
-          Chạm vào chế độ chụp để bắt đầu:
+          Chạm để bắt đầu
         </p>
 
         {/* ── 2 Chế Độ Chụp Tại Màn Hình Chính ── */}
@@ -106,7 +114,7 @@ export default function IdleScreen() {
             </p>
 
             <div className="mode-card-action btn-action-photobooth">
-              <span>CHẠM ĐỂ CHỤP NGAY 📸</span>
+              <span>BẮT ĐẦU</span>
               <span className="action-arrow">➔</span>
             </div>
           </div>
@@ -126,11 +134,11 @@ export default function IdleScreen() {
 
             <h2 className="mode-card-title">SELFBOOTH</h2>
             <p className="mode-card-subtitle">
-              Tự do tạo dáng trong {eventConfig.selfboothDurationSeconds || 60}s
+              Tự do tạo dáng trong {eventConfig.selfboothDurationSeconds || DEFAULT_SELFBOOTH_DURATION_SECONDS}s
             </p>
 
             <div className="mode-card-action btn-action-selfbooth">
-              <span>CHẠM ĐỂ CHỤP NGAY ⏱️</span>
+              <span>BẮT ĐẦU</span>
               <span className="action-arrow">➔</span>
             </div>
           </div>

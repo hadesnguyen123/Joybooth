@@ -8,6 +8,7 @@ import ThemeSelectScreen from './screens/ThemeSelectScreen'
 import FilterScreen from './screens/FilterScreen'
 import ReviewScreen from './screens/ReviewScreen'
 import AdminScreen from './screens/AdminScreen'
+import ErrorNotificationCenter from './components/ErrorNotificationCenter'
 import './App.css'
 
 export default function App() {
@@ -24,6 +25,9 @@ export default function App() {
       {(screen === 'select-filter' || screen === 'select-sticker') && <FilterScreen />}
       {screen === 'review' && <ReviewScreen />}
       {screen === 'admin' && <AdminScreen />}
+
+      {/* Trung tâm thông báo lỗi API & Camera Logs */}
+      <ErrorNotificationCenter />
     </div>
   )
 }

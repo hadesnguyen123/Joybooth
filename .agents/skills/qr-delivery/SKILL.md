@@ -1,9 +1,9 @@
 ---
 name: qr-delivery
-description: Hướng dẫn tạo mã QR tức thì cho khách quét tải ảnh về điện thoại (hỗ trợ cả Offline LAN Hotspot và Online Cloud CDN).
+description: Hướng dẫn tạo mã QR tức thì cho khách quét tải ảnh về điện thoại (hỗ trợ cả Offline LAN Hotspot và Online Cloud CDN) cho Fotolism.
 ---
 
-# 📱 QR Delivery Skill — JoyBooth
+# 📱 QR Delivery Skill — Fotolism
 
 ## Mục tiêu
 Tối ưu trải nghiệm nhận ảnh của khách mời:

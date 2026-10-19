@@ -342,13 +342,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 16px 24px;
+  gap: 10px;
+  padding: 14px 28px;
   border-radius: var(--radius-full);
   font-size: 1.15rem;
-  font-weight: 900;
+  font-weight: 800;
   color: #ffffff;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
   transition: all 0.25s ease;
 }
 

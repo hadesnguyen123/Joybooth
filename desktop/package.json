@@ -1,21 +1,22 @@
 {
-  "name": "joybooth-desktop",
-  "productName": "JoyBooth",
+  "name": "fotolism-desktop",
+  "productName": "Fotolism",
   "private": true,
   "version": "0.1.0",
   "description": "AI-Powered Photobooth Software",
   "type": "module",
-  "author": "JoyBooth Team",
+  "author": "Fotolism Team",
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev:vite": "vite",
-    "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
+    "dev:electron": "wait-on -t 30000 tcp:127.0.0.1:5173 && cross-env NODE_ENV=development electron .",
     "dev": "concurrently -n vite,electron -c cyan,yellow \"npm run dev:vite\" \"npm run dev:electron\"",
     "build": "tsc -b && vite build && tsc -p electron/tsconfig.json",
     "build:mac": "npm run build && electron-builder --mac",
     "build:win": "npm run build && electron-builder --win",
     "preview": "vite preview",
-    "lint": "oxlint"
+    "lint": "oxlint src",
+    "test": "vitest run"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.1.0",
@@ -37,17 +38,27 @@
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
+    "vitest": "^5.0.5",
     "wait-on": "^9.5.1"
   },
   "build": {
-    "appId": "com.joybooth.desktop",
-    "productName": "JoyBooth",
+    "appId": "com.fotolism.desktop",
+    "productName": "Fotolism",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**",
       "dist-electron/**"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/drivers",
+        "to": "resources/drivers",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "win": {
       "target": [

@@ -1,9 +1,9 @@
 ---
 name: print-manager
-description: Hướng dẫn quản lý kết nối máy in dye-sub nhiệt (HiTi, DNP, Canon), hàng đợi in và cấu hình khổ giấy Windows.
+description: Hướng dẫn quản lý kết nối máy in dye-sub nhiệt (HiTi, DNP, Canon), hàng đợi in và cấu hình khổ giấy Windows cho Fotolism.
 ---
 
-# 🖨️ Print Manager Skill — JoyBooth
+# 🖨️ Print Manager Skill — Fotolism
 
 ## Mục tiêu
 Tích hợp giao tiếp trực tiếp với hệ điều hành Windows để gửi lệnh in ảnh tự động, quản lý hàng đợi và theo dõi số lượt in:

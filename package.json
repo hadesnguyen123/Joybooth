@@ -1,8 +1,8 @@
 {
-  "name": "joybooth-root",
+  "name": "fotolism-root",
   "version": "0.1.0",
   "private": true,
-  "description": "JoyBooth Photobooth Software Suite",
+  "description": "Fotolism Photobooth Software Suite",
   "scripts": {
     "dev": "npm --prefix desktop run dev",
     "build": "npm --prefix desktop run build",
@@ -14,6 +14,7 @@
     "cms:build": "pnpm --prefix joybooth-cms build",
     "cms:test": "pnpm --prefix joybooth-cms test",
     "verify": "node .agents/skills/joybooth-system-verifier/scripts/verify-all.mjs",
+    "test": "npm --prefix desktop test && pnpm --prefix joybooth-cms test",
     "ai": "cd ai-service && python main.py"
   }
 }
