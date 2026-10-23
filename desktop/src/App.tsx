@@ -8,11 +8,17 @@ import ThemeSelectScreen from './screens/ThemeSelectScreen'
 import FilterScreen from './screens/FilterScreen'
 import ReviewScreen from './screens/ReviewScreen'
 import AdminScreen from './screens/AdminScreen'
+import OverheadScreen from './screens/OverheadScreen'
 import ErrorNotificationCenter from './components/ErrorNotificationCenter'
 import './App.css'
 
 export default function App() {
   const screen = useAppStore((s) => s.screen)
+  const isOverhead = typeof window !== 'undefined' && window.location.search.includes('mode=overhead')
+
+  if (isOverhead) {
+    return <OverheadScreen />
+  }
 
   return (
     <div className="app-root">

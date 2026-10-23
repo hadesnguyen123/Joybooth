@@ -1,22 +1,81 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
-using System.Diagnostics;
 
 namespace FotolismCanonDaemon {
-    public class CaptureJob {
-        public string SavePath;
-        public bool Success;
-        public long LatencyMs;
-        public long FileSize;
+    public enum CameraState {
+        DISCONNECTED,
+        CONNECTING,
+        READY,
+        LIVEVIEW,
+        CAPTURING,
+        TRANSFERRING,
+        RECOVERING,
+        ERROR
+    }
+
+    public enum CaptureStatus {
+        PENDING,
+        CAPTURING,
+        TRANSFERRING,
+        COMPLETED,
+        FAILED,
+        TIMED_OUT,
+        RECOVERING,
+        UNKNOWN
+    }
+
+    public class CaptureRecord {
+        public string CaptureId;
+        public string SessionId;
+        public int SlotIndex;
+        public CaptureStatus Status;
+        public string FinalPath;
+        public long SizeBytes;
+        public long ShutterLatencyMs;
+        public long TransferLatencyMs;
+        public long TotalLatencyMs;
         public string ErrorMessage;
+        public DateTime CreatedAt = DateTime.Now;
+        public DateTime? CompletedAt;
         public ManualResetEvent DoneEvent = new ManualResetEvent(false);
     }
 
+    public class StructuredLog {
+        public string Timestamp;
+        public string Level;
+        public string Event;
+        public string CameraState;
+        public string SessionId;
+        public string CaptureId;
+        public long DurationMs;
+        public string Details;
+
+        public string ToJson() {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("{");
+            sb.AppendFormat("\"timestamp\":\"{0}\",", Timestamp);
+            sb.AppendFormat("\"level\":\"{0}\",", Level);
+            sb.AppendFormat("\"event\":\"{0}\",", Event);
+            sb.AppendFormat("\"cameraState\":\"{0}\"", CameraState);
+            if (!string.IsNullOrEmpty(SessionId)) sb.AppendFormat(",\"sessionId\":\"{0}\"", SessionId);
+            if (!string.IsNullOrEmpty(CaptureId)) sb.AppendFormat(",\"captureId\":\"{0}\"", CaptureId);
+            if (DurationMs > 0) sb.AppendFormat(",\"durationMs\":{0}", DurationMs);
+            if (!string.IsNullOrEmpty(Details)) sb.AppendFormat(",\"details\":\"{0}\"", Details.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " "));
+            sb.Append("}");
+            return sb.ToString();
+        }
+    }
+
     class Program {
+        // Canon EDSDK Constants
         public const uint kEdsPropID_SaveTo = 0x0000000b;
         public const uint kEdsSaveTo_Host = 2;
         public const uint kEdsSaveTo_Both = 3;
@@ -110,53 +169,124 @@ namespace FotolismCanonDaemon {
         [DllImport(@"C:\Program Files\Canon\EOS Webcam Utility Pro\EDSDK.dll")]
         public static extern uint EdsRelease(IntPtr inRef);
 
+        // State Machine & Hardware State
+        private static volatile CameraState _currentState = CameraState.DISCONNECTED;
+        private static readonly object StateLock = new object();
+        public static CameraState CurrentState {
+            get { return _currentState; }
+            private set {
+                lock (StateLock) {
+                    if (_currentState != value) {
+                        CameraState prev = _currentState;
+                        _currentState = value;
+                        Log("INFO", "STATE_CHANGE", string.Format("Transitioned from {0} to {1}", prev, value));
+                    }
+                }
+            }
+        }
+
         private static IntPtr CameraRef = IntPtr.Zero;
-        private static bool IsSessionOpen = false;
-        private static string CurrentSavePath = "";
-        private static bool CaptureSuccess = false;
-        private static long CurrentDownloadedSize = 0;
+        private static EdsObjectEventHandler HandlerRef;
+        private static volatile bool ShouldExit = false;
+
+        // Command Queue (Thread-Safe Single Consumer on Main STA Thread)
+        private static readonly ConcurrentQueue<CaptureRecord> CommandQueue = new ConcurrentQueue<CaptureRecord>();
+        private static readonly ConcurrentDictionary<string, CaptureRecord> IdempotencyMap = new ConcurrentDictionary<string, CaptureRecord>();
+
+        // Transfer & Shutter context
+        private static CaptureRecord ActiveCapture = null;
+        private static readonly object ActiveCaptureLock = new object();
+        private static string ActiveTmpPath = "";
+        private static Stopwatch TransferStopwatch = new Stopwatch();
+
+        // Live View Stream Buffer & Metrics
         private static byte[] LatestEvfFrame = null;
         private static readonly object FrameLock = new object();
-        private static EdsObjectEventHandler HandlerRef;
+        private static int ActiveLiveViewClients = 0;
+        private static double MeasuredEvfFps = 0;
+        private static long MeasuredEvfLatencyMs = 0;
+        private static int EvfFrameCountInSec = 0;
+        private static DateTime LastFpsCalculation = DateTime.Now;
 
-        private static readonly object JobLock = new object();
-        private static CaptureJob PendingJob = null;
-        private static bool ShouldExit = false;
+        // Observability & Diagnostics
+        private static long TotalCapturesCount = 0;
+        private static long FailedCapturesCount = 0;
+        private static long TotalCaptureLatencyMs = 0;
+        private static int ReconnectCount = 0;
+        private static readonly List<StructuredLog> RecentLogs = new List<StructuredLog>();
+        private static readonly object LogsLock = new object();
 
+        public static void Log(string level, string eventName, string details, string sessionId = null, string captureId = null, long durationMs = 0) {
+            StructuredLog entry = new StructuredLog {
+                Timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffzzz"),
+                Level = level,
+                Event = eventName,
+                CameraState = CurrentState.ToString(),
+                SessionId = sessionId,
+                CaptureId = captureId,
+                DurationMs = durationMs,
+                Details = details
+            };
+
+            lock (LogsLock) {
+                RecentLogs.Add(entry);
+                if (RecentLogs.Count > 60) RecentLogs.RemoveAt(0);
+            }
+
+            Console.WriteLine(entry.ToJson());
+        }
+
+        // EDSDK Object Event Callback for Shutter & Transfer
         public static uint HandleObjectEvent(uint inEvent, IntPtr inRef, IntPtr inContext) {
-            Console.WriteLine("[DAEMON EVENT] Event received: 0x{0:X8}", inEvent);
+            Log("DEBUG", "EDSDK_EVENT", string.Format("Event code 0x{0:X8}", inEvent));
             if (inEvent == kEdsObjectEvent_DirItemRequestTransfer || inEvent == kEdsObjectEvent_DirItemCreated || inEvent == kEdsObjectEvent_DirItemRequestTransferDT) {
-                if (CaptureSuccess) {
+                CaptureRecord job;
+                lock (ActiveCaptureLock) {
+                    job = ActiveCapture;
+                }
+
+                if (job == null) {
+                    Log("WARN", "UNSOLICITED_TRANSFER", "Transfer event received but no active capture job");
                     if (inRef != IntPtr.Zero) EdsRelease(inRef);
                     return 0;
                 }
+
+                if (job.Status == CaptureStatus.COMPLETED) {
+                    if (inRef != IntPtr.Zero) EdsRelease(inRef);
+                    return 0;
+                }
+
+                CurrentState = CameraState.TRANSFERRING;
+                job.Status = CaptureStatus.TRANSFERRING;
+                TransferStopwatch.Restart();
+
                 EdsDirectoryItemInfo info;
                 uint err = EdsGetDirectoryItemInfo(inRef, out info);
-                Console.WriteLine("[DAEMON EVENT] ItemInfo: err=0x{0:X8}, size={1}, file={2}", err, info.size, info.szFileName);
-                if (err == 0 && !string.IsNullOrEmpty(CurrentSavePath)) {
-                    string dir = Path.GetDirectoryName(CurrentSavePath);
-                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) {
-                        Directory.CreateDirectory(dir);
+                Log("INFO", "TRANSFER_START", string.Format("Transferring item {0}, expected size {1} bytes", info.szFileName, info.size), job.SessionId, job.CaptureId);
+
+                bool downloadOk = false;
+                long bytesWritten = 0;
+
+                if (err == 0 && !string.IsNullOrEmpty(ActiveTmpPath)) {
+                    string tmpDir = Path.GetDirectoryName(ActiveTmpPath);
+                    if (!string.IsNullOrEmpty(tmpDir) && !Directory.Exists(tmpDir)) {
+                        Directory.CreateDirectory(tmpDir);
                     }
 
-                    // 1. Thử ghi trực tiếp vào FileStream
+                    // 1. Download directly to .tmp file stream
                     IntPtr fileStream;
-                    uint stErr = EdsCreateFileStream(CurrentSavePath, 1, 2, out fileStream);
+                    uint stErr = EdsCreateFileStream(ActiveTmpPath, 1, 2, out fileStream);
                     if (stErr == 0) {
                         uint dlErr = EdsDownload(inRef, info.size, fileStream);
                         EdsDownloadComplete(inRef);
                         EdsRelease(fileStream);
 
-                        if (dlErr == 0 && File.Exists(CurrentSavePath) && new FileInfo(CurrentSavePath).Length > 1000) {
-                            CaptureSuccess = true;
-                            CurrentDownloadedSize = new FileInfo(CurrentSavePath).Length;
-                            Console.WriteLine("[DAEMON] 24MP Photo downloaded via FileStream: " + CurrentSavePath + " (" + CurrentDownloadedSize + " bytes)");
-                        } else {
-                            Console.WriteLine("[DAEMON] FileStream download failed: 0x{0:X8}", dlErr);
+                        if (dlErr == 0 && File.Exists(ActiveTmpPath) && new FileInfo(ActiveTmpPath).Length > 1000) {
+                            bytesWritten = new FileInfo(ActiveTmpPath).Length;
+                            downloadOk = VerifyJpegFile(ActiveTmpPath);
                         }
                     } else {
-                        // 2. Dự phòng MemoryStream nếu FileStream bị chặn
-                        Console.WriteLine("[DAEMON] EdsCreateFileStream failed: 0x{0:X8}. Trying MemoryStream...", stErr);
+                        // 2. MemoryStream fallback if FileStream disposition fails
                         IntPtr memStream;
                         uint memErr = EdsCreateMemoryStream(info.size, out memStream);
                         if (memErr == 0) {
@@ -168,16 +298,47 @@ namespace FotolismCanonDaemon {
                                 if (ptr != IntPtr.Zero) {
                                     byte[] bytes = new byte[info.size];
                                     Marshal.Copy(ptr, bytes, 0, (int)info.size);
-                                    File.WriteAllBytes(CurrentSavePath, bytes);
-                                    CaptureSuccess = true;
-                                    CurrentDownloadedSize = bytes.Length;
-                                    Console.WriteLine("[DAEMON] 24MP Photo downloaded via MemoryStream: " + CurrentSavePath + " (" + bytes.Length + " bytes)");
+                                    File.WriteAllBytes(ActiveTmpPath, bytes);
+                                    bytesWritten = bytes.Length;
+                                    downloadOk = VerifyJpegFile(ActiveTmpPath);
                                 }
                             }
                             EdsRelease(memStream);
                         }
                     }
                 }
+
+                TransferStopwatch.Stop();
+                job.TransferLatencyMs = TransferStopwatch.ElapsedMilliseconds;
+
+                if (downloadOk) {
+                    try {
+                        // Atomic Rename from .tmp to final destination path
+                        string finalDir = Path.GetDirectoryName(job.FinalPath);
+                        if (!string.IsNullOrEmpty(finalDir) && !Directory.Exists(finalDir)) {
+                            Directory.CreateDirectory(finalDir);
+                        }
+                        if (File.Exists(job.FinalPath)) {
+                            File.Delete(job.FinalPath);
+                        }
+                        File.Move(ActiveTmpPath, job.FinalPath);
+
+                        job.Status = CaptureStatus.COMPLETED;
+                        job.SizeBytes = bytesWritten;
+                        job.CompletedAt = DateTime.Now;
+                        Log("INFO", "CAPTURE_SAVED", string.Format("Atomic rename to {0} succeeded ({1} bytes)", job.FinalPath, bytesWritten), job.SessionId, job.CaptureId, job.TransferLatencyMs);
+                    } catch (Exception ex) {
+                        job.Status = CaptureStatus.FAILED;
+                        job.ErrorMessage = "Atomic move error: " + ex.Message;
+                        Log("ERROR", "ATOMIC_MOVE_FAILED", ex.Message, job.SessionId, job.CaptureId);
+                    }
+                } else {
+                    job.Status = CaptureStatus.FAILED;
+                    job.ErrorMessage = "Corrupted or incomplete image download";
+                    try { if (File.Exists(ActiveTmpPath)) File.Delete(ActiveTmpPath); } catch {}
+                    Log("ERROR", "DOWNLOAD_CORRUPTED", "Downloaded file failed JPEG validation or size check", job.SessionId, job.CaptureId);
+                }
+
                 if (inRef != IntPtr.Zero) EdsRelease(inRef);
             } else if (inRef != IntPtr.Zero) {
                 EdsRelease(inRef);
@@ -185,14 +346,33 @@ namespace FotolismCanonDaemon {
             return 0;
         }
 
+        private static bool VerifyJpegFile(string filePath) {
+            try {
+                if (!File.Exists(filePath)) return false;
+                FileInfo fi = new FileInfo(filePath);
+                if (fi.Length < 1000) return false;
+
+                // Validate JPEG Magic SOI bytes: 0xFF, 0xD8
+                using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                    if (fs.Length < 4) return false;
+                    int b1 = fs.ReadByte();
+                    int b2 = fs.ReadByte();
+                    return (b1 == 0xFF && b2 == 0xD8);
+                }
+            } catch {
+                return false;
+            }
+        }
+
         static void Main(string[] args) {
-            Console.WriteLine("=== FOTOLISM CANON EDSDK PERSISTENT DAEMON (HIGH SPEED) ===");
+            Console.WriteLine("=== FOTOLISM 2.2 CANON EDSDK PERSISTENT DAEMON ===");
+            Log("INFO", "DAEMON_START", "Initializing Canon EDSDK subsystem...");
             EdsInitializeSDK();
 
             HttpListener listener = new HttpListener();
             listener.Prefixes.Add("http://127.0.0.1:8899/");
             listener.Start();
-            Console.WriteLine("[DAEMON] HTTP Service listening on http://127.0.0.1:8899/");
+            Log("INFO", "HTTP_BOUND", "Fotolism Daemon listening strictly on http://127.0.0.1:8899/");
 
             Thread httpThread = new Thread(() => {
                 while (listener.IsListening && !ShouldExit) {
@@ -206,105 +386,136 @@ namespace FotolismCanonDaemon {
             httpThread.Start();
 
             DateTime lastKeepAlive = DateTime.Now;
+            int backoffMs = 200;
 
-            // Vòng lặp chính quản lý Camera, EVF & Trigger Shutter trên Main Thread (Single-Threaded PTP)
+            // MAIN STA/PTP WORKER LOOP
             while (!ShouldExit) {
-                EnsureCameraConnected();
+                EnsureCameraConnected(ref backoffMs);
 
-                // Chống ngủ cho máy ảnh Canon (mỗi 15 giây gửi ExtendShutDownTimer 1 lần)
-                if (IsSessionOpen && CameraRef != IntPtr.Zero && (DateTime.Now - lastKeepAlive).TotalSeconds > 15) {
+                // Anti-sleep keepalive: every 15s send ExtendShutDownTimer
+                if (CurrentState != CameraState.DISCONNECTED && CameraRef != IntPtr.Zero && (DateTime.Now - lastKeepAlive).TotalSeconds > 15) {
                     EdsSendCommand(CameraRef, kEdsCameraCommand_ExtendShutDownTimer, 0);
                     lastKeepAlive = DateTime.Now;
                 }
 
-                // Kiểm tra xem có lệnh chụp đang chờ hay không
-                CaptureJob currentJob = null;
-                lock (JobLock) {
-                    currentJob = PendingJob;
-                    PendingJob = null;
-                }
-
-                if (currentJob != null) {
-                    ExecuteShutter(currentJob);
+                // Check Command Queue for Shutter Trigger
+                CaptureRecord job = null;
+                if (CommandQueue.TryDequeue(out job)) {
+                    ExecuteShutter(job);
                 } else {
-                    if (IsSessionOpen) {
+                    if (CurrentState == CameraState.READY || CurrentState == CameraState.LIVEVIEW) {
+                        CurrentState = CameraState.LIVEVIEW;
                         PullEvfFrame();
                     }
                     EdsGetEvent();
-                    Thread.Sleep(25); // ~40 FPS EVF
+                    Thread.Sleep(30); // ~33 FPS EVF loop
                 }
             }
 
-            if (IsSessionOpen && CameraRef != IntPtr.Zero) {
-                EdsCloseSession(CameraRef);
-                EdsRelease(CameraRef);
+            if (CameraRef != IntPtr.Zero) {
+                try { EdsCloseSession(CameraRef); } catch {}
+                try { EdsRelease(CameraRef); } catch {}
+                CameraRef = IntPtr.Zero;
             }
             EdsTerminateSDK();
-            Console.WriteLine("[DAEMON] Stopped cleanly.");
+            Log("INFO", "DAEMON_STOP", "Daemon terminated cleanly.");
         }
 
-        static void ExecuteShutter(CaptureJob job) {
-            if (!IsSessionOpen || CameraRef == IntPtr.Zero) {
-                job.Success = false;
-                job.ErrorMessage = "Camera session not open";
+        static void ExecuteShutter(CaptureRecord job) {
+            if (CurrentState == CameraState.DISCONNECTED || CameraRef == IntPtr.Zero) {
+                job.Status = CaptureStatus.FAILED;
+                job.ErrorMessage = "Camera is disconnected. Shutter rejected.";
                 job.DoneEvent.Set();
+                Log("WARN", "CAPTURE_REJECTED", "Camera disconnected", job.SessionId, job.CaptureId);
                 return;
             }
 
-            Stopwatch sw = Stopwatch.StartNew();
-            CurrentSavePath = job.SavePath;
-            CaptureSuccess = false;
-            CurrentDownloadedSize = 0;
+            Stopwatch totalSw = Stopwatch.StartNew();
+            Stopwatch shutterSw = Stopwatch.StartNew();
 
-            Console.WriteLine("[DAEMON] Triggering single shutter for: " + job.SavePath);
+            CurrentState = CameraState.CAPTURING;
+            job.Status = CaptureStatus.CAPTURING;
 
-            // 1. Kích hoạt nút chụp tức thì Completely_NonAF (Zero AF Lag, không đèn trợ nét)
+            lock (ActiveCaptureLock) {
+                ActiveCapture = job;
+                ActiveTmpPath = job.FinalPath + ".tmp." + Guid.NewGuid().ToString("N").Substring(0, 8);
+            }
+
+            Log("INFO", "SHUTTER_TRIGGER", "Sending Completely_NonAF Shutter Command...", job.SessionId, job.CaptureId);
+
+            // Shutter Trigger: Completely_NonAF (Zero AF lag)
             uint errShoot = EdsSendCommand(CameraRef, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely_NonAF);
-            Console.WriteLine("[DAEMON] Shutter Completely_NonAF sent: 0x{0:X8}", errShoot);
 
-            // Nếu camera vừa kéo frame EVF và báo bận (0x00000081 DeviceBusy), nhả nút và thử lại sau 60ms
+            // If camera was busy pulling EVF frame (0x00000081 DeviceBusy), release and retry ONCE after 60ms
             if (errShoot == 0x00000081) {
+                Log("WARN", "CAMERA_BUSY", "Camera returned 0x81 (DeviceBusy). Pausing 60ms and retrying once...", job.SessionId, job.CaptureId);
                 Thread.Sleep(60);
                 EdsSendCommand(CameraRef, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
                 Thread.Sleep(30);
                 errShoot = EdsSendCommand(CameraRef, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely_NonAF);
-                Console.WriteLine("[DAEMON] Retry Shutter Completely_NonAF sent: 0x{0:X8}", errShoot);
             }
 
-            // 2. Chờ nhận file ảnh 24MP từ camera (thời gian phơi sáng + truyền USB thực tế: ~1.0-1.3 giây)
-            // Ngay khi ảnh đã tải xong (CaptureSuccess = true), thoát vòng lặp ngay lập tức
-            for (int i = 0; i < 70; i++) {
+            shutterSw.Stop();
+            job.ShutterLatencyMs = shutterSw.ElapsedMilliseconds;
+
+            // Wait for transfer event callback with timeout
+            // Typical EOS R100 exposure + USB transfer is ~1.0 - 1.4 seconds.
+            // Timeout limit: 6.0 seconds.
+            int pollSteps = 120; // 120 * 50ms = 6000ms
+            for (int i = 0; i < pollSteps; i++) {
                 EdsGetEvent();
-                if (CaptureSuccess) break;
+                if (job.Status == CaptureStatus.COMPLETED || job.Status == CaptureStatus.FAILED) break;
                 Thread.Sleep(50);
             }
 
-            // 3. Luôn nhả nút chụp về OFF sau khi ảnh đã chụp xong để đưa máy ảnh trở lại luồng EVF Liveview
+            // ALWAYS Release Shutter Button to OFF according to Canon EDSDK Lifecycle
             EdsSendCommand(CameraRef, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
 
-            // 4. Bơm nhẹ sự kiện để luồng EVF tiếp tục mượt mà
+            // Light event pump after shutter release
             for (int i = 0; i < 4; i++) {
                 EdsGetEvent();
-                Thread.Sleep(25);
+                Thread.Sleep(20);
             }
 
-            sw.Stop();
-            job.Success = CaptureSuccess && File.Exists(job.SavePath) && new FileInfo(job.SavePath).Length > 1000;
-            job.FileSize = job.Success ? new FileInfo(job.SavePath).Length : CurrentDownloadedSize;
-            job.LatencyMs = sw.ElapsedMilliseconds;
-            if (!job.Success) {
-                job.ErrorMessage = "Timeout: Không nhận được file ảnh trả về sau khi bấm máy";
+            totalSw.Stop();
+            job.TotalLatencyMs = totalSw.ElapsedMilliseconds;
+
+            if (job.Status != CaptureStatus.COMPLETED) {
+                if (job.Status == CaptureStatus.CAPTURING || job.Status == CaptureStatus.TRANSFERRING) {
+                    job.Status = CaptureStatus.TIMED_OUT;
+                    job.ErrorMessage = "Timeout: File transfer did not complete within 6000ms";
+                    try { if (File.Exists(ActiveTmpPath)) File.Delete(ActiveTmpPath); } catch {}
+                }
+                FailedCapturesCount++;
+                Log("ERROR", "CAPTURE_FAILED", job.ErrorMessage ?? "Unknown failure", job.SessionId, job.CaptureId, job.TotalLatencyMs);
+            } else {
+                TotalCapturesCount++;
+                TotalCaptureLatencyMs += job.TotalLatencyMs;
+                Log("INFO", "CAPTURE_SUCCESS", string.Format("Total {0}ms (Shutter {1}ms, Transfer {2}ms)", job.TotalLatencyMs, job.ShutterLatencyMs, job.TransferLatencyMs), job.SessionId, job.CaptureId, job.TotalLatencyMs);
             }
-            Console.WriteLine("[DAEMON] Shutter finished. Success=" + job.Success + ", Latency=" + job.LatencyMs + "ms, Size=" + job.FileSize + " bytes");
+
+            lock (ActiveCaptureLock) {
+                ActiveCapture = null;
+                ActiveTmpPath = "";
+            }
+
+            // Restore Live View / Ready State
+            CurrentState = CameraState.READY;
             job.DoneEvent.Set();
         }
 
-        static void EnsureCameraConnected() {
-            if (IsSessionOpen) return;
+        static void EnsureCameraConnected(ref int backoffMs) {
+            if (CurrentState != CameraState.DISCONNECTED && CurrentState != CameraState.RECOVERING) return;
+
             try {
+                CurrentState = CameraState.CONNECTING;
                 IntPtr list;
                 uint err = EdsGetCameraList(out list);
-                if (err != 0) return;
+                if (err != 0) {
+                    HandleDisconnect(ref backoffMs, "EdsGetCameraList failed: 0x" + err.ToString("X8"));
+                    return;
+                }
+
                 int count = 0;
                 EdsGetChildCount(list, out count);
                 if (count > 0) {
@@ -312,7 +523,7 @@ namespace FotolismCanonDaemon {
                     EdsGetChildAtIndex(list, 0, out cam);
                     uint openErr = EdsOpenSession(cam);
                     if (openErr != 0) {
-                        for (int attempt = 0; attempt < 5; attempt++) {
+                        for (int attempt = 0; attempt < 4; attempt++) {
                             Thread.Sleep(150);
                             openErr = EdsOpenSession(cam);
                             if (openErr == 0) break;
@@ -321,7 +532,8 @@ namespace FotolismCanonDaemon {
 
                     if (openErr == 0) {
                         CameraRef = cam;
-                        IsSessionOpen = true;
+                        ReconnectCount++;
+                        backoffMs = 200; // Reset backoff
 
                         uint saveTo = kEdsSaveTo_Both;
                         uint stErr = EdsSetPropertyData(cam, kEdsPropID_SaveTo, 0, sizeof(uint), ref saveTo);
@@ -337,22 +549,38 @@ namespace FotolismCanonDaemon {
                         EdsSetObjectEventHandler(cam, kEdsObjectEvent_All, HandlerRef, IntPtr.Zero);
 
                         uint dev = kEdsEvfOutputDevice_PC;
-                        uint devErr = EdsSetPropertyData(cam, kEdsPropID_Evf_OutputDevice, 0, sizeof(uint), ref dev);
-                        Console.WriteLine("[DAEMON] SetEvfOutputDevice: 0x{0:X8}", devErr);
-                        Console.WriteLine("[DAEMON] Camera Session OPENED & EVF Activated successfully!");
+                        EdsSetPropertyData(cam, kEdsPropID_Evf_OutputDevice, 0, sizeof(uint), ref dev);
+
+                        CurrentState = CameraState.READY;
+                        Log("INFO", "CAMERA_CONNECTED", "Canon EOS R100 session initialized and EVF PC mode enabled");
                     } else {
-                        Console.WriteLine("[DAEMON] EdsOpenSession error: 0x{0:X8}", openErr);
                         EdsRelease(cam);
+                        HandleDisconnect(ref backoffMs, "EdsOpenSession failed: 0x" + openErr.ToString("X8"));
                     }
+                } else {
+                    HandleDisconnect(ref backoffMs, "No camera detected in list");
                 }
                 EdsRelease(list);
             } catch (Exception ex) {
-                Console.WriteLine("[DAEMON] Connection error: " + ex.Message);
+                HandleDisconnect(ref backoffMs, "Connection exception: " + ex.Message);
             }
         }
 
+        static void HandleDisconnect(ref int backoffMs, string reason) {
+            CurrentState = CameraState.DISCONNECTED;
+            if (CameraRef != IntPtr.Zero) {
+                try { EdsCloseSession(CameraRef); } catch {}
+                try { EdsRelease(CameraRef); } catch {}
+                CameraRef = IntPtr.Zero;
+            }
+            Log("WARN", "CAMERA_DISCONNECTED", string.Format("{0}. Retrying in {1}ms", reason, backoffMs));
+            Thread.Sleep(backoffMs);
+            backoffMs = Math.Min(backoffMs * 2, 3000); // Exponential backoff capped at 3s
+        }
+
         static void PullEvfFrame() {
-            if (!IsSessionOpen || CameraRef == IntPtr.Zero) return;
+            if (CameraRef == IntPtr.Zero) return;
+            Stopwatch sw = Stopwatch.StartNew();
             try {
                 IntPtr stream;
                 uint strErr = EdsCreateMemoryStream(0, out stream);
@@ -372,10 +600,11 @@ namespace FotolismCanonDaemon {
                             lock (FrameLock) {
                                 LatestEvfFrame = buf;
                             }
+                            EvfFrameCountInSec++;
                         }
-                    } else if (dlErr == 0x000000A2 || dlErr == 0x00000080 || dlErr == 0x00000081 || dlErr == 0x00000006) {
-                        Console.WriteLine("[DAEMON] Camera disconnected (0x{0:X8}). Resetting session.", dlErr);
-                        IsSessionOpen = false;
+                    } else if (dlErr == 0x000000A2 || dlErr == 0x00000080 || dlErr == 0x00000006) {
+                        Log("WARN", "EVF_DISCONNECT", string.Format("EDSDK Error 0x{0:X8} during EVF download. Triggering reconnect.", dlErr));
+                        CurrentState = CameraState.RECOVERING;
                         try { EdsCloseSession(CameraRef); EdsRelease(CameraRef); } catch {}
                         CameraRef = IntPtr.Zero;
                     }
@@ -383,6 +612,16 @@ namespace FotolismCanonDaemon {
                 }
                 EdsRelease(stream);
             } catch { }
+
+            sw.Stop();
+            MeasuredEvfLatencyMs = sw.ElapsedMilliseconds;
+
+            // Rolling FPS calculation
+            if ((DateTime.Now - LastFpsCalculation).TotalSeconds >= 1.0) {
+                MeasuredEvfFps = EvfFrameCountInSec / (DateTime.Now - LastFpsCalculation).TotalSeconds;
+                EvfFrameCountInSec = 0;
+                LastFpsCalculation = DateTime.Now;
+            }
         }
 
         static void HandleRequest(HttpListenerContext ctx) {
@@ -400,35 +639,59 @@ namespace FotolismCanonDaemon {
                 bool isHead = ctx.Request.HttpMethod == "HEAD";
                 string path = ctx.Request.Url.AbsolutePath.ToLowerInvariant();
 
+                // ─── 1. STATUS & CAMERA DIAGNOSTICS (FR-01, FR-09) ───────────────────
                 if (path == "/status") {
-                    uint aeMode = 0;
-                    uint tv = 0;
-                    uint av = 0;
-                    uint iso = 0;
-                    uint battery = 0;
-                    if (IsSessionOpen && CameraRef != IntPtr.Zero) {
+                    uint aeMode = 0, tv = 0, av = 0, iso = 0, battery = 0;
+                    if (CameraRef != IntPtr.Zero && (CurrentState == CameraState.READY || CurrentState == CameraState.LIVEVIEW)) {
                         EdsGetPropertyData(CameraRef, kEdsPropID_AEModeSelect, 0, sizeof(uint), out aeMode);
                         EdsGetPropertyData(CameraRef, kEdsPropID_Tv, 0, sizeof(uint), out tv);
                         EdsGetPropertyData(CameraRef, kEdsPropID_Av, 0, sizeof(uint), out av);
                         EdsGetPropertyData(CameraRef, kEdsPropID_ISOSpeed, 0, sizeof(uint), out iso);
                         EdsGetPropertyData(CameraRef, kEdsPropID_BatteryLevel, 0, sizeof(uint), out battery);
                     }
+
+                    bool isConn = (CameraRef != IntPtr.Zero && CurrentState != CameraState.DISCONNECTED && CurrentState != CameraState.ERROR);
                     string json = string.Format(
-                        "{{\"connected\":{0},\"evfReady\":{1},\"aeMode\":{2},\"tv\":\"0x{3:X}\",\"av\":\"0x{4:X}\",\"iso\":\"0x{5:X}\",\"battery\":{6}}}",
-                        IsSessionOpen ? "true" : "false",
-                        (LatestEvfFrame != null) ? "true" : "false",
-                        aeMode, tv, av, iso, battery
+                        "{{\"connected\":{0},\"evfReady\":{1},\"cameraState\":\"{2}\",\"aeMode\":{3},\"tv\":\"0x{4:X}\",\"av\":\"0x{5:X}\",\"iso\":\"0x{6:X}\",\"battery\":{7},\"fps\":{8:F1},\"latencyMs\":{9},\"reconnectCount\":{10}}}",
+                        isConn ? "true" : "false",
+                        (LatestEvfFrame != null && isConn) ? "true" : "false",
+                        CurrentState.ToString(),
+                        aeMode, tv, av, iso, battery,
+                        MeasuredEvfFps, MeasuredEvfLatencyMs, ReconnectCount
                     );
-                    byte[] bytes = Encoding.UTF8.GetBytes(json);
-                    ctx.Response.ContentType = "application/json";
-                    ctx.Response.ContentLength64 = bytes.Length;
-                    if (!isHead) {
-                        ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
-                    }
-                    ctx.Response.Close();
+                    SendJson(ctx, json, isHead);
                     return;
                 }
 
+                if (path == "/api/diagnostics") {
+                    StringBuilder logsSb = new StringBuilder();
+                    lock (LogsLock) {
+                        for (int i = 0; i < RecentLogs.Count; i++) {
+                            if (i > 0) logsSb.Append(",");
+                            logsSb.Append(RecentLogs[i].ToJson());
+                        }
+                    }
+
+                    double avgLatency = TotalCapturesCount > 0 ? (double)TotalCaptureLatencyMs / TotalCapturesCount : 0;
+                    string diagJson = string.Format(
+                        "{{\"cameraState\":\"{0}\",\"connected\":{1},\"evfReady\":{2},\"evfFps\":{3:F1},\"evfLatencyMs\":{4},\"activeLiveViewClients\":{5},\"reconnectCount\":{6},\"totalCaptures\":{7},\"failedCaptures\":{8},\"averageCaptureLatencyMs\":{9:F1},\"recentLogs\":[{10}]}}",
+                        CurrentState.ToString(),
+                        (CameraRef != IntPtr.Zero && CurrentState != CameraState.DISCONNECTED) ? "true" : "false",
+                        (LatestEvfFrame != null) ? "true" : "false",
+                        MeasuredEvfFps,
+                        MeasuredEvfLatencyMs,
+                        ActiveLiveViewClients,
+                        ReconnectCount,
+                        TotalCapturesCount,
+                        FailedCapturesCount,
+                        avgLatency,
+                        logsSb.ToString()
+                    );
+                    SendJson(ctx, diagJson, isHead);
+                    return;
+                }
+
+                // ─── 2. LIVE VIEW FRAME & MJPEG (FR-04) ─────────────────────────────
                 if (path == "/frame") {
                     byte[] frame = null;
                     lock (FrameLock) {
@@ -448,6 +711,7 @@ namespace FotolismCanonDaemon {
                 }
 
                 if (path == "/liveview") {
+                    Interlocked.Increment(ref ActiveLiveViewClients);
                     ctx.Response.ContentType = "multipart/x-mixed-replace; boundary=--myboundary";
                     var output = ctx.Response.OutputStream;
                     try {
@@ -463,54 +727,190 @@ namespace FotolismCanonDaemon {
                             Thread.Sleep(30); // ~33 FPS
                         }
                     } catch { }
+                    finally {
+                        Interlocked.Decrement(ref ActiveLiveViewClients);
+                    }
                     return;
                 }
 
+                // ─── 3. IDEMPOTENT CAPTURE API (FR-03, FR-05) ───────────────────────
+                if (path == "/api/captures" && ctx.Request.HttpMethod == "POST") {
+                    string bodyText = "";
+                    using (StreamReader reader = new StreamReader(ctx.Request.InputStream, ctx.Request.ContentEncoding)) {
+                        bodyText = reader.ReadToEnd();
+                    }
+
+                    string captureId = ExtractJsonString(bodyText, "captureId");
+                    string sessionId = ExtractJsonString(bodyText, "sessionId");
+                    int slotIndex = ExtractJsonInt(bodyText, "slotIndex", 0);
+
+                    if (string.IsNullOrEmpty(captureId)) {
+                        captureId = "cap_" + DateTime.Now.Ticks;
+                    }
+                    if (string.IsNullOrEmpty(sessionId)) {
+                        sessionId = "session_default";
+                    }
+
+                    // Check Idempotency Map
+                    CaptureRecord existingRecord;
+                    if (IdempotencyMap.TryGetValue(captureId, out existingRecord)) {
+                        Log("INFO", "IDEMPOTENT_HIT", string.Format("Duplicate request for captureId {0}. State is {1}", captureId, existingRecord.Status), sessionId, captureId);
+
+                        // If already completed, return existing result immediately
+                        if (existingRecord.Status == CaptureStatus.COMPLETED) {
+                            string resJson = string.Format(
+                                "{{\"success\":true,\"status\":\"COMPLETED\",\"idempotent\":true,\"captureId\":\"{0}\",\"sessionId\":\"{1}\",\"slotIndex\":{2},\"savedPath\":\"{3}\",\"sizeBytes\":{4},\"latencyMs\":{5},\"source\":\"Canon EOS R100 (EDSDK Daemon 2.2)\",\"resolution\":\"24MP\"}}",
+                                existingRecord.CaptureId, existingRecord.SessionId, existingRecord.SlotIndex,
+                                existingRecord.FinalPath.Replace("\\", "\\\\"), existingRecord.SizeBytes, existingRecord.TotalLatencyMs);
+                            SendJson(ctx, resJson, isHead);
+                            return;
+                        }
+
+                        // If in progress, wait for existing job
+                        if (existingRecord.Status == CaptureStatus.PENDING || existingRecord.Status == CaptureStatus.CAPTURING || existingRecord.Status == CaptureStatus.TRANSFERRING) {
+                            existingRecord.DoneEvent.WaitOne(6500);
+                            bool succ = (existingRecord.Status == CaptureStatus.COMPLETED);
+                            string resJson = string.Format(
+                                "{{\"success\":{0},\"status\":\"{1}\",\"idempotent\":true,\"captureId\":\"{2}\",\"savedPath\":\"{3}\",\"sizeBytes\":{4},\"latencyMs\":{5},\"error\":\"{6}\"}}",
+                                succ ? "true" : "false",
+                                existingRecord.Status.ToString(),
+                                existingRecord.CaptureId,
+                                (existingRecord.FinalPath ?? "").Replace("\\", "\\\\"),
+                                existingRecord.SizeBytes,
+                                existingRecord.TotalLatencyMs,
+                                (existingRecord.ErrorMessage ?? "").Replace("\"", "\\\""));
+                            SendJson(ctx, resJson, isHead);
+                            return;
+                        }
+
+                        // If previously failed or timed out, do NOT re-trigger shutter automatically
+                        string failJson = string.Format(
+                            "{{\"success\":false,\"status\":\"{0}\",\"idempotent\":true,\"captureId\":\"{1}\",\"error\":\"{2}\"}}",
+                            existingRecord.Status.ToString(), existingRecord.CaptureId, (existingRecord.ErrorMessage ?? "Previous capture failed").Replace("\"", "\\\""));
+                        SendJson(ctx, failJson, isHead);
+                        return;
+                    }
+
+                    // New Capture Request: Sandboxed destination path
+                    string safeBaseDir = @"F:\Fotolism_image\sessions\" + SanitizePath(sessionId);
+                    string finalPath = Path.Combine(safeBaseDir, string.Format("raw_slot_{0}_{1}.jpg", slotIndex, SanitizePath(captureId)));
+
+                    CaptureRecord newJob = new CaptureRecord {
+                        CaptureId = captureId,
+                        SessionId = sessionId,
+                        SlotIndex = slotIndex,
+                        Status = CaptureStatus.PENDING,
+                        FinalPath = finalPath
+                    };
+
+                    IdempotencyMap[captureId] = newJob;
+                    CommandQueue.Enqueue(newJob);
+
+                    // Wait for completion (up to 7 seconds)
+                    bool finished = newJob.DoneEvent.WaitOne(7000);
+
+                    string responseJson;
+                    if (finished && newJob.Status == CaptureStatus.COMPLETED) {
+                        responseJson = string.Format(
+                            "{{\"success\":true,\"status\":\"COMPLETED\",\"idempotent\":false,\"captureId\":\"{0}\",\"sessionId\":\"{1}\",\"slotIndex\":{2},\"savedPath\":\"{3}\",\"sizeBytes\":{4},\"latencyMs\":{5},\"shutterMs\":{6},\"transferMs\":{7},\"source\":\"Canon EOS R100 (EDSDK Daemon 2.2)\",\"resolution\":\"24MP (Full Resolution)\"}}",
+                            newJob.CaptureId, newJob.SessionId, newJob.SlotIndex,
+                            newJob.FinalPath.Replace("\\", "\\\\"),
+                            newJob.SizeBytes,
+                            newJob.TotalLatencyMs,
+                            newJob.ShutterLatencyMs,
+                            newJob.TransferLatencyMs
+                        );
+                    } else {
+                        string err = finished ? (newJob.ErrorMessage ?? "Capture execution failed") : "Timeout: Camera daemon did not finish within 7000ms";
+                        responseJson = string.Format(
+                            "{{\"success\":false,\"status\":\"{0}\",\"idempotent\":false,\"captureId\":\"{1}\",\"error\":\"{2}\"}}",
+                            newJob.Status.ToString(), newJob.CaptureId, err.Replace("\"", "\\\"")
+                        );
+                    }
+
+                    SendJson(ctx, responseJson, isHead);
+                    return;
+                }
+
+                // ─── 4. LEGACY CAPTURE API (/capture?savePath=...) ─────────────────
                 if (path == "/capture") {
                     string savePath = ctx.Request.QueryString["savePath"];
                     if (string.IsNullOrEmpty(savePath)) {
                         savePath = @"F:\Fotolism_image\fotolism_shot_" + DateTime.Now.Ticks + ".jpg";
                     }
 
-                    CaptureJob job = new CaptureJob { SavePath = savePath };
-                    lock (JobLock) {
-                        PendingJob = job;
-                    }
+                    string capId = "legacy_" + DateTime.Now.Ticks;
+                    CaptureRecord legacyJob = new CaptureRecord {
+                        CaptureId = capId,
+                        SessionId = "legacy_session",
+                        SlotIndex = 0,
+                        Status = CaptureStatus.PENDING,
+                        FinalPath = savePath
+                    };
 
-                    // Chờ Main Thread xử lý lệnh chụp tối đa 6.5 giây
-                    bool completed = job.DoneEvent.WaitOne(6500);
+                    IdempotencyMap[capId] = legacyJob;
+                    CommandQueue.Enqueue(legacyJob);
+
+                    bool finished = legacyJob.DoneEvent.WaitOne(7000);
                     string resJson;
-                    if (completed && job.Success) {
-                        resJson = string.Format("{{\"success\":true,\"savedPath\":\"{0}\",\"sizeBytes\":{1},\"latencyMs\":{2},\"source\":\"Canon EOS R100 (EDSDK Persistent Daemon)\",\"resolution\":\"24MP (Full Resolution)\"}}",
-                            job.SavePath.Replace("\\", "\\\\"), job.FileSize, job.LatencyMs);
+                    if (finished && legacyJob.Status == CaptureStatus.COMPLETED) {
+                        resJson = string.Format(
+                            "{{\"success\":true,\"savedPath\":\"{0}\",\"sizeBytes\":{1},\"latencyMs\":{2},\"source\":\"Canon EOS R100 (EDSDK Persistent Daemon 2.2)\",\"resolution\":\"24MP (Full Resolution)\"}}",
+                            legacyJob.FinalPath.Replace("\\", "\\\\"), legacyJob.SizeBytes, legacyJob.TotalLatencyMs);
                     } else {
-                        string err = completed ? job.ErrorMessage : "Timeout: Camera daemon không phản hồi sau 6.5s";
-                        resJson = string.Format("{{\"success\":false,\"error\":\"{0}\"}}", err.Replace("\"", "\\\""));
+                        string err = finished ? legacyJob.ErrorMessage : "Timeout: Camera daemon không phản hồi sau 7.0s";
+                        resJson = string.Format("{{\"success\":false,\"error\":\"{0}\"}}", (err ?? "Capture error").Replace("\"", "\\\""));
                     }
 
-                    byte[] resBytes = Encoding.UTF8.GetBytes(resJson);
-                    ctx.Response.ContentType = "application/json";
-                    ctx.Response.OutputStream.Write(resBytes, 0, resBytes.Length);
-                    ctx.Response.Close();
+                    SendJson(ctx, resJson, isHead);
                     return;
                 }
 
                 if (path == "/quit") {
                     ShouldExit = true;
-                    byte[] ok = Encoding.UTF8.GetBytes("{\"ok\":true}");
-                    ctx.Response.ContentType = "application/json";
-                    ctx.Response.OutputStream.Write(ok, 0, ok.Length);
-                    ctx.Response.Close();
+                    SendJson(ctx, "{\"ok\":true}", isHead);
                     return;
                 }
 
                 ctx.Response.StatusCode = 404;
                 ctx.Response.Close();
             } catch (Exception ex) {
-                try {
-                    ctx.Response.Abort();
-                } catch { }
+                try { ctx.Response.Abort(); } catch { }
+                Log("ERROR", "HTTP_REQUEST_ERROR", ex.Message);
             }
+        }
+
+        private static void SendJson(HttpListenerContext ctx, string json, bool isHead) {
+            byte[] bytes = Encoding.UTF8.GetBytes(json);
+            ctx.Response.ContentType = "application/json";
+            ctx.Response.ContentLength64 = bytes.Length;
+            if (!isHead) {
+                ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
+            }
+            ctx.Response.Close();
+        }
+
+        private static string ExtractJsonString(string json, string key) {
+            Match m = Regex.Match(json, "\"" + key + "\"\\s*:\\s*\"([^\"]+)\"");
+            if (m.Success) return m.Groups[1].Value;
+            return "";
+        }
+
+        private static int ExtractJsonInt(string json, string key, int defaultVal) {
+            Match m = Regex.Match(json, "\"" + key + "\"\\s*:\\s*([0-9]+)");
+            if (m.Success) {
+                int res;
+                if (int.TryParse(m.Groups[1].Value, out res)) return res;
+            }
+            return defaultVal;
+        }
+
+        private static string SanitizePath(string input) {
+            if (string.IsNullOrEmpty(input)) return "unnamed";
+            foreach (char c in Path.GetInvalidFileNameChars()) {
+                input = input.Replace(c, '_');
+            }
+            return input.Replace("..", "_").Trim();
         }
     }
 }

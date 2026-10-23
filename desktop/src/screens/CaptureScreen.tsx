@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppStore, COLOR_FILTERS, BEAUTY_PRESETS, type CapturedPhoto } from '../store/appStore'
-import { fotolismApi, isBrowser, mockApi } from '../lib/api'
+import { fotolismApi, isBrowser, mockApi, api } from '../lib/api'
 import {
   FILE_PREFIX_SHOT,
   FILE_PREFIX_SELF,
@@ -40,6 +40,7 @@ export default function CaptureScreen() {
     countdownSeconds,
     setCountdownSeconds,
     selectedLayout,
+    selectedCopies,
     selectFilter,
     selectedBeautyPreset,
     applyBeautyPreset,
@@ -102,9 +103,25 @@ export default function CaptureScreen() {
   const [justCapturedSlot, setJustCapturedSlot] = useState<number | null>(null)
   const [cameraFreezeFrame, setCameraFreezeFrame] = useState<string | null>(null)
 
+  // ── Session ID cho Fotolism 2.2 SQLite & Idempotency ──
+  const [sessionId] = useState<string>(() => `session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`)
+
   // ── Chế độ PHOTOBOOTH CỔ ĐIỂN (Có Retake / Xóa ô xấu) ──
   const [slots, setSlots] = useState<(CapturedPhoto | null)[]>(Array(totalShots).fill(null))
   const [retakeSlotIndex, setRetakeSlotIndex] = useState<number | null>(null)
+
+  useEffect(() => {
+    // Khởi tạo phiên trong SQLite persistent session storage (FR-06)
+    api.session?.create({
+      id: sessionId,
+      status: 'ACTIVE',
+      started_at: new Date().toISOString(),
+      total_slots: totalShots,
+      layout_id: selectedLayout?.id,
+      payment_status: 'PAID',
+      print_copies: selectedCopies || 1,
+    }).catch(console.warn)
+  }, [sessionId, totalShots, selectedLayout?.id, selectedCopies])
 
   // ── Chế độ SELFBOOTH (Chụp tự do theo thời gian & Chọn ảnh vào khung) ──
   const [isSelfboothRunning, setIsSelfboothRunning] = useState<boolean>(false)
@@ -581,8 +598,15 @@ export default function CaptureScreen() {
         api.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save photo error:', err))
       }
 
-      // 6. PHƯƠNG ÁN 2: KÍCH HOẠT MÁY ẢNH CANON EOS THẬT (24MP FULL EXIF)
-      await api.camera.edsdkCapture(canonSavePath, targetIndex)
+      // 6. PHƯƠNG ÁN 2: KÍCH HOẠT MÁY ẢNH CANON EOS THẬT (24MP FULL EXIF) - FOTOLISM 2.2 IDEMPOTENCY
+      const captureId = `cap_${sessionId}_slot${targetIndex}_${Date.now()}`
+      await api.camera.edsdkCapture({
+        captureId,
+        sessionId,
+        slotIndex: targetIndex,
+        savePath: canonSavePath,
+        shotIndex: targetIndex,
+      })
         .then((res) => {
           if (res && res.success && res.data && res.data.dataUrl) {
             const canonData = res.data
@@ -716,8 +740,15 @@ export default function CaptureScreen() {
         selfApi.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save selfbooth photo error:', err))
       }
 
-      // PHƯƠNG ÁN 2 cho Selfbooth: Chụp ảnh thật từ cảm biến máy ảnh Canon
-      await selfApi.camera.edsdkCapture(canonSelfPath, photoNum)
+      // PHƯƠNG ÁN 2 cho Selfbooth: Chụp ảnh thật từ cảm biến máy ảnh Canon (Fotolism 2.2 Idempotency)
+      const captureId = `cap_${sessionId}_self${photoNum}_${Date.now()}`
+      await selfApi.camera.edsdkCapture({
+        captureId,
+        sessionId,
+        slotIndex: photoNum,
+        savePath: canonSelfPath,
+        shotIndex: photoNum,
+      })
         .then((res) => {
           if (res && res.success && res.data && res.data.dataUrl) {
             const canonData = res.data

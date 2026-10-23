@@ -1,9 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { SAVE_ROOT_DIR } from '../src/lib/constants'
+import { ensureDaemonRunning } from './test-daemon-helper'
 
 describe('Level 3: System & E2E Testing — 5 Core User Stories', () => {
+  beforeAll(async () => {
+    await ensureDaemonRunning()
+  })
   // US-01: Chụp Photobooth Tiêu Chuẩn 4 ảnh
   it('US-01: Quy trình chụp Photobooth chuẩn 4 ảnh (Happy Path)', () => {
     // 1. Khởi tạo session state
