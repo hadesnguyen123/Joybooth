@@ -1,14 +1,14 @@
 # 📷 FOTOLISM — TÀI LIỆU KIẾN TRÚC HỆ THỐNG & HƯỚNG DẪN VẬN HÀNH
 > **Hệ sinh thái:** Fotolism AI-Powered Photobooth Suite  
-> **Phiên bản:** 2.0 (High-Reliability & EDSDK Native Edition)  
-> **Cập nhật gần nhất:** 17/10/2026  
+> **Phiên bản:** 2.1 (Canon EDSDK Persistent Daemon & Pure Camera Edition)  
+> **Cập nhật gần nhất:** 24/10/2026  
 > **Ngôn ngữ:** Tiếng Việt  
 
 ---
 
 ## 🏛️ 1. TỔNG QUAN KIẾN TRÚC HỆ THỐNG (SYSTEM ARCHITECTURE)
 
-Fotolism được xây dựng theo mô hình **Desktop Hybrid Architecture (Offline-First & Hardware-Resilient)**: kết hợp giao diện cảm ứng Kiosk thời thượng của **React 19 + Vite**, nhân native điều khiển phần cứng của **Electron Shell (Node.js)**, và phân hệ xử lý máy ảnh cơ **Canon EOS R100 (EDSDK)** cùng **Python AI Service**.
+Fotolism được thiết kế theo mô hình **Desktop Hybrid Micro-Services (Offline-First, Zero-Lag & Hardware-Direct)**: kết hợp giao diện cảm ứng Kiosk thời thượng của **React 19 + Vite**, nhân điều khiển phần cứng của **Electron Shell (Node.js)**, và tiến trình chạy ngầm chuyên dụng **Fotolism Canon Daemon (C# 64-bit)** giao tiếp trực tiếp với thư viện gốc **Canon EDSDK 64-bit** qua cáp USB PTP tốc độ cao.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -18,38 +18,52 @@ Fotolism được xây dựng theo mô hình **Desktop Hybrid Architecture (Offl
 │  │                    ELECTRON SHELL RUNTIME (DESKTOP)                              │  │
 │  │                                                                                  │  │
 │  │  ┌─────────────────────────────────┐      ┌───────────────────────────────────┐  │  │
-│  │  │      Renderer Process (UI)      │      │       Main Process (Bridge)       │  │  │
+│  │  │      Renderer Process (UI)      │      │       Main Process (Supervisor)   │  │  │
 │  │  │  - React 19 + TypeScript + Vite │      │  - Kiosk / Window Management      │  │  │
-│  │  │  - Zustand Global Store         │◄────►│  - Context Isolation Bridge       │  │  │
-│  │  │  - Photobooth & Selfbooth Modes │ IPC  │  - Async CLI Runner (Zero-Block)  │  │  │
-│  │  │  - 3.5s Client Timeout Race     │      │  - Centralized Disk I/O (D:\)     │  │  │
-│  │  └─────────────────────────────────┘      └─────────────────┬─────────────────┘  │  │
-│  └─────────────────────────────────────────────────────────────┼────────────────────┘  │
-│                                                                │                       │
-│             ┌──────────────────────────────────────────────────┼────────────────┐      │
-│             │ USB Native Protocol / EDSDK Direct               │ REST localhost │      │
-│             ▼                                                  ▼                ▼      │
-│  ┌──────────────────────────────┐              ┌────────────────────────────────────┐  │
-│  │ CANON EOS R100 DSLR / EDSDK  │              │    FOTOLISM BACKEND SERVICES       │  │
-│  │                              │              │                                    │  │
-│  │ - digiCamControl CLI Native  │              │ [Python AI Service - Port 8000]    │  │
-│  │ - Non-blocking /wait 0 flag  │              │ - EDSDK Bridge & Face Beautify     │  │
-│  │ - Shutter /capturenoaf       │              │ - Frame Compositor & QR Generator  │  │
-│  │ - 24MP Ultra HD Raw Snapshot │              │                                    │  │
-│  │                              │              │ [Local Storage Engine]             │  │
-│  │ [Webcam HD Stream Fallback]  │              │ - D:\Fotolism_image (Primary)      │  │
-│  │ - Instant 60fps Live Preview │              │ - Dual Base64 / Local File Sync    │  │
-│  │ - Auto Fail-Safe Snapshot    │              │ - Google Drive Auto-Sync Webhook   │  │
-│  └──────────────────────────────┘              └────────────────────────────────────┘  │
+│  │  │  - Zustand Global Store         │◄────►│  - Preload ContextIsolation Bridge│  │  │
+│  │  │  - Photobooth & Selfbooth Modes │ IPC  │  - Canon Daemon Watchdog Spawner  │  │  │
+│  │  │  - BeautyCameraView (WebGL)     │      │  - Hardware Shutter Lock (await)  │  │  │
+│  │  │  - Pure Camera (No Mirror/Filter│      │  - Centralized Disk I/O           │  │  │
+│  │  └─────────────────▲───────────────┘      └─────────────────┬─────────────────┘  │  │
+│  └────────────────────┼────────────────────────────────────────┼────────────────────┘  │
+│                       │                                        │                       │
+│                       │ HTTP Liveview Stream                   │ HTTP /capture Request │
+│                       │ (multipart/x-mixed-replace ~35 FPS)   │ (JSON Port 8899)      │
+│                       │                                        ▼                       │
+│                       │                      ┌──────────────────────────────────────┐  │
+│                       └──────────────────────┤ FOTOLISM CANON PERSISTENT DAEMON     │  │
+│                                              │ (fotolism_canon_daemon.exe - C# 64b) │  │
+│                                              │                                      │  │
+│                                              │ - Native EDSDK.dll 64-bit PTP Direct │  │
+│                                              │ - Single-Threaded EVF Stream Engine  │  │
+│                                              │ - ShutterButton_Completely_NonAF     │  │
+│                                              │ - Anti-Sleep KeepAlive (15s Loop)    │  │
+│                                              │ - Auto-Reconnect & 0x81 Busy Retry   │  │
+│                                              └──────────────────┬───────────────────┘  │
+│                                                                 │                      │
+│                                                       USB 3.0   │ High-Speed PTP       │
+│                                                                 ▼                      │
+│                                              ┌──────────────────────────────────────┐  │
+│                                              │ CANON EOS R100 / R50 / DSLR BODY     │  │
+│                                              │ - Cảm biến 24MP Ultra HD Full EXIF   │  │
+│                                              │ - Màn trập cơ học xả đúng 1 lần      │  │
+│                                              │ - Ống kính khóa nét không đèn trợ nét│  │
+│                                              └──────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ⚡ 2. CƠ CHẾ ĐIỀU KHIỂN MÁY ẢNH & CHỐNG NGHẼN (HARDWARE RESILIENCE)
+## ⚡ 2. CƠ CHẾ ĐIỀU KHIỂN MÁY ẢNH & LUỒNG ẢNH TRỰC TIẾP (DIRECT EVF & SHUTTER)
 
-### 2.1 Kiến trúc chụp ảnh kép: Canon EOS R100 & Webcam Fallback
-Để mang lại chất lượng ảnh studio 24MP mà vẫn đảm bảo Kiosk không bao giờ bị đứng máy khi vận hành đông khách:
+### 2.1 Kiến trúc Canon EDSDK Persistent Daemon (`fotolism_canon_daemon.exe`)
+Thay vì gọi các công cụ dòng lệnh (CLI) trung gian như `digiCamControl` hay sử dụng webcam ảo DirectShow (`EOS Webcam Utility`), hệ thống sử dụng một tiến trình daemon độc lập được viết bằng C# .NET 64-bit:
+* **Giao thức:** Lắng nghe HTTP Server siêu nhẹ tại `http://127.0.0.1:8899/`.
+* **Kéo frame EVF (Live View):** Gọi hàm `EdsDownloadEvfImage()` từ chip DIGIC của Canon, chuyển đổi luồng ảnh nén thành định dạng streaming `multipart/x-mixed-replace` gửi thẳng vào thẻ `<img src="http://127.0.0.1:8899/liveview">`. Tốc độ đạt **35 – 40 FPS** với độ trễ (latency) gần như bằng 0.
+* **Chống ngủ (KeepAlive):** Định kỳ mỗi 15 giây gửi lệnh `kEdsCameraCommand_ExtendShutDownTimer` để máy ảnh không bao giờ tự tắt nguồn khi đang phục vụ khách.
+* **Tự phục hồi kết nối:** Tự động lắng nghe sự kiện ngắt kết nối (`0x000000A2`, `0x00000080`), khởi tạo lại phiên làm việc ngay khi cáp USB được cắm lại hoặc công tắc máy ảnh bật sang `ON`.
+
+### 2.2 Sơ đồ chụp ảnh tức thì & Ngăn chặn xả 2 lần màn trập
 
 ```
 ┌─────────────────────────────────┐
@@ -59,154 +73,151 @@ Fotolism được xây dựng theo mô hình **Desktop Hybrid Architecture (Offl
                  ▼
 ┌─────────────────────────────────┐
 │     Đếm ngược (3s, 5s, 10s)     │
-│   Reset đếm ngược về 0 ngay     │
+│   Khóa nút bấm chụp (disabled)  │
 └────────────────┬────────────────┘
+                 │
+                 ▼ (Tại đúng 0s)
+┌─────────────────────────────────────────────────────────┐
+│  1. Chớp Flash trắng toàn màn hình                      │
+│  2. Chụp khung hình tạm từ Live View (< 0.1s) đưa vào ô │
+│  3. Nếu KHÔNG có máy ảnh Canon: phát 1 tiếng TÁCH loa   │
+│  4. Nếu CÓ máy ảnh Canon: NGẮT LOA, chỉ để cơ học kêu  │
+└────────────────┬────────────────────────────────────────┘
                  │
                  ▼
-┌─────────────────────────────────┐
-│  Kích hoạt Flash & Timeout Race │
-└────────────────┬────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  Gửi lệnh: GET /capture?savePath=...                    │
+│  - EdsSendCommand(Completely_NonAF) (Zero AF Delay)     │
+│  - Bỏ qua bước Halfway gây giật 2 nhịp                  │
+│  - Xử lý mã bận 0x00000081 (nhả nút OFF & thử lại 60ms)│
+└────────────────┬────────────────────────────────────────┘
                  │
-        ┌────────┴───────────────────────────┐
-        ▼ (Ưu tiên)                          ▼ (Song song)
-┌───────────────────────────────┐   ┌───────────────────────────────┐
-│  Gửi lệnh EDSDK / DigiCam     │   │  Bộ đếm Timer 3.5 Giây        │
-│  - /capturenoaf (Bỏ qua AF)   │   │  - Client-side Promise.race   │
-│  - /wait 0 (Thoát ngay)       │   │  - Ngăn chặn kẹt tiến trình   │
-│  - Async subprocess           │   │                               │
-└───────────────┬───────────────┘   └───────────────┬───────────────┘
-                │                                   │
-                ├───────────────┬───────────────────┤
-                ▼ Thành công    ▼ Quá 3.5s / Lỗi    ▼
-        ┌──────────────────┐    ┌───────────────────────────┐
-        │  Ảnh DSLR 24MP   │    │  Webcam Fallback Frame    │
-        │  Chất lượng cao  │    │  Trích xuất từ luồng trực │
-        │  tiếp không gián │    │  tiếp tức thì             │
-        └─────────┬────────┘    └─────────────┬─────────────┘
-                  │                           │
-                  └─────────────┬─────────────┘
-                                ▼
-                ┌───────────────────────────┐
-                │ Cập nhật ô Slot & Bay vào │
-                │ Giải phóng isCapturingShot│
-                │ Sẵn sàng cho ô tiếp theo  │
-                └───────────────────────────┘
+                 ▼ (Thời gian phơi sáng + truyền USB: ~1.1s - 1.3s)
+┌─────────────────────────────────────────────────────────┐
+│  Bắt sự kiện: kEdsObjectEvent_DirItemRequestTransfer    │
+│  - FileStream ghi trực tiếp file ảnh 24MP ra đĩa        │
+│  - Gửi lệnh ShutterButton_OFF giải phóng nút chụp      │
+│  - Trả JSON kết quả về Electron Main Process            │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│  Cập nhật ô Slot bằng ảnh 24MP gốc (Full Resolution)    │
+│  Mở khóa nút bấm chụp (isCapturingShot = false)         │
+│  Sẵn sàng đón lượt chụp tiếp theo                       │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 Các cải tiến cốt lõi đã giải quyết triệt để lỗi nghẽn
-1. **Loại bỏ hoàn toàn `execSync`:**
-   - Trước đây `execSync` khóa cứng Electron main thread đến 15 giây khiến màn hình đơ cứng tại số `1`.
-   - Hiện tại sử dụng `runAsyncCommand` (dựa trên `child_process.exec` bất đồng bộ) kèm timeout ngắt tự động 4 giây.
-2. **Cờ `/wait 0` & `/capturenoaf`:**
-   - Ngăn `CameraControlCmd.exe` gọi `Console.ReadLine()` chờ phím Enter từ terminal.
-   - Bỏ qua khóa lấy nét tự động (`capturenoaf`) giúp máy ảnh chụp ngay lập tức kể cả khi khách di chuyển nhanh.
-3. **Khối `try ... finally` cưỡng chế giải phóng UI:**
-   - Bọc toàn bộ hàm `handleTakePhotoboothShot` và `handleTakeSelfboothShot` trong khối `finally { setCurrentCountdown(0); setIsCapturingShot(false); }`.
-   - Ngay cả khi xảy ra lỗi bất ngờ, UI luôn được mở khóa để khách tiếp tục trải nghiệm.
-4. **Chuẩn hóa đường dẫn tập tin Windows:**
-   - Sử dụng `path.join` để đồng nhất dấu gạch chéo `\` trên Windows, tránh xung đột đường dẫn khi gọi CLI bên ngoài.
+### 2.3 Nguyên lý triệt tiêu tiếng "Tách 2 lần" (Double Shutter Actuation)
+1. **Chỉ gửi lệnh `Completely_NonAF` đúng 1 lần:** Trước đây hệ thống gửi bước đệm `Halfway` (nửa nút) để lấy nét trước khi gửi `Completely`, làm rèm trập máy ảnh Mirrorless đóng mở 2 lần liên tiếp. Việc chuyển sang `Completely_NonAF` giúp máy ảnh xả màn trập **đúng 1 tiếng tách cơ học duy nhất**.
+2. **Khóa chống bấm đè (`await api.camera.edsdkCapture`):** Giao diện Kiosk giữ cờ `isCapturingShot = true` trong suốt quá trình máy ảnh phơi sáng và truyền dữ liệu USB, ngăn khách hàng vô tình bấm liên tục tạo hàng đợi lệnh chụp trùng lặp.
+3. **Phân tách âm thanh loa và cơ học:** Hàm `playCameraShutterSound()` được tinh chỉnh thành 1 tiếng click dứt khoát và tự động tắt khi có máy ảnh Canon thật, loại bỏ hoàn toàn hiện tượng âm thanh loa máy tính kêu đè lên âm thanh màn trập cơ học.
 
 ---
 
-## 📁 3. CƠ CHẾ LƯU TRỮ TẬP TRUNG (`Fotolism_image`)
+## 🎨 3. CHÍNH SÁCH ẢNH THUẦN KHIẾT & GƯƠNG LUÔN TẮT (PURE CAMERA & NO MIRROR)
 
-Toàn bộ hình ảnh, dải in và video hậu trường được quản lý tập trung và nhất quán theo quy chuẩn:
+Để chất lượng ảnh chụp Photobooth đạt chuẩn studio chuyên nghiệp và đồng nhất với cảm biến máy ảnh:
+1. **Pure Camera Defaults (Zero Filter):**
+   - Mặc định 0% tất cả các hiệu ứng can thiệp số: `slimFace: 0`, `skinSmoothing: 0`, `whiteningTone: 0`, `rosyTone: 0`, `glowClarity: 0`.
+   - Chuỗi CSS filter áp dụng trên luồng hiển thị là `none`.
+   - Giữ nguyên 100% màu sắc, nhiệt độ màu (White Balance) và độ tương phản quang học từ ống kính Canon.
+   - Đèn trợ sáng viền (Ring Light) mặc định là tắt (`false`).
+2. **Gương luôn luôn tắt (`mirrorCamera = false`):**
+   - Giá trị khởi tạo mặc định trong Store là `false`.
+   - Các hàm bắt đầu phiên (`startNewSession`), làm mới phiên (`clearSession`), hoặc hoàn tác cài đặt (`resetAdjustments`) đều cưỡng chế đặt lại `mirrorCamera: false`.
+   - Đã gỡ bỏ nút bấm lật gương trên thanh công cụ Kiosk để khách hàng không thể vô tình bật lật ảnh.
+   - Hình ảnh hiển thị trực tiếp (Live View) khớp 1:1 với ảnh chụp 24MP (chữ trên áo, biển hiệu và góc đứng không bị đảo ngược chiều trái/phải).
+
+---
+
+## 📁 4. CƠ CHẾ LƯU TRỮ TẬP TRUNG (`Fotolism_image`)
+
+Toàn bộ hình ảnh, dải in và video hậu trường được quản lý tập trung theo quy chuẩn:
 
 | Cấu hình | Giá trị mặc định | Mô tả |
 |---|---|---|
-| **Thư mục chính** | `D:\Fotolism_image` | Ổ cứng tốc độ cao được ưu tiên lưu trữ |
-| **Thư mục dự phòng 1** | `F:\Fotolism_image` | Tự động kích hoạt nếu máy tính booth cấu hình ổ F:\ |
-| **Thư mục dự phòng 2** | `%USERPROFILE%\Downloads\Fotolism_image` | Fallback an toàn nếu không có quyền ghi ổ đĩa ngoài |
-| **Tiền tố ảnh đơn** | `fotolism_shot_{index}_{timestamp}.jpg` | Từng bức ảnh chụp đơn lẻ (24MP hoặc 1080p) |
+| **Thư mục chính** | `F:\Fotolism_image` (hoặc `D:\Fotolism_image`) | Ổ cứng tốc độ cao lưu trữ ảnh gốc 24MP |
+| **Tiền tố ảnh đơn** | `fotolism_shot_{index}_{timestamp}.jpg` | File ảnh chụp 24MP full EXIF (hoặc 1080p fallback) |
 | **Tiền tố dải in** | `fotolism_strip_{layout}_{timestamp}.jpg` | Dải ảnh hoàn chỉnh đã ghép khung, theme & sticker |
-| **Tiền tố video** | `fotolism_timelapse_{timestamp}.webm` | Video tua nhanh quá trình tạo dáng của khách |
-| **Tiền tố phiên chụp**| `fotolism_session_{timestamp}` | Thư mục con đóng gói toàn bộ media của một phiên |
+| **Tiền tố video** | `fotolism_timelapse_{timestamp}.webm` | Video tua nhanh quá trình tạo dáng hậu trường |
+| **Tiền tố phiên chụp**| `fotolism_session_{timestamp}` | Thư mục đóng gói toàn bộ media của một phiên |
 
 ---
 
-## 🎨 4. HAI CHẾ ĐỘ CHỤP LINH HOẠT
+## 🧪 5. HỆ THỐNG KIỂM THỬ TỰ ĐỘNG 3 TẦNG (AUTOMATED TEST SUITE)
 
-### 4.1 Chế độ Photobooth Cổ Điển (Classic Photobooth)
-* Chụp lần lượt từng ô theo bố cục đã chọn (1, 3, 4, 6 hoặc 8 ảnh).
-* **Live Slot Bar:** Dải ô ảnh trực tiếp hiển thị ảnh vừa chụp, ô chưa chụp có dấu `+` đứt nét.
-* **Tính năng Retake thông minh:** Khách chỉ cần bấm dấu `✕` trên bất kỳ ô nào chưa ưng ý để chụp lại riêng ô đó mà không phải chụp lại từ đầu cả dải.
-* Sau khi đủ ảnh, hệ thống giữ nguyên giao diện để khách kiểm tra kỹ càng trước khi bấm *"Hài Lòng & Tiếp Tục ➔"*.
-
-### 4.2 Chế độ Selfbooth Tự Do (Selfbooth Studio)
-* Chụp tự do không giới hạn số lượng ảnh trong khoảng thời gian đếm lùi (mặc định 3 phút hoặc 5 phút).
-* Đếm ngược nhanh 2 giây giữa mỗi lần bấm giúp khách liên tục thay đổi phong cách tạo dáng.
-* Hết giờ, hệ thống mở thư viện ảnh để khách tự do chọn ra các bức ảnh đẹp nhất đưa vào dải in hoàn chỉnh.
-
----
-
-## 💳 5. HỆ THỐNG THANH TOÁN ĐA PHƯƠNG THỨC
+Hệ thống được bảo vệ bởi bộ test tự động toàn diện chạy qua Vitest (`npm run test`):
 
 ```
-┌────────────────────────────────────────────────────────┐
-│               MÀN HÌNH THANH TOÁN KIOSK                │
-│                                                        │
-│  [ Cột Trái: Đơn Hàng ]      [ Cột Phải: Phương Thức ] │
-│  - Khổ ảnh & Bố cục          - Tab 1: VietQR Napas 24/7│
-│  - Mã đơn: FTLxxxxxx         - Tab 2: Tiền mặt (Cash)  │
-│  - Chọn số lượng bản in      - Đồng hồ đếm lùi 120s    │
-│  - Áp dụng mã Coupon         - Nút xác nhận thanh toán │
-│  - Tổng tiền (VND)           - Nút Test Mode (Bỏ qua)  │
-└────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        TỔNG HỢP KIỂM THỬ TỰ ĐỘNG                       │
+├────────────────────────────────────────────────────────────────────────┤
+│ Level 1: Unit Tests (Pricing, Store Invariants & Pure Defaults)        │
+│   ✓ Tính chuẩn giá 2x6, 4x6, phụ phí bản in thêm & mã giảm giá Coupon │
+│   ✓ Đảm bảo Default Beauty Config = 0% và CSS filter = 'none'         │
+│   ✓ Xác minh mirrorCamera = false bất biến qua mọi vòng đời phiên      │
+│   ✓ Kích thước bản vẽ 2x6 (600x1800) và 4x6 (1200x1800) chuẩn 300 DPI  │
+├────────────────────────────────────────────────────────────────────────┤
+│ Level 2: Integration Tests (Canon Native Daemon & IPC Bridge)          │
+│   ✓ IT-01: Healthcheck cổng 8899 phản hồi trạng thái kết nối          │
+│   ✓ IT-02: Endpoint /frame kéo frame JPEG tĩnh hợp lệ                  │
+│   ✓ IT-03: Endpoint /liveview truyền luồng MJPEG liên tục 35 FPS       │
+│   ✓ IT-04: Endpoint /capture xả màn trập không trễ, lưu 24MP < 2.0s    │
+│   ✓ IT-05: Cấu trúc IPC Bridge an toàn qua Preload ContextIsolation   │
+├────────────────────────────────────────────────────────────────────────┤
+│ Level 3: System E2E User Stories (Kiosk Full Lifecycle)                │
+│   ✓ US-01: Quy trình Photobooth 4 ô cổ điển kèm Retake ô hỏng          │
+│   ✓ US-02: Quy trình Selfbooth tự do theo đồng hồ đếm lùi              │
+│   ✓ US-03: Tích hợp thanh toán VietQR Napas 24/7                      │
+│   ✓ US-04: Tự động ghi video Timelapse hậu trường tua nhanh            │
+│   ✓ US-05: Đồng bộ Google Drive Webhook trong nền                      │
+│   ✓ US-06: Bảng điều khiển quản trị Admin được khóa mã PIN             │
+└────────────────────────────────────────────────────────────────────────┘
 ```
-
-1. **VietQR NAPAS 24/7:**
-   - Tự động sinh mã VietQR động chứa số tài khoản, mã ngân hàng (BIN), số tiền chính xác theo số bản in và mã đơn hàng `FTLxxxxxx`.
-   - Khách chỉ cần mở bất kỳ ứng dụng ngân hàng hoặc ví điện tử quét mã là thanh toán tức thì.
-2. **Tiền mặt (Cash):**
-   - Hướng dẫn đưa tiền cho nhân viên trực booth.
-   - Nhân viên kiểm tra và bấm nút *"Xác nhận đã nhận tiền"* để mở camera.
-3. **Mã ưu đãi (Discount Coupon):**
-   - Hỗ trợ giảm theo phần trăm (%) hoặc trừ tiền trực tiếp.
-4. **Chế độ kiểm thử nhanh (Test Mode):**
-   - Cho phép nhân viên kỹ thuật hoặc quản trị viên booth bỏ qua bước thanh toán khi kiểm tra định kỳ.
+*Chạy toàn bộ 25 bài test tự động:*
+```powershell
+cd f:\JoyBooth\desktop
+npm run test
+```
 
 ---
 
-## 🛠️ 6. HƯỚNG DẪN CÀI ĐẶT & VẬN HÀNH
+## 🛠️ 6. HƯỚNG DẪN BIÊN DỊCH & VẬN HÀNH
 
-### 6.1 Khởi chạy môi trường phát triển (Development)
+### 6.1 Biên dịch Canon Native Daemon 64-bit
+Khi có chỉnh sửa trong [desktop/native-daemon/CanonDaemon.cs](file:///f:/JoyBooth/desktop/native-daemon/CanonDaemon.cs):
+```powershell
+cd f:\JoyBooth\desktop\native-daemon
+powershell.exe -ExecutionPolicy Bypass -File .\build.ps1
+```
+*File thực thi `fotolism_canon_daemon.exe` sẽ được xuất thẳng ra thư mục `desktop/electron/`.*
+
+### 6.2 Khởi chạy môi trường phát triển (Development)
 Tại thư mục gốc `f:\JoyBooth`:
 ```powershell
-# Chạy đồng thời Vite Frontend (5173) và Electron Desktop
 npm run dev
 ```
 
-### 6.2 Biên dịch mã nguồn Electron & Frontend
-Khi có thay đổi trong `desktop/electron/main.cts` hoặc các màn hình React:
-```powershell
-# 1. Biên dịch Electron Main Process
-cd f:\JoyBooth\desktop
-npx tsc -p electron/tsconfig.json
-
-# 2. Kiểm tra lỗi kiểu dữ liệu TypeScript
-npx tsc --noEmit
-```
-
-### 6.3 Đóng gói ứng dụng Kiosk chạy độc lập (.exe)
+### 6.3 Kiểm tra kiểu dữ liệu & Đóng gói sản phẩm
 ```powershell
 cd f:\JoyBooth\desktop
-npm run build:win
+npm run build
 ```
-*Tập tin cài đặt `Fotolism Setup.exe` sẽ được tạo tại thư mục `desktop/release/`.*
 
 ---
 
 ## 📋 7. QUY TRÌNH VẬN HÀNH TẠI SỰ KIỆN (OPERATOR CHECKLIST)
 
 1. **Kiểm tra đầu ca:**
-   * Cắm cáp USB máy ảnh Canon EOS R100 vào cổng USB 3.0 máy tính.
-   * Bật nguồn máy ảnh Canon, gạt cần sang chế độ chụp ảnh tĩnh (`P` hoặc `M`, khuyến nghị `1/125s, f/4.0, ISO 400 - 800`).
+   * Cắm cáp USB máy ảnh Canon EOS R100 vào cổng **USB 3.0** máy tính Kiosk.
+   * Bật nguồn máy ảnh Canon, gạt cần sang chế độ chụp ảnh tĩnh (`M` hoặc `P`, khuyến nghị `1/125s, f/4.0, ISO 400 - 800`).
    * Cắm nguồn máy in ảnh nhiệt (DNP / HiTi), đảm bảo đủ giấy in và mực ribbon.
-2. **Mở phần mềm Fotolism:**
+2. **Khởi động Fotolism:**
    * Mở ứng dụng Fotolism.
-   * Chạm vào biểu tượng **⚙️ (Bánh răng)** tại màn hình chờ, nhập mã PIN quản trị mặc định: `1234`.
-   * Kiểm tra thông số sự kiện, máy in mặc định và kết nối camera.
+   * Chạm vào biểu tượng **⚙️ (Bánh răng)** tại màn hình chờ, nhập mã PIN quản trị: `1234`.
+   * Kiểm tra thông số sự kiện, kết nối camera (hiển thị *📸 Máy ảnh Canon EOS - EDSDK Trực Tiếp*).
    * Nhấn nút *"📸 Vào Chế Độ Chụp"* để sẵn sàng đón khách.
 3. **Xử lý sự cố nhanh (Troubleshooting):**
-   * *Máy ảnh không nhận lệnh chụp:* Kiểm tra xem ứng dụng Canon EOS Utility chính hãng có đang chạy đè hay không. Fotolism sẽ tự động giải phóng xung đột, nhưng nếu cần có thể rút cắm lại cáp USB hoặc ấn nhẹ nút chụp trên thân máy để đánh thức máy khỏi chế độ ngủ (Auto Sleep).
+   * *Máy ảnh không nhận lệnh chụp:* Đảm bảo không có ứng dụng Canon EOS Utility chính hãng chạy đè. Nếu máy vào chế độ ngủ (Sleep), chỉ cần bấm nhẹ nửa nút chụp vật lý trên máy ảnh hoặc gạt công tắc nguồn `OFF` $\rightarrow$ `ON` để daemon tự nhận lại phiên làm việc trong 2 giây.
    * *Hết giấy in:* Thay cuộn giấy mới, vào menu Admin bấm *"Kiểm tra máy in"* để in bản test.
