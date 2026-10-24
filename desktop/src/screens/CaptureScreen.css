@@ -940,6 +940,60 @@
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.7);
 }
 
+/* Badge khóa ô đã chụp lại 1 lần (không hiển thị nút xóa nữa) */
+.slot-locked-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.slot-retake-used-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #8b5cf6;
+  background: #ede9fe;
+  padding: 1px 6px;
+  border-radius: 6px;
+  margin-top: 1px;
+}
+
+.live-slot-thumb.retake-locked {
+  cursor: default !important;
+}
+
+.live-slot-thumb.retake-locked:hover {
+  transform: none !important;
+}
+
+.cancel-shoot-used-text {
+  font-size: 0.82rem;
+  color: #78716c;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px dashed rgba(120, 113, 108, 0.35);
+  padding: 4px 14px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
 .slot-empty-content {
   display: flex;
   flex-direction: column;

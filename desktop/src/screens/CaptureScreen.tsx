@@ -110,6 +110,9 @@ export default function CaptureScreen() {
   // ── Chế độ PHOTOBOOTH CỔ ĐIỂN (Có Retake / Xóa ô xấu) ──
   const [slots, setSlots] = useState<(CapturedPhoto | null)[]>(Array(totalShots).fill(null))
   const [retakeSlotIndex, setRetakeSlotIndex] = useState<number | null>(null)
+  // Giới hạn lượt chụp lại: chỉ chụp lại từ đầu tối đa 1 lần, mỗi ô chỉ được xóa và chụp lại tối đa 1 lần
+  const [sessionResetCount, setSessionResetCount] = useState<number>(0)
+  const [slotRetakeCounts, setSlotRetakeCounts] = useState<number[]>(() => Array(totalShots).fill(0))
 
   useEffect(() => {
     // Khởi tạo phiên trong SQLite persistent session storage (FR-06)
@@ -677,9 +680,18 @@ export default function CaptureScreen() {
     }
   }
 
-  // Xóa ảnh ở ô slot k để chuẩn bị chụp lại (retake)
+  // Xóa ảnh ở ô slot k để chuẩn bị chụp lại (mỗi ô chỉ được xóa và chụp lại tối đa 1 lần)
   function handleDeleteSlot(indexToDelete: number) {
     if (isCapturingShot) return
+    const usedCount = slotRetakeCounts[indexToDelete] || 0
+    if (usedCount >= 1) return
+
+    setSlotRetakeCounts((prev) => {
+      const next = [...prev]
+      next[indexToDelete] = usedCount + 1
+      return next
+    })
+
     const nextSlots = [...slots]
     nextSlots[indexToDelete] = null
     setSlots(nextSlots)
@@ -881,8 +893,11 @@ export default function CaptureScreen() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 
-  // Hủy buổi chụp và làm mới
+  // Hủy buổi chụp và làm mới (chỉ được phép chụp lại từ đầu 1 lần)
   function handleResetShootSession() {
+    if (sessionResetCount >= 1) return
+    setSessionResetCount((c) => c + 1)
+    setSlotRetakeCounts(Array(totalShots).fill(0))
     setIsSessionActive(false)
     setIsCapturingShot(false)
     setIsSelfboothRunning(false)
@@ -1351,36 +1366,58 @@ export default function CaptureScreen() {
                   const isFilled = slotItem !== null
                   const isRetaking = retakeSlotIndex === index
                   const isJustCaptured = justCapturedSlot === index
+                  const retakesUsed = slotRetakeCounts[index] || 0
+                  const canRetake = retakesUsed < 1
 
                   return (
                     <div
                       key={index}
-                      className={`live-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isRetaking ? 'retaking-target' : ''} ${isJustCaptured ? 'just-captured' : ''}`}
+                      className={`live-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isRetaking ? 'retaking-target' : ''} ${isJustCaptured ? 'just-captured' : ''} ${!canRetake ? 'retake-locked' : ''}`}
                       onClick={() => {
-                        if (isFilled && !isCapturingShot) {
+                        if (isFilled && !isCapturingShot && canRetake) {
                           handleDeleteSlot(index)
                         }
                       }}
+                      title={
+                        isFilled
+                          ? canRetake
+                            ? `Bấm ✕ để xóa và chụp lại ô ${index + 1} (còn 1 lượt)`
+                            : `Ô ${index + 1} đã chụp lại 1 lần (không thể xóa thêm)`
+                          : undefined
+                      }
                     >
                       {isFilled ? (
                         <>
                           <img src={slotItem.compositedPath || slotItem.rawPath} alt={`Slot ${index + 1}`} />
                           <span className="slot-index-badge">{index + 1}</span>
-                          <button
-                            className="slot-delete-btn"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteSlot(index)
-                            }}
-                            title={`Xóa ảnh ô ${index + 1} để chụp lại`}
-                          >
-                            ✕
-                          </button>
+                          {canRetake ? (
+                            <button
+                              className="slot-delete-btn"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteSlot(index)
+                              }}
+                              title={`Xóa ảnh ô ${index + 1} để chụp lại (còn 1 lượt)`}
+                              aria-label={`Xóa ảnh ô ${index + 1}`}
+                            >
+                              ✕
+                            </button>
+                          ) : (
+                            <span
+                              className="slot-locked-badge"
+                              title="Ô này đã dùng hết lượt chụp lại (1/1)"
+                            >
+                              ✓
+                            </span>
+                          )}
                         </>
                       ) : (
                         <div className="slot-empty-content">
                           <span className="slot-empty-plus">+</span>
                           <span className="slot-empty-label">Ô {index + 1}</span>
+                          {retakesUsed > 0 && (
+                            <span className="slot-retake-used-tag">Lần 2</span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1439,9 +1476,19 @@ export default function CaptureScreen() {
                 )}
 
                 {isSessionActive && !isCapturingShot && (
-                  <button className="cancel-shoot-btn" onClick={handleResetShootSession}>
-                    ↩ Chụp lại từ đầu
-                  </button>
+                  sessionResetCount < 1 ? (
+                    <button
+                      className="cancel-shoot-btn"
+                      onClick={handleResetShootSession}
+                      title="Chỉ được phép chụp lại từ đầu 1 lần duy nhất"
+                    >
+                      ↩ Chụp lại từ đầu (Còn 1 lần)
+                    </button>
+                  ) : (
+                    <span className="cancel-shoot-used-text" title="Bạn đã dùng hết lượt chụp lại từ đầu">
+                      🔒 Đã dùng lượt chụp lại (1/1)
+                    </span>
+                  )
                 )}
               </div>
             </div>
