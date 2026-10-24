@@ -24,7 +24,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: radial-gradient(circle at center, #18181b 0%, #09090b 100%);
+  background: radial-gradient(circle at center, #271E1A 0%, #1F1815 100%);
   color: #fff;
 }
 
@@ -45,7 +45,7 @@
   font-size: 2.2rem;
   font-weight: 900;
   letter-spacing: 2px;
-  background: linear-gradient(135deg, #f472b6 0%, #fb7185 100%);
+  background: linear-gradient(135deg, #EACDB6 0%, #A66A43 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;

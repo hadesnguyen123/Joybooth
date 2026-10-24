@@ -1,40 +1,73 @@
 ---
 name: joybooth-system-verifier
-description: Trợ lý chuyên kiểm thử tự động, ra lệnh và đối soát xác minh từng phân hệ (Desktop Kiosk, CMS Web, Backend API, Port Partitioning, Kế toán 3 bên) trong hệ sinh thái Fotolism.
+description: Trợ lý chuyên kiểm thử tự động, ra lệnh và đối soát xác minh toàn diện từng phân hệ (Canon Daemon 8899, Desktop Kiosk 5173, CMS Web 5180, Backend API 5181, SQLite SessionDB, Đối soát 3 bên) trong Fotolism 3.0.
 ---
 
-# 🛠️ Fotolism System Verifier Skill
+# 🛠️ Fotolism System Verifier Skill — Fotolism 3.0
 
-## Mục tiêu cốt lõi
-Skill này được thiết kế để **ra lệnh (command orchestration)** và **xác minh tự động (automated verification)** toàn diện từng phân hệ của Fotolism:
-1. **Kiểm tra phân bổ cổng mạng**: Đảm bảo không xung đột giữa Desktop Kiosk (`5173`), CMS Web UI (`5180`), và CMS Backend MVC Server (`5181`).
-2. **Kiểm tra tính toàn vẹn Database & API MVC**: Kiểm tra dữ liệu Kiosks, Frames, Pricing, Coupons, Transactions và tính bền vững khi ghi đĩa.
-3. **Kiểm thử logic Đối soát kế toán 3 bên (Reconciliation Audit)**: Đối chiếu doanh thu VietQR ngân hàng + tiền mặt thực tế vs lượng giấy in tiêu hao của máy in nhiệt.
-4. **Kiểm tra phần cứng & IPC Bridge**: Xác minh kết nối Electron Preload IPC tới máy in DNP RX1HS và Camera DSLR/Webcam.
+Skill chuyên sâu phục vụ công tác **ra lệnh điều phối (command orchestration)** và **xác minh tự động (automated verification)** toàn diện tất cả các phân hệ phần mềm và phần cứng trong hệ sinh thái Fotolism Photobooth.
 
-## Lệnh thực thi kiểm tra tức thì
-```bash
-# Kiểm tra toàn bộ hệ thống từ thư mục gốc
+---
+
+## 1. Bản Đồ Phân Phối Cổng Mạng (Port Allocation)
+
+Đảm bảo độc lập tài nguyên, không xảy ra xung đột cổng trên cùng máy trạm Windows:
+
+| Phân hệ | Cổng (Port) | Công nghệ | URL Kiểm Tra Sức Khỏe |
+| :--- | :--- | :--- | :--- |
+| **Canon Camera Daemon** | `8899` | C#/.NET x64 Persistent Daemon | `http://127.0.0.1:8899/status` |
+| **Desktop Kiosk UI** | `5173` | Electron + React 19 + Vite | `http://localhost:5173` |
+| **CMS Web Backoffice** | `5180` | Next.js 16 (App Router) | `http://localhost:5180` |
+| **CMS MVC API Server** | `5181` | Node.js MVC + Express | `http://localhost:5181/api/health` |
+| **AI Enhance Service** | `8000` | Python FastAPI + OpenCV/PyTorch | `http://localhost:8000/docs` |
+
+---
+
+## 2. Lệnh Thực Thi Kiểm Tra Tức Thì
+
+### 1. Kiểm tra toàn hệ thống (All-in-One Verification Script):
+```powershell
+# Chạy từ thư mục gốc f:\JoyBooth
 npm run verify
 
-# Hoặc chạy script trực tiếp:
+# Hoặc thực thi trực tiếp script kiểm tra:
 node .agents/skills/joybooth-system-verifier/scripts/verify-all.mjs
 ```
 
-## Các kịch bản ra lệnh & xác minh từng phần
+### 2. Chạy toàn bộ Test Suites tự động:
+```powershell
+# Chạy 30 unit, integration & E2E tests trong Desktop Kiosk:
+npm --prefix desktop run test
 
-### 1. Xác minh Backend MVC API (Port 5181)
-- Lệnh: `Invoke-RestMethod -Uri "http://localhost:5181/api/health"`
-- Kiểm tra các endpoint:
-  * `GET /api/kiosks` -> Kiểm tra danh sách 2 Kiosks và chỉ số khay giấy in.
-  * `GET /api/accounting/reconcile` -> Kiểm tra báo cáo đối soát 3 góc.
-  * `POST /api/kiosks/:id/heartbeat` -> Kiểm tra nhận ping từ máy trạm.
-  * `POST /api/transactions` -> Kiểm tra tạo đơn hàng và trừ giấy in tự động.
+# Chạy kiểm thử đối soát kế toán trong Cloud CMS:
+npm --prefix joybooth-cms test
+```
 
-### 2. Xác minh CMS Web UI (Port 5180)
-- Lệnh: `npm --prefix cms-web run build` (Kiểm tra 0 lỗi TypeScript & Vite)
-- Lệnh chạy: `npm run cms` (Khởi chạy đồng thời Backend 5181 và UI 5180)
+---
 
-### 3. Xác minh Desktop Kiosk (Port 5173)
-- Lệnh: `npm --prefix desktop run build`
-- Lệnh chạy: `npm run dev`
+## 3. Các Hạng Mục Xác Minh Tự Động Chi Tiết
+
+### ① Xác minh Canon Camera Daemon (Cổng 8899)
+- **Lệnh**: `curl.exe -s http://127.0.0.1:8899/status`
+- **Tiêu chuẩn đạt**:
+  - `connected: true`: Máy ảnh Canon EOS R100 kết nối session EDSDK thành công.
+  - `evfReady: true`: Bộ đệm EVF đang nhận frame 960x640 liên tục.
+  - `cameraState`: `LIVEVIEW` hoặc `READY`.
+  - `fps`: Dao động ổn định từ 20.0 đến 33.0 FPS.
+
+### ② Xác minh Cơ sở dữ liệu SQLite SessionDB
+- **Vị trí**: `desktop/dist-electron/sessionDatabase.cjs`
+- **Tiêu chuẩn đạt**:
+  - Tự động tạo và bảo vệ 4 bảng: `Sessions`, `Captures`, `MediaFiles`, `PrintJobs`.
+  - Hỗ trợ lưu trữ trạng thái chụp có Idempotency (`COMPLETED`, `FAILED`, `PENDING`).
+
+### ③ Xác minh Phân hệ Desktop Kiosk (Cổng 5173)
+- **Lệnh build**: `npm --prefix desktop run build`
+- **Tiêu chuẩn đạt**:
+  - 0 lỗi TypeScript (`tsc -b`), 0 lỗi Vite bundle.
+  - Preload ContextIsolation [preload.cts](file:///f:/JoyBooth/desktop/electron/preload.cts) phơi bày an toàn các bridge: `camera`, `printer`, `session`, `storage`, `window`.
+
+### ④ Xác minh Đối soát Kế toán 3 góc (Triple Reconciliation)
+- **File**: `joybooth-cms/src/lib/reconciliation/engine.ts`
+- **Tiêu chuẩn đạt**:
+  - Đối chiếu khớp 100% giữa số tiền VietQR ngân hàng, tiền mặt nhân viên nộp và số lượt cắt giấy máy in nhiệt DNP RX1HS.

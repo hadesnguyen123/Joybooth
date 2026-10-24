@@ -1,5 +1,5 @@
-/* Online Google Fonts Fallback */
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@500;600;700&display=swap');
+/* Online Google Fonts Fallback & Warm Minimal Luxury Typography */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700&display=swap');
 
 /* ── Local Bundled Cute Fonts (100% Offline Compatible) ───────────────────── */
 @font-face {
@@ -20,44 +20,77 @@
        url('./assets/fonts/Quicksand-Variable.ttf') format('truetype');
 }
 
-/* ── CSS Variables (Exact Requested Palette) ────────────────────────────── */
+/* ── FOTOLISM 3.0 WARM MINIMAL LUXURY BRAND COLOR SYSTEM ─────────────────── */
 :root {
-  /* Exact Colors Specified */
-  --color-cream-bg:      #FFF8F2;      /* Cream background */
-  --color-pink-primary:  #F4729A;      /* Pink primary */
-  --color-dark-pink:     #D94F78;      /* Dark pink */
-  --color-dark-text:     #2D2426;      /* Dark text */
-  --color-white:         #FFFFFF;      /* White */
+  /* ── 2.1 Primary Brand Colors ────────────────────────────── */
+  --brand-primary:         #502A1D;      /* Espresso Brown — Main CTA, selected states, branding */
+  --brand-primary-hover:   #633726;      /* Button hover */
+  --brand-primary-pressed: #3D2017;      /* Button pressed */
+  --brand-secondary:       #78452F;      /* Cocoa Brown — Secondary branding */
+  --brand-accent:          #A66A43;      /* Caramel — Decorative accents */
+  --brand-highlight:       #EACDB6;      /* Soft Warm Beige — Subtle emphasis */
 
-  /* Mapping to Functional Tokens */
-  --color-bg-booth:      var(--color-cream-bg);
-  --color-bg-primary:    var(--color-cream-bg);
-  --color-bg-card:       var(--color-white);
-  --color-bg-elevated:   var(--color-white);
+  /* ── 2.2 Neutral Colors ──────────────────────────────────── */
+  --bg-primary:            #FAF6F1;      /* Warm Cream — Main app background (65-70%) */
+  --bg-secondary:          #F2E9E1;      /* Warm Almond — Secondary sections */
+  --surface-default:       #FFFFFF;      /* Pure White — Cards, dialogs, QR surface */
+  --surface-warm:          #FFF9F4;      /* Warm Panels, drawers */
+  --border-default:        #E6D9CF;      /* Subtle borders */
+  --border-strong:         #C8B2A4;      /* Strong separators */
+  --text-primary:          #351C15;      /* Deep Walnut Coffee — Main text */
+  --text-secondary:        #70594F;      /* Warm Umber — Supporting text */
+  --text-inverse:          #FFFFFF;      /* White text on dark/espresso surfaces */
+  --text-disabled:         #897F79;      /* Disabled text */
 
-  --color-pink-hover:    var(--color-dark-pink);
-  --color-pink-light:    #FDE8EF;
-  --color-pink-soft:     #FFF0F5;
-  --color-pink-glow:     rgba(244, 114, 154, 0.35);
+  /* ── 2.3 Semantic Colors ─────────────────────────────────── */
+  --status-success:        #237A57;      /* Success, completed, camera online */
+  --status-warning:        #A86516;      /* Warning, low paper alert */
+  --status-error:          #B43F3F;      /* Error, camera disconnect */
+  --status-info:           #356A91;      /* Informational */
+  --status-pending:        #806348;      /* Pending processing */
 
-  --color-accent:        var(--color-pink-primary);
-  --color-accent-hover:  var(--color-dark-pink);
+  --status-success-bg:     #EBF5F0;
+  --status-warning-bg:     #FDF6EB;
+  --status-error-bg:       #FDEEEE;
+  --status-info-bg:        #EBF2F7;
+  --status-pending-bg:     #F5EFEA;
+
+  /* ── Seamless Backward Compatibility Mapping ─────────────── */
+  --color-cream-bg:        var(--bg-primary);
+  --color-pink-primary:    var(--brand-primary);
+  --color-dark-pink:       var(--brand-primary-hover);
+  --color-dark-text:       var(--text-primary);
+  --color-white:           var(--surface-default);
+
+  --color-bg-booth:        var(--bg-primary);
+  --color-bg-primary:      var(--bg-primary);
+  --color-bg-card:         var(--surface-default);
+  --color-bg-elevated:     var(--surface-warm);
+
+  --color-pink-hover:      var(--brand-primary-hover);
+  --color-pink-light:      var(--border-default);
+  --color-pink-soft:       var(--surface-warm);
+  --color-pink-glow:       rgba(80, 42, 29, 0.22);
+
+  --color-accent:          var(--brand-accent);
+  --color-accent-hover:    var(--brand-secondary);
 
   /* Text Colors */
-  --color-text-primary:  var(--color-dark-text);
-  --color-text-secondary:#6B5E62;
-  --color-text-dim:      #9E9095;
-  --color-text-light:    var(--color-white);
+  --color-text-primary:    var(--text-primary);
+  --color-text-secondary:  var(--text-secondary);
+  --color-text-dim:        var(--text-disabled);
+  --color-text-light:      var(--text-inverse);
 
   /* Borders & Shadows */
-  --color-border:        rgba(45, 36, 38, 0.08);
-  --color-border-pink:   var(--color-pink-primary);
-  --color-border-hover:  rgba(244, 114, 154, 0.4);
+  --color-border:          var(--border-default);
+  --color-border-pink:     var(--brand-primary);
+  --color-border-hover:    var(--brand-accent);
 
-  --shadow-sm:           0 2px 8px rgba(45, 36, 38, 0.06);
-  --shadow-md:           0 8px 24px rgba(45, 36, 38, 0.09);
-  --shadow-lg:           0 16px 40px rgba(45, 36, 38, 0.12);
-  --shadow-pink:         0 8px 30px rgba(244, 114, 154, 0.4);
+  --shadow-sm:             0 2px 8px rgba(53, 28, 21, 0.05);
+  --shadow-md:             0 8px 24px rgba(53, 28, 21, 0.08);
+  --shadow-lg:             0 16px 40px rgba(53, 28, 21, 0.12);
+  --shadow-pink:           0 8px 26px rgba(80, 42, 29, 0.32);
+  --shadow-brand:          0 8px 26px rgba(80, 42, 29, 0.32);
 
   /* Border radius */
   --radius-xs: 8px;
@@ -67,9 +100,9 @@
   --radius-xl: 36px;
   --radius-full: 9999px;
 
-  /* Fonts - Font Chuẩn Cute Photobooth Hàn Quốc có hỗ trợ đầy đủ tiếng Việt trên mọi nền tảng */
-  --font-display: 'Quicksand', 'Baloo 2', 'Nunito', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
-  --font-body:    'Quicksand', 'Nunito', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+  /* Typography Fonts */
+  --font-display: 'Plus Jakarta Sans', 'Quicksand', 'Baloo 2', system-ui, sans-serif;
+  --font-body:    'Manrope', 'Quicksand', system-ui, sans-serif;
 
   /* Transitions */
   --transition-fast:   150ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -88,8 +121,8 @@ html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: var(--color-cream-bg);
-  color: var(--color-dark-text);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
@@ -120,45 +153,72 @@ button, input, select, textarea, optgroup {
   transform: scale(0.97);
 }
 
-.btn-primary, .btn-pink {
-  background: var(--color-pink-primary);
-  color: var(--color-white);
-  box-shadow: var(--shadow-pink);
+/* ── Button Utilities (Warm Minimal Luxury) ──────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+  outline: none;
+  user-select: none;
 }
 
-.btn-primary:hover, .btn-pink:hover {
-  background: var(--color-dark-pink);
-  box-shadow: 0 10px 35px rgba(217, 79, 120, 0.5);
+.btn:active {
+  transform: scale(0.97);
 }
 
-.btn-pill-white {
-  background: var(--color-white);
-  color: var(--color-dark-text);
-  border: 1.5px solid rgba(45, 36, 38, 0.12);
+.btn-primary, .btn-brand, .btn-pink {
+  background: var(--brand-primary);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-brand);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.btn-primary:hover, .btn-brand:hover, .btn-pink:hover {
+  background: var(--brand-primary-hover);
+  box-shadow: 0 10px 30px rgba(80, 42, 29, 0.45);
+}
+
+.btn-primary:active, .btn-brand:active, .btn-pink:active {
+  background: var(--brand-primary-pressed);
+  transform: scale(0.97);
+}
+
+.btn-secondary, .btn-pill-white {
+  background: var(--surface-default);
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-strong);
   box-shadow: var(--shadow-sm);
 }
 
-.btn-pill-white:hover {
-  border-color: var(--color-pink-primary);
-  color: var(--color-pink-primary);
+.btn-secondary:hover, .btn-pill-white:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: var(--surface-warm);
 }
 
-.btn-pill-white.active {
-  background: var(--color-white);
-  color: var(--color-dark-text);
-  border-color: var(--color-dark-text);
-  box-shadow: 0 4px 14px rgba(45, 36, 38, 0.1);
+.btn-secondary.active, .btn-pill-white.active {
+  background: var(--brand-primary);
+  color: var(--text-inverse);
+  border-color: var(--brand-primary);
+  box-shadow: var(--shadow-brand);
 }
 
 .btn-ghost {
   background: rgba(255, 255, 255, 0.85);
-  color: var(--color-dark-text);
+  color: var(--text-primary);
   backdrop-filter: blur(8px);
 }
 
 .btn-ghost:hover {
-  background: var(--color-white);
-  color: var(--color-pink-primary);
+  background: var(--surface-default);
+  color: var(--brand-primary);
 }
 
 /* Modal and Flyouts */
@@ -178,3 +238,4 @@ button, input, select, textarea, optgroup {
 .animate-pop {
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+

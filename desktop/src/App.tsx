@@ -13,8 +13,10 @@ import ErrorNotificationCenter from './components/ErrorNotificationCenter'
 import './App.css'
 
 export default function App() {
-  const screen = useAppStore((s) => s.screen)
+  const storeScreen = useAppStore((s) => s.screen)
   const isOverhead = typeof window !== 'undefined' && window.location.search.includes('mode=overhead')
+  const queryScreen = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('screen') : null
+  const screen = queryScreen || storeScreen
 
   if (isOverhead) {
     return <OverheadScreen />

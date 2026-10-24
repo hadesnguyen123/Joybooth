@@ -68,7 +68,7 @@ namespace FotolismCanonDaemon {
             if (!string.IsNullOrEmpty(SessionId)) sb.AppendFormat(",\"sessionId\":\"{0}\"", SessionId);
             if (!string.IsNullOrEmpty(CaptureId)) sb.AppendFormat(",\"captureId\":\"{0}\"", CaptureId);
             if (DurationMs > 0) sb.AppendFormat(",\"durationMs\":{0}", DurationMs);
-            if (!string.IsNullOrEmpty(Details)) sb.AppendFormat(",\"details\":\"{0}\"", Details.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " "));
+            if (!string.IsNullOrEmpty(Details)) sb.AppendFormat(",\"details\":\"{0}\"", Details.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " "));
             sb.Append("}");
             return sb.ToString();
         }
@@ -445,6 +445,7 @@ namespace FotolismCanonDaemon {
 
             // Shutter Trigger: Completely_NonAF (Zero AF lag)
             uint errShoot = EdsSendCommand(CameraRef, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely_NonAF);
+            Log("INFO", "SHUTTER_RESULT", "Shutter command returned: 0x" + errShoot.ToString("X8"), job.SessionId, job.CaptureId);
 
             // If camera was busy pulling EVF frame (0x00000081 DeviceBusy), release and retry ONCE after 60ms
             if (errShoot == 0x00000081) {
@@ -453,6 +454,7 @@ namespace FotolismCanonDaemon {
                 EdsSendCommand(CameraRef, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_OFF);
                 Thread.Sleep(30);
                 errShoot = EdsSendCommand(CameraRef, kEdsCameraCommand_PressShutterButton, kEdsCameraCommand_ShutterButton_Completely_NonAF);
+                Log("INFO", "SHUTTER_RETRY_RESULT", "Shutter retry returned: 0x" + errShoot.ToString("X8"), job.SessionId, job.CaptureId);
             }
 
             shutterSw.Stop();
@@ -824,7 +826,7 @@ namespace FotolismCanonDaemon {
                         string err = finished ? (newJob.ErrorMessage ?? "Capture execution failed") : "Timeout: Camera daemon did not finish within 7000ms";
                         responseJson = string.Format(
                             "{{\"success\":false,\"status\":\"{0}\",\"idempotent\":false,\"captureId\":\"{1}\",\"error\":\"{2}\"}}",
-                            newJob.Status.ToString(), newJob.CaptureId, err.Replace("\"", "\\\"")
+                            newJob.Status.ToString(), newJob.CaptureId, err.Replace("\\", "\\\\").Replace("\"", "\\\"")
                         );
                     }
 

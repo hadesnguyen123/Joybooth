@@ -121,17 +121,17 @@ export interface ThemeItem {
 }
 
 export const THEME_OPTIONS: ThemeItem[] = [
-  // Một màu (Solid pastel)
-  { id: 'theme_pink_pastel', name: 'Hồng Phấn', category: 'Một màu', bgColor: '#ffd1dc', bgGradient: 'linear-gradient(180deg, #ffd1dc 0%, #fff0f5 100%)', textColor: '#F4729A', borderColor: '#F4729A' },
-  { id: 'theme_cream_warm', name: 'Kem Sữa', category: 'Một màu', bgColor: '#FFF8F2', bgGradient: 'linear-gradient(180deg, #FFFFFF 0%, #FFF8F2 100%)', textColor: '#2D2426', borderColor: '#2D2426' },
-  { id: 'theme_lavender', name: 'Tím Mộng Mơ', category: 'Một màu', bgColor: '#e8dcff', bgGradient: 'linear-gradient(180deg, #e8dcff 0%, #f4efff 100%)', textColor: '#7c59cf', borderColor: '#7c59cf' },
-  { id: 'theme_mint', name: 'Xanh Mint', category: 'Một màu', bgColor: '#d8f5ea', bgGradient: 'linear-gradient(180deg, #d8f5ea 0%, #f0faf5 100%)', textColor: '#2e9e74', borderColor: '#2e9e74' },
+  // Một màu & Khung Thương Hiệu Fotolism Warm Minimal Luxury
+  { id: 'theme_fotolism_espresso', name: 'Fotolism Nâu Gỗ', category: 'Một màu', bgColor: '#FAF6F1', bgGradient: 'linear-gradient(180deg, #FFFFFF 0%, #FAF6F1 100%)', textColor: '#502A1D', borderColor: '#502A1D', decorations: ['☕', '🌿', '🪵'] },
+  { id: 'theme_walnut_luxury', name: 'Walnut Sang Trọng', category: 'Một màu', bgColor: '#30231E', bgGradient: 'linear-gradient(180deg, #403029 0%, #1F1815 100%)', textColor: '#EACDB6', borderColor: '#A66A43', decorations: ['🪵', '✨', '⚜️'] },
+  { id: 'theme_cream_warm', name: 'Kem Sữa Tối Giản', category: 'Một màu', bgColor: '#FFF9F4', bgGradient: 'linear-gradient(180deg, #FFFFFF 0%, #FFF9F4 100%)', textColor: '#351C15', borderColor: '#C8B2A4' },
+  { id: 'theme_noir', name: 'Đen Trầm Cổ Điển', category: 'Một màu', bgColor: '#1F1815', bgGradient: 'linear-gradient(180deg, #271E1A 0%, #1F1815 100%)', textColor: '#FFFFFF', borderColor: '#FFFFFF' },
   { id: 'theme_matcha', name: 'Xanh Matcha', category: 'Một màu', bgColor: '#e8f5e9', bgGradient: 'linear-gradient(180deg, #dcedc8 0%, #f1f8e9 100%)', textColor: '#33691e', borderColor: '#689f38' },
-  { id: 'theme_noir', name: 'Đen Trầm', category: 'Một màu', bgColor: '#1f1e24', bgGradient: 'linear-gradient(180deg, #2b2a30 0%, #17161b 100%)', textColor: '#FFFFFF', borderColor: '#FFFFFF' },
+  { id: 'theme_mint', name: 'Xanh Mint', category: 'Một màu', bgColor: '#d8f5ea', bgGradient: 'linear-gradient(180deg, #d8f5ea 0%, #f0faf5 100%)', textColor: '#2e9e74', borderColor: '#2e9e74' },
 
   // Ngày lễ
+  { id: 'theme_wedding', name: 'Lễ Cưới Romance', category: 'Ngày lễ', bgColor: '#FFF9F4', bgGradient: 'linear-gradient(180deg, #FFFFFF 0%, #FFF9F4 100%)', textColor: '#502A1D', borderColor: '#A66A43', decorations: ['💍', '🕊️', '💐'] },
   { id: 'theme_birthday', name: 'Sinh Nhật Party', category: 'Ngày lễ', bgColor: '#fff4cc', bgGradient: 'linear-gradient(180deg, #ffe082 0%, #fff9c4 100%)', textColor: '#e65100', borderColor: '#ffb300', decorations: ['🎂', '🎈', '🎉'] },
-  { id: 'theme_wedding', name: 'Lễ Cưới Romance', category: 'Ngày lễ', bgColor: '#fff0f5', bgGradient: 'linear-gradient(180deg, #ffe4e1 0%, #fff0f5 100%)', textColor: '#F4729A', borderColor: '#F4729A', decorations: ['💍', '🕊️', '💐'] },
   { id: 'theme_christmas', name: 'Giáng Sinh Tuyết', category: 'Ngày lễ', bgColor: '#e8f5e9', bgGradient: 'linear-gradient(180deg, #c8e6c9 0%, #e8f5e9 100%)', textColor: '#2e7d32', borderColor: '#c62828', decorations: ['🎄', '❄️', '🎅'] },
   { id: 'theme_valentine', name: 'Valentine Tình Nhân', category: 'Ngày lễ', bgColor: '#ffebee', bgGradient: 'linear-gradient(180deg, #ffcdd2 0%, #ffebee 100%)', textColor: '#c2185b', borderColor: '#e91e63', decorations: ['❤️', '🍫', '🌹'] },
 
@@ -698,7 +698,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         discountAmount: 0,
       },
       placedStickers: [],
-      mirrorCamera: false,
+      mirrorCamera: true,
     }),
 
   addPhoto: (photo) =>
@@ -738,7 +738,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       eventConfig: { ...state.eventConfig, selfboothDurationSeconds },
     })),
 
-  clearSession: () => set({ session: null, placedStickers: [], mirrorCamera: false }),
+  clearSession: () => set({ session: null, placedStickers: [], mirrorCamera: true }),
 
   setQr: (url, imagePath) =>
     set((state) => ({
@@ -825,7 +825,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const def = DEFAULT_BEAUTY_CONFIG
     set({
       selectedBeautyPreset: 'none',
-      mirrorCamera: false,
+      mirrorCamera: true,
       ...def,
     })
   },
@@ -916,7 +916,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   availableCameras: [],
   selectedCameraId: null,
-  mirrorCamera: false,
+  mirrorCamera: true,
   setCameras: (cameras) => set({ availableCameras: cameras }),
   selectCamera: (id) => set({ selectedCameraId: id }),
   setMirrorCamera: (mirrorCamera) => set({ mirrorCamera }),

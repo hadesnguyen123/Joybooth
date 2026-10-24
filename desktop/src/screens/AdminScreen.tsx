@@ -50,6 +50,8 @@ export default function AdminScreen() {
     resetAdjustments,
     applyBeautyPreset,
     selectedBeautyPreset,
+    mirrorCamera,
+    setMirrorCamera,
   } = useAppStore()
 
   // PIN Lock State
@@ -774,7 +776,7 @@ export default function AdminScreen() {
                     {adminStream ? (
                       <BeautyCameraView
                         stream={adminStream}
-                        mirrorCamera={false}
+                        mirrorCamera={mirrorCamera}
                         slimFace={slimFace}
                         skinSmoothing={skinSmoothing}
                         whiteningTone={whiteningTone}
@@ -810,6 +812,32 @@ export default function AdminScreen() {
                       }}
                     >
                       ✨ Xem Trực Tiếp Live View (WebGL Shader 60 FPS)
+                    </div>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 8,
+                        right: 8,
+                        zIndex: 10,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        style={{
+                          fontSize: '0.72rem',
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          background: mirrorCamera ? 'var(--brand-primary, #502A1D)' : 'rgba(0,0,0,0.7)',
+                          color: '#fff',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                        onClick={() => setMirrorCamera(!mirrorCamera)}
+                        title="Bấm để bật/tắt lật gương camera"
+                      >
+                        🪞 Lật Gương: {mirrorCamera ? 'Bật (Mặc định)' : 'Tắt'}
+                      </button>
                     </div>
                   </div>
 

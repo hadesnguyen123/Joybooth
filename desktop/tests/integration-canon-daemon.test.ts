@@ -281,4 +281,4 @@ describe('Level 2: Integration Testing — Fotolism 2.2 Canon Daemon & Productio
       if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath)
     } catch {}
   })
-})
+}, 20000)

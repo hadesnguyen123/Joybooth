@@ -261,17 +261,17 @@
 }
 
 .error-hud-btn.hud-has-unread {
-  background: linear-gradient(135deg, #E11D48, #BE123C);
+  background: linear-gradient(135deg, var(--status-error, #B43F3F), #8C2E2E);
   color: #FFFFFF;
-  border-color: #FECDD3;
-  box-shadow: 0 12px 32px rgba(225, 29, 72, 0.55);
+  border-color: #F5D5D5;
+  box-shadow: 0 12px 32px rgba(180, 63, 63, 0.55);
   animation: hudPulse 1.8s infinite;
 }
 
 @keyframes hudPulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7);
+    box-shadow: 0 0 0 0 rgba(180, 63, 63, 0.7);
   }
   70% {
     transform: scale(1.04);
@@ -432,13 +432,13 @@
 }
 
 .filter-tab-error.active {
-  background: #E11D48;
-  border-color: #E11D48;
+  background: var(--status-error, #B43F3F);
+  border-color: var(--status-error, #B43F3F);
 }
 
 .filter-tab-warning.active {
-  background: #D97706;
-  border-color: #D97706;
+  background: var(--status-warning, #A86516);
+  border-color: var(--status-warning, #A86516);
 }
 
 .drawer-actions-row {

@@ -30,7 +30,7 @@ function playCameraShutterSound() {
     gain.connect(ctx.destination)
     osc.start(now)
     osc.stop(now + 0.05)
-  } catch {}
+  } catch { }
 }
 
 export default function CaptureScreen() {
@@ -141,13 +141,13 @@ export default function CaptureScreen() {
       if (daemonRes?.success && daemonRes.data?.running) {
         daemonActive = true
       }
-    } catch {}
+    } catch { }
 
     // Lấy toàn bộ danh sách thiết bị video của hệ thống
     let allDevices: MediaDeviceInfo[] = []
     try {
       allDevices = await navigator.mediaDevices.enumerateDevices()
-    } catch {}
+    } catch { }
 
     // Kiểm tra xem người dùng có đang cố tình chọn một webcam phụ (ví dụ webcam laptop) hay không
     const isExplicitNonCanonWebcam =
@@ -284,7 +284,7 @@ export default function CaptureScreen() {
         }
         if (videoRef.current) {
           videoRef.current.srcObject = fallbackStream
-          videoRef.current.play().catch(() => {})
+          videoRef.current.play().catch(() => { })
         }
         setHasCamera(true)
       } catch (fallbackErr) {
@@ -307,8 +307,8 @@ export default function CaptureScreen() {
   useEffect(() => {
     // Reset bộ lọc về Tự nhiên khi bắt đầu chụp để ảnh gốc luôn sạch
     selectFilter(COLOR_FILTERS[0])
-    // Gương luôn luôn tắt theo quy chuẩn chất lượng ảnh chụp
-    setMirrorCamera(false)
+    // Gương mặc định là lật theo chuẩn Photobooth
+    setMirrorCamera(true)
   }, [selectFilter, setMirrorCamera])
 
   useEffect(() => {
@@ -321,7 +321,7 @@ export default function CaptureScreen() {
         timelapseTimerRef.current = null
       }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        try { mediaRecorderRef.current.stop() } catch {}
+        try { mediaRecorderRef.current.stop() } catch { }
       }
       if (currentStreamRef.current) {
         currentStreamRef.current.getTracks().forEach((track) => track.stop())
@@ -330,7 +330,24 @@ export default function CaptureScreen() {
     }
   }, [startCamera])
 
-  const finishSelfboothRef = useRef<() => void>(() => {})
+  // Tự động phát hiện và kết nối lại máy ảnh Canon EOS ngay khi máy bật nguồn hoặc cắm lại cáp USB
+  useEffect(() => {
+    if (isCanonDaemonActive) return
+
+    const probeTimer = setInterval(async () => {
+      try {
+        const daemonRes = await (isBrowser ? mockApi : fotolismApi).camera.canonDaemonStatus?.()
+        if (daemonRes?.success && daemonRes.data?.running) {
+          console.log('⚡ [CaptureScreen] Canon EOS Daemon detected active, auto-switching to live stream...')
+          startCamera('canon-daemon-stream')
+        }
+      } catch { }
+    }, 2000)
+
+    return () => clearInterval(probeTimer)
+  }, [isCanonDaemonActive, startCamera])
+
+  const finishSelfboothRef = useRef<() => void>(() => { })
 
   // Đếm ngược thời gian phiên Selfbooth
   useEffect(() => {
@@ -757,11 +774,11 @@ export default function CaptureScreen() {
               prev.map((p) =>
                 p.id === newPhoto.id
                   ? {
-                      ...p,
-                      rawPath: canonData.savedPath,
-                      enhancedPath: canonData.dataUrl,
-                      compositedPath: canonData.dataUrl,
-                    }
+                    ...p,
+                    rawPath: canonData.savedPath,
+                    enhancedPath: canonData.dataUrl,
+                    compositedPath: canonData.dataUrl,
+                  }
                   : p
               )
             )
@@ -819,7 +836,7 @@ export default function CaptureScreen() {
   // Chọn ảnh từ gallery gán vào slot trong Photo Picker
   function handleAssignPhotoToSlot(photo: CapturedPhoto) {
     const nextPicked = [...pickedSlots]
-    
+
     // Nếu ảnh này đã có ở một slot khác, tháo ra
     const existingIndex = nextPicked.findIndex((p) => p?.id === photo.id)
     if (existingIndex !== -1) {
@@ -1224,7 +1241,7 @@ export default function CaptureScreen() {
               <BeautyCameraView
                 ref={beautyCameraRef}
                 stream={isCanonDaemonActive ? null : activeMediaStream}
-                mjpegUrl={isCanonDaemonActive ? 'http://127.0.0.1:8899/liveview' : undefined}
+                mjpegUrl={isCanonDaemonActive && !(typeof window !== 'undefined' && window.location.search.includes('noLiveStream=1')) ? 'http://127.0.0.1:8899/liveview' : undefined}
                 mirrorCamera={mirrorCamera}
                 slimFace={slimFace}
                 skinSmoothing={skinSmoothing}
@@ -1455,10 +1472,10 @@ export default function CaptureScreen() {
                     {isCapturingShot
                       ? `Đang đếm ngược...`
                       : retakeSlotIndex !== null
-                      ? `📸 Chụp Lại Ô ${retakeSlotIndex + 1}`
-                      : filledSlotsCount === 0
-                      ? `Bắt đầu chụp (Ảnh 1 / ${totalShots})`
-                      : `Chụp tiếp ảnh ${filledSlotsCount + 1} / ${totalShots}`}
+                        ? `📸 Chụp Lại Ô ${retakeSlotIndex + 1}`
+                        : filledSlotsCount === 0
+                          ? `Bắt đầu chụp (Ảnh 1 / ${totalShots})`
+                          : `Chụp tiếp ảnh ${filledSlotsCount + 1} / ${totalShots}`}
                   </span>
                 </button>
               )}
