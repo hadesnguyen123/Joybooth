@@ -960,15 +960,15 @@ export default function CaptureScreen() {
         </div>
       </header>
 
-      {/* ── Main Stage Area: Left Dock + Flyout + Viewfinder ── */}
+      {/* ── Main Stage Area: 1/12 Dock + 9/12 Live View + 2/12 Vertical Slots ── */}
       <div className="capture-main-stage">
-        {/* Left Floating Dock: Làm đẹp / Phát sáng (Tối ưu bằng icon tinh gọn) */}
-        <aside className={`left-sidebar-dock ${isSessionActive && !isPhotoboothFull ? 'locked-dimmed' : ''}`}>
+        {/* ── CỘT 1/12: Làm đẹp da & Đèn sáng studio ── */}
+        <aside className={`dock-grid-col-1 left-sidebar-dock ${isSessionActive && !isPhotoboothFull ? 'locked-dimmed' : ''}`}>
           <button
             className={`dock-btn ${activeFlyout === 'beauty' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'beauty' ? null : 'beauty')}
             title="Làm đẹp da"
-            aria-label="Làm đẹp"
+            aria-label="Làm đẹp da"
           >
             <Sparkles size={28} strokeWidth={1.8} />
           </button>
@@ -977,7 +977,7 @@ export default function CaptureScreen() {
             className={`dock-btn ${activeFlyout === 'lighting' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'lighting' ? null : 'lighting')}
             title="Đèn sáng studio"
-            aria-label="Phát sáng"
+            aria-label="Đèn sáng studio"
           >
             <Lightbulb size={28} strokeWidth={1.8} />
           </button>
@@ -1201,8 +1201,8 @@ export default function CaptureScreen() {
           </div>
         )}
 
-        {/* ── CỘT LIVE VIEW: Chiếm 10/12 (approx 83.33%) ── */}
-        <div className="liveview-grid-col-10">
+        {/* ── CỘT LIVE VIEW: Chiếm 9/12 (75%) ── */}
+        <div className="liveview-grid-col-9">
           <div className={`camera-viewfinder-wrapper ${isSessionActive && !isPhotoboothFull ? 'shooting-focus' : ''}`}>
           {hasCamera ? (
             <>
@@ -1336,105 +1336,113 @@ export default function CaptureScreen() {
                       : `✨ Đã lưu vào ô ${snapshotFlyer.slotIndex + 1}`}
                 </div>
               </div>
+            </div>
+          )}
           </div>
         </div>
 
-        {/* ── CỘT DẢI Ô DỌC: Chiếm 2/12 (approx 16.67%) ── */}
-        {!isSelfboothMode && (
+        {/* ── CỘT DẢI Ô DỌC: Chiếm 2/12 (approx 16.67%) - Giữ design cũ ── */}
+        {!isSelfboothMode ? (
           <aside className="slots-grid-col-2 right-slots-dock">
-            <div className="vertical-slots-list">
-              {Array.from({ length: totalShots }).map((_, index) => {
-                const slotItem = slots[index]
-                const isFilled = slotItem !== null
-                const isRetaking = retakeSlotIndex === index
-                const isJustCaptured = justCapturedSlot === index
+            <div className="live-slots-deck vertical-slots-deck">
+              <div className="live-slots-list">
+                {Array.from({ length: totalShots }).map((_, index) => {
+                  const slotItem = slots[index]
+                  const isFilled = slotItem !== null
+                  const isRetaking = retakeSlotIndex === index
+                  const isJustCaptured = justCapturedSlot === index
 
-                return (
-                  <div
-                    key={index}
-                    className={`vertical-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isRetaking ? 'retaking-target' : ''} ${isJustCaptured ? 'just-captured' : ''}`}
-                    onClick={() => {
-                      if (isFilled && !isCapturingShot) {
-                        handleDeleteSlot(index)
-                      }
-                    }}
-                  >
-                    {isFilled ? (
-                      <>
-                        <img src={slotItem.compositedPath || slotItem.rawPath} alt={`Slot ${index + 1}`} />
-                        <span className="slot-index-badge">{index + 1}</span>
-                        <button
-                          className="slot-delete-btn"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteSlot(index)
-                          }}
-                          title={`Xóa ảnh ô ${index + 1} để chụp lại`}
-                        >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <div className="slot-empty-content">
-                        <span className="slot-empty-plus">+</span>
-                        <span className="slot-empty-label">Ô {index + 1}</span>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-            <div className="vertical-slots-counter">
-              <span className="counter-fraction">{filledSlotsCount}/{totalShots}</span>
+                  return (
+                    <div
+                      key={index}
+                      className={`live-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isRetaking ? 'retaking-target' : ''} ${isJustCaptured ? 'just-captured' : ''}`}
+                      onClick={() => {
+                        if (isFilled && !isCapturingShot) {
+                          handleDeleteSlot(index)
+                        }
+                      }}
+                    >
+                      {isFilled ? (
+                        <>
+                          <img src={slotItem.compositedPath || slotItem.rawPath} alt={`Slot ${index + 1}`} />
+                          <span className="slot-index-badge">{index + 1}</span>
+                          <button
+                            className="slot-delete-btn"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteSlot(index)
+                            }}
+                            title={`Xóa ảnh ô ${index + 1} để chụp lại`}
+                          >
+                            ✕
+                          </button>
+                        </>
+                      ) : (
+                        <div className="slot-empty-content">
+                          <span className="slot-empty-plus">+</span>
+                          <span className="slot-empty-label">Ô {index + 1}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="live-slots-counter">
+                {filledSlotsCount}/{totalShots}
+              </div>
             </div>
           </aside>
+        ) : (
+          <aside className="slots-grid-col-2 right-slots-dock" />
         )}
       </div>
 
-      {/* ── Bottom Deck: Shutter Action Control (Căn thẳng theo Live View 10/12) ── */}
+      {/* ── Bottom Deck: Shutter Action Control (Căn thẳng theo Live View 9/12) ── */}
       <footer className="capture-bottom-deck">
         {!isSelfboothMode ? (
           /* ── PHOTOBOOTH MODE CONTROLS ── */
           <div className="bottom-deck-12col">
-            <div className="shutter-col-10">
+            <div className="shutter-col-1" />
+            <div className="shutter-col-9">
               <div className="capture-shutter-container">
-              {isPhotoboothFull && retakeSlotIndex === null ? (
-                /* ĐÃ ĐỦ FULL ẢNH: Nút Hài Lòng & Tiếp Tục */
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {isPhotoboothFull && retakeSlotIndex === null ? (
+                  /* ĐÃ ĐỦ FULL ẢNH: Nút Hài Lòng & Tiếp Tục */
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <button
+                      className="start-capture-btn-pink proceed-glow-btn"
+                      id="proceed-theme-button"
+                      onClick={handleProceedPhotobooth}
+                    >
+                      <span>Tiếp Tục Chọn Frame</span>
+                      <ArrowRight size={22} strokeWidth={2.2} />
+                    </button>
+                  </div>
+                ) : (
+                  /* CHƯA ĐỦ ẢNH HOẶC ĐANG CHỤP LẠI (RETAKE) */
                   <button
-                    className="start-capture-btn-pink proceed-glow-btn"
-                    id="proceed-theme-button"
-                    onClick={handleProceedPhotobooth}
+                    className="start-capture-btn-pink"
+                    id="start-capture-button"
+                    disabled={isCapturingShot}
+                    onClick={handleTakePhotoboothShot}
                   >
-                    <span>Tiếp Tục Chọn Frame</span>
-                    <ArrowRight size={22} strokeWidth={2.2} />
+                    <Camera size={26} strokeWidth={2} />
+                    <span>
+                      {isCapturingShot
+                        ? `Đang đếm ngược...`
+                        : retakeSlotIndex !== null
+                          ? `📸 Chụp Lại Ô ${retakeSlotIndex + 1}`
+                          : filledSlotsCount === 0
+                            ? `Bắt đầu chụp (Ảnh 1 / ${totalShots})`
+                            : `Chụp tiếp ảnh ${filledSlotsCount + 1} / ${totalShots}`}
+                    </span>
                   </button>
-                </div>
-              ) : (
-                /* CHƯA ĐỦ ẢNH HOẶC ĐANG CHỤP LẠI (RETAKE) */
-                <button
-                  className="start-capture-btn-pink"
-                  id="start-capture-button"
-                  disabled={isCapturingShot}
-                  onClick={handleTakePhotoboothShot}
-                >
-                  <Camera size={26} strokeWidth={2} />
-                  <span>
-                    {isCapturingShot
-                      ? `Đang đếm ngược...`
-                      : retakeSlotIndex !== null
-                        ? `📸 Chụp Lại Ô ${retakeSlotIndex + 1}`
-                        : filledSlotsCount === 0
-                          ? `Bắt đầu chụp (Ảnh 1 / ${totalShots})`
-                          : `Chụp tiếp ảnh ${filledSlotsCount + 1} / ${totalShots}`}
-                  </span>
-                </button>
-              )}
+                )}
 
-              {isSessionActive && !isCapturingShot && (
-                <button className="cancel-shoot-btn" onClick={handleResetShootSession}>
-                  ↩ Chụp lại từ đầu
-                </button>
+                {isSessionActive && !isCapturingShot && (
+                  <button className="cancel-shoot-btn" onClick={handleResetShootSession}>
+                    ↩ Chụp lại từ đầu
+                  </button>
+                )}
               </div>
             </div>
             <div className="shutter-col-2" />
