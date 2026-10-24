@@ -18,6 +18,7 @@ import {
   DEFAULT_GDRIVE_FOLDER_URL,
 } from '../lib/constants'
 import { BeautyCameraView } from '../components/BeautyCameraView'
+import { ArrowLeft } from 'lucide-react'
 import './AdminScreen.css'
 
 type AdminTab = 'event' | 'beauty' | 'frames' | 'hardware' | 'cloud' | 'payment' | 'stats'
@@ -293,11 +294,13 @@ export default function AdminScreen() {
             </div>
 
             <button
-              className="btn btn-ghost"
-              style={{ fontSize: '0.85rem', marginTop: 8 }}
+              className="screen-back-btn"
+              style={{ marginTop: 12 }}
               onClick={() => setScreen('idle')}
+              title="Quay lại"
+              aria-label="Quay lại"
             >
-              ← Quay lại Màn hình chính
+              <ArrowLeft size={24} strokeWidth={2} />
             </button>
           </div>
         </div>

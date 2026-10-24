@@ -1,5 +1,6 @@
 import { useAppStore, COLOR_FILTERS, type ColorFilterItem } from '../store/appStore'
 import { DEFAULT_EVENT_NAME } from '../lib/constants'
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 import './FilterScreen.css'
 
 export default function FilterScreen() {
@@ -8,6 +9,7 @@ export default function FilterScreen() {
     setScreen,
     selectedTheme,
     selectedLayout,
+    selectedFrameSize,
     eventConfig,
     selectedFilter,
     selectFilter,
@@ -22,16 +24,31 @@ export default function FilterScreen() {
 
   return (
     <div className="filter-screen-container" id="filter-select-screen">
-      {/* Title Banner */}
-      <div className="screen-title-banner">
-        <div className="title-bubble-badge">CHỌN BỘ LỌC MÀU HÀN QUỐC</div>
-      </div>
+      {/* ── Top Header: Single Left Back Arrow + Center Title ── */}
+      <header className="filter-screen-header">
+        <button
+          className="screen-back-btn"
+          onClick={() => setScreen('select-theme')}
+          title="Quay lại chọn frame"
+          aria-label="Quay lại"
+        >
+          <ArrowLeft size={28} strokeWidth={2} />
+        </button>
 
+        <div className="filter-header-center">
+          <h1 className="filter-header-title">Bộ Lọc Màu</h1>
+          <p className="filter-header-subtitle">Chọn tông màu nghệ thuật cho bức ảnh của bạn</p>
+        </div>
+
+        <div className="header-placeholder" />
+      </header>
+
+      {/* ── Main Split: CỐ ĐỊNH KÍCH THƯỚC DẢI STRIP (Trái) + Bộ Lọc (Phải) ── */}
       <div className="filter-main-split">
-        {/* Left Side: Photo Strip Preview with dynamic filter applied */}
-        <div className="filter-canvas-column">
+        {/* Left Side: CỐ ĐỊNH KÍCH THƯỚC DẢI STRIP PREVIEW (Giống hệt màn Chọn Frame) */}
+        <div className="strip-preview-fixed-column">
           <div
-            className="filter-interactive-frame"
+            className={`strip-preview-fixed-frame ${selectedFrameSize === '2x6' ? 'frame-size-2x6' : 'frame-size-4x6'}`}
             style={{
               background: selectedTheme.bgGradient || selectedTheme.bgColor,
               borderColor: selectedTheme.borderColor,
@@ -51,15 +68,7 @@ export default function FilterScreen() {
                       }}
                     />
                   ) : (
-                    <div
-                      style={{
-                        color: '#fff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                      }}
-                    >
+                    <div className="theme-slot-placeholder">
                       📸 Ảnh {index + 1}
                     </div>
                   )}
@@ -68,37 +77,23 @@ export default function FilterScreen() {
             </div>
 
             {/* Strip Branding Footer */}
-            <div style={{ textAlign: 'center', marginTop: 4, pointerEvents: 'none' }}>
+            <div className="strip-branding-footer">
               <span
                 style={{
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 900,
-                  fontSize: '0.85rem',
-                  letterSpacing: '1px',
                   color: selectedTheme.textColor,
-                  textTransform: 'uppercase',
                 }}
               >
                 {eventConfig.eventName || DEFAULT_EVENT_NAME}
               </span>
             </div>
           </div>
-
-          {/* Quick guide hints */}
-          <div className="filter-action-hints">
-            <span className="filter-guide-text">
-              ✨ <b>Chạm vào bộ lọc</b> bên phải để xem trước dải ảnh trực tiếp
-            </span>
-          </div>
         </div>
 
-        {/* Right Side: Filter Selection Panel */}
+        {/* Right Side: Chỉ giữ lại 3 bộ lọc: Gốc, Cổ Điển, Retro ── */}
         <div className="filter-selector-panel">
-          <div className="filter-active-banner">
-            <span>
-              ✨ Đang dùng: <strong>{selectedFilter.name}</strong>
-            </span>
-            <span className="filter-active-tag">({selectedFilter.tag})</span>
+          <div className="filter-selector-header">
+            <span className="filter-selector-title">Tông Màu Khả Dụng</span>
+            <span className="filter-selector-count">({COLOR_FILTERS.length} bộ lọc)</span>
           </div>
 
           <div className="filter-list-presets">
@@ -116,9 +111,22 @@ export default function FilterScreen() {
                     className="filter-card-circle"
                     style={{ background: filter.previewColor }}
                   >
-                    {isSelected && <span className="filter-card-check">✓</span>}
+                    {isSelected && (
+                      <Check size={18} strokeWidth={3} color={filter.id === 'vintage_noir' ? '#fff' : '#502A1D'} />
+                    )}
                   </div>
-                  <span className="filter-card-name">{filter.name}</span>
+
+                  <div className="filter-card-meta">
+                    <span className="filter-card-name">{filter.name}</span>
+                    <span className="filter-card-desc">
+                      {filter.id === 'normal'
+                        ? 'Ảnh màu gốc tự nhiên'
+                        : filter.id === 'vintage_noir'
+                        ? 'Trắng đen điện ảnh hoài niệm'
+                        : 'Sắc vàng ấm áp phong cách thập niên 90'}
+                    </span>
+                  </div>
+
                   <span className="filter-card-tag">{filter.tag}</span>
                 </div>
               )
@@ -127,26 +135,14 @@ export default function FilterScreen() {
         </div>
       </div>
 
-      {/* Bottom Bar */}
+      {/* ── Bottom Bar: Only Single Primary Action ── */}
       <footer className="filter-bottom-bar">
         <button
-          className="btn btn-pill-white"
-          style={{
-            padding: '12px 28px',
-            color: 'var(--color-dark-text)',
-            borderColor: 'var(--color-border-pink)',
-          }}
-          onClick={() => setScreen('select-theme')}
-        >
-          ← Đổi Chủ Đề
-        </button>
-
-        <button
-          className="btn btn-pink"
-          style={{ padding: '14px 44px', fontSize: '1.15rem' }}
+          className="btn-proceed-filter"
           onClick={() => setScreen('review')}
         >
-          🎉 Tiếp Tục & In Ảnh ➔
+          <span>Tiếp Tục & In Ảnh</span>
+          <ArrowRight size={22} strokeWidth={2.2} />
         </button>
       </footer>
     </div>

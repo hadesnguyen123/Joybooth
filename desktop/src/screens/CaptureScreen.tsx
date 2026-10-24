@@ -8,6 +8,7 @@ import {
   SESSION_FOLDER_PREFIX,
 } from '../lib/constants'
 import { BeautyCameraView, type BeautyCameraHandle } from '../components/BeautyCameraView'
+import { Sparkles, Lightbulb, Camera, Settings, X, ArrowRight } from 'lucide-react'
 import './CaptureScreen.css'
 
 // ── Giả lập âm thanh màn trập cơ học "TÁCH!" dứt khoát 1 lần duy nhất qua Web Audio API ──
@@ -903,18 +904,17 @@ export default function CaptureScreen() {
       {/* Focus Dim Backdrop: Làm tối xung quanh khi đang chụp */}
       {isSessionActive && !isPhotoPickerOpen && <div className="focus-dim-backdrop" />}
 
-      {/* ── Top Bar: Countdown Pills + Locked Badge + Utilities ── */}
+      {/* ── Top Bar: Countdown Pills (5s / 3s) + Utility Icon Buttons ── */}
       <header className="capture-top-bar">
         {!isSelfboothMode ? (
           <div className="countdown-capsule-group">
-            {[3, 5, 10].map((sec) => (
+            {[5, 3].map((sec) => (
               <button
                 key={sec}
                 className={`countdown-pill ${countdownSeconds === sec ? 'active' : ''}`}
                 onClick={() => setCountdownSeconds(sec)}
                 title={`Thời gian đếm ngược ${sec} giây`}
               >
-                <span>⏱️</span>
                 <span>{sec}s</span>
               </button>
             ))}
@@ -929,90 +929,57 @@ export default function CaptureScreen() {
           </div>
         )}
 
-        {/* Khung đã chọn (Cố định, không được đổi tại đây) */}
-        <div className="locked-layout-badge" title="Khung lưới đã chọn từ trước">
-          <span className="lock-icon">🔒</span>
-          <span>Khung:</span>
-          <strong>{selectedLayout.name}</strong>
-          <span>({selectedLayout.photosCount} ảnh)</span>
-        </div>
-
-        {/* Right utility options */}
+        {/* Right utility options — Chỉ để icon Cài đặt, Close, Máy ảnh (Đổi Camera) */}
         <div className="top-utility-actions">
-          {availableCameras.length > 0 && (
-            <select
-              className="utility-pill-btn camera-select-pill"
-              value={selectedCameraId || (availableCameras[0]?.id ?? '')}
-              onChange={(e) => {
-                selectCamera(e.target.value)
-                startCamera(e.target.value)
-              }}
-              title="Chọn camera hiển thị trực tiếp (Live View)"
-            >
-              {availableCameras.map((cam) => (
-                <option key={cam.id} value={cam.id}>
-                  {cam.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {availableCameras.length > 1 && (
-            <button
-              className="utility-pill-btn"
-              onClick={handleCycleCamera}
-              title="Chuyển nhanh giữa Camera Laptop và Canon EOS"
-            >
-              🔄 Đổi Camera
-            </button>
-          )}
-
           <button
-            className="utility-pill-btn"
-            onClick={() => startCamera(selectedCameraId || undefined)}
-            title="Khôi phục / làm mới luồng video trực tiếp"
+            className="utility-icon-btn"
+            onClick={handleCycleCamera}
+            title="Đổi Camera (Laptop / Canon R100)"
+            aria-label="Đổi camera"
           >
-            ⚡ Làm mới luồng
+            <Camera size={26} strokeWidth={1.8} />
           </button>
 
           <button
-            className="utility-pill-btn"
+            className="utility-icon-btn"
             onClick={() => setScreen('admin')}
-            title="Quản trị"
+            title="Cài đặt quản trị"
+            aria-label="Cài đặt"
           >
-            ⚙️ Quản Trị
+            <Settings size={26} strokeWidth={1.8} />
           </button>
 
           <button
-            className="utility-pill-btn"
+            className="utility-icon-btn"
             onClick={() => setScreen('idle')}
-            title="Về màn hình chờ"
+            title="Thoát về màn hình chờ"
+            aria-label="Thoát"
           >
-            ✕ Thoát
+            <X size={26} strokeWidth={2} />
           </button>
         </div>
       </header>
 
       {/* ── Main Stage Area: Left Dock + Flyout + Viewfinder ── */}
       <div className="capture-main-stage">
-        {/* Left Floating Dock: Làm đẹp / Phát sáng */}
+        {/* Left Floating Dock: Làm đẹp / Phát sáng (Tối ưu bằng icon tinh gọn) */}
         <aside className={`left-sidebar-dock ${isSessionActive && !isPhotoboothFull ? 'locked-dimmed' : ''}`}>
           <button
             className={`dock-btn ${activeFlyout === 'beauty' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'beauty' ? null : 'beauty')}
-            title="Làm mịn da & chỉnh sáng"
+            title="Làm đẹp da"
+            aria-label="Làm đẹp"
           >
-            <span className="dock-icon">✨</span>
-            <span className="dock-label">Làm đẹp</span>
+            <Sparkles size={28} strokeWidth={1.8} />
           </button>
 
           <button
             className={`dock-btn ${activeFlyout === 'lighting' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'lighting' ? null : 'lighting')}
             title="Đèn sáng studio"
+            aria-label="Phát sáng"
           >
-            <span className="dock-icon">💡</span>
-            <span className="dock-label">Phát sáng</span>
+            <Lightbulb size={28} strokeWidth={1.8} />
           </button>
         </aside>
 
@@ -1282,27 +1249,6 @@ export default function CaptureScreen() {
                   zIndex: -999,
                 }}
               />
-              {/* Floating Quick Camera Switcher on Viewfinder */}
-              <div className="viewfinder-camera-floating-tag">
-                <span className="camera-live-indicator" />
-                <span className="camera-current-name">
-                  {isCanonDaemonActive
-                    ? '📸 Máy ảnh Canon EOS (Direct EDSDK)'
-                    : availableCameras.find((c) => c.id === selectedCameraId)?.name || 'Camera Trực Tiếp'}
-                </span>
-                {availableCameras.length > 1 && (
-                  <button
-                    className="viewfinder-switch-btn"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleCycleCamera()
-                    }}
-                    title="Bấm để đổi sang camera khác"
-                  >
-                    🔄 Đổi Camera
-                  </button>
-                )}
-              </div>
             </>
           ) : (
             <div style={{ color: '#fff', textAlign: 'center', padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
@@ -1446,18 +1392,15 @@ export default function CaptureScreen() {
             <div className="capture-shutter-container">
               {isPhotoboothFull && retakeSlotIndex === null ? (
                 /* ĐÃ ĐỦ FULL ẢNH: Nút Hài Lòng & Tiếp Tục */
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <button
                     className="start-capture-btn-pink proceed-glow-btn"
                     id="proceed-theme-button"
                     onClick={handleProceedPhotobooth}
                   >
-                    <span style={{ fontSize: '1.4rem' }}>🎉</span>
-                    <span>Hài Lòng & Tiếp Tục ➔</span>
+                    <span>Tiếp Tục Chọn Frame</span>
+                    <ArrowRight size={22} strokeWidth={2.2} />
                   </button>
-                  <span className="retake-hint-text">
-                    💡 Mẹo: Bấm dấu <strong>✕</strong> trên ô ảnh chưa ưng ý để chụp lại ô đó!
-                  </span>
                 </div>
               ) : (
                 /* CHƯA ĐỦ ẢNH HOẶC ĐANG CHỤP LẠI (RETAKE) */
@@ -1467,7 +1410,7 @@ export default function CaptureScreen() {
                   disabled={isCapturingShot}
                   onClick={handleTakePhotoboothShot}
                 >
-                  <span style={{ fontSize: '1.5rem' }}>📷</span>
+                  <Camera size={26} strokeWidth={2} />
                   <span>
                     {isCapturingShot
                       ? `Đang đếm ngược...`

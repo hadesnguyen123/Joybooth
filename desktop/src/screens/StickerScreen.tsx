@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAppStore, STICKER_LIBRARY, type StickerCategory } from '../store/appStore'
 import { DEFAULT_EVENT_NAME } from '../lib/constants'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import './StickerScreen.css'
 
 export default function StickerScreen() {
@@ -333,22 +334,14 @@ export default function StickerScreen() {
         </div>
       </div>
 
-      {/* Bottom bar */}
+      {/* ── Bottom Bar: Only Single Primary Action ── */}
       <footer className="sticker-bottom-bar" onClick={(e) => e.stopPropagation()}>
         <button
-          className="btn btn-pill-white"
-          style={{ padding: '12px 28px', color: 'var(--color-dark-text)', borderColor: 'var(--color-border-pink)' }}
-          onClick={() => setScreen('select-theme')}
-        >
-          ← Đổi Chủ Đề
-        </button>
-
-        <button
-          className="btn btn-pink"
-          style={{ padding: '14px 44px', fontSize: '1.15rem' }}
+          className="btn-proceed-filter"
           onClick={() => setScreen('review')}
         >
-          🎉 Tiếp Tục & In Ảnh
+          <span>Tiếp Tục & In Ảnh</span>
+          <ArrowRight size={22} strokeWidth={2.2} />
         </button>
       </footer>
     </div>

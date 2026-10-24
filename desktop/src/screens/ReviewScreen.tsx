@@ -13,6 +13,7 @@ import {
   DEFAULT_IDLE_TIMEOUT_SECONDS,
 } from '../lib/constants'
 import QRCode from 'qrcode'
+import { ArrowLeft, ArrowRight, Printer, Check, QrCode } from 'lucide-react'
 import './ReviewScreen.css'
 
 export default function ReviewScreen() {
@@ -262,15 +263,23 @@ export default function ReviewScreen() {
 
   return (
     <div className="review-screen-pastel" id="review-screen">
-      {/* Header */}
+      {/* ── Top Header: Single Left Back Arrow + Center Title + Timer ── */}
       <header className="review-header-pastel">
-        <div className="review-brand-title">
-          <span>🌸</span>
-          <span>Dải Ảnh & Video Photobooth</span>
+        <button
+          className="screen-back-btn"
+          onClick={() => setScreen('select-filter')}
+          title="Quay lại chọn bộ lọc"
+          aria-label="Quay lại"
+        >
+          <ArrowLeft size={28} strokeWidth={2} />
+        </button>
+
+        <div className="review-header-center">
+          <h1 className="review-header-title">Dải Ảnh Của Bạn</h1>
         </div>
+
         <div className="review-timer-capsule">
-          <span>⏳</span>
-          <span>Tự động quay về sau: <strong>{timeLeft}s</strong></span>
+          <span>Tự động kết thúc sau: <strong>{timeLeft}s</strong></span>
         </div>
       </header>
 
@@ -526,39 +535,15 @@ export default function ReviewScreen() {
         </section>
       </main>
 
-      {/* Bottom Bar */}
+      {/* ── Bottom Bar: Only Single Primary Action ── */}
       <footer className="review-bottom-bar-pastel">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            className="btn btn-pill-white"
-            style={{ padding: '12px 20px', color: 'var(--color-dark-text)', borderColor: 'var(--color-border-pink)' }}
-            onClick={() => setScreen('select-filter')}
-          >
-            ← Đổi Bộ Lọc Màu
-          </button>
-          <button
-            className="btn btn-pill-white"
-            style={{ padding: '12px 20px', color: 'var(--color-dark-text)', borderColor: 'var(--color-border-pink)' }}
-            onClick={() => setScreen('select-theme')}
-          >
-            🎨 Đổi Khung
-          </button>
-          <button
-            className="btn btn-pill-white"
-            style={{ padding: '12px 20px', color: 'var(--color-dark-text)', borderColor: 'var(--color-border-pink)' }}
-            onClick={() => setScreen('capture')}
-          >
-            📸 Chụp Lại
-          </button>
-        </div>
-
         <button
-          className="btn btn-pink"
+          className="btn-finish-review"
           id="finish-button"
-          style={{ padding: '14px 44px', fontSize: '1.15rem', fontWeight: 900 }}
           onClick={handleFinish}
         >
-          HOÀN TẤT & KẾT THÚC ➔
+          <span>Hoàn Tất & Kết Thúc</span>
+          <ArrowRight size={22} strokeWidth={2.2} />
         </button>
       </footer>
     </div>

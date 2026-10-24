@@ -1,197 +1,305 @@
-/* ── Fotolism Filter Screen (CHỌN BỘ LỌC MÀU HÀN QUỐC) ───── */
+/* ── Fotolism 3.0 Filter Screen (Bộ Lọc Màu) ────────────────────────── */
 
 .filter-screen-container {
   width: 100vw;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-cream-bg);
+  background-color: var(--bg-primary);
   user-select: none;
   overflow: hidden;
   position: relative;
-  padding: 16px 40px;
+  padding: 16px 48px;
 }
 
+/* ── Top Header ──────────────────────────────────────────────────────────── */
+.filter-screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 68px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.filter-header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.filter-header-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-title);
+  font-weight: 800;
+  color: var(--brand-primary);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.filter-header-subtitle {
+  font-family: var(--font-body);
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.header-placeholder {
+  width: 52px;
+  height: 52px;
+  visibility: hidden;
+}
+
+/* ── Main Split ──────────────────────────────────────────────────────────── */
 .filter-main-split {
   flex: 1;
   display: grid;
-  grid-template-columns: 460px 1fr;
-  gap: 40px;
-  max-width: 1400px;
+  grid-template-columns: 440px 1fr;
+  gap: 48px;
+  max-width: 1200px;
   margin: 0 auto;
   width: 100%;
   align-items: center;
   overflow: hidden;
 }
 
-/* Left Canvas Column with Live Strip Preview */
-.filter-canvas-column {
+/* ── CỐ ĐỊNH KÍCH THƯỚC DẢI STRIP PREVIEW (Shared with Chọn Frame) ───────── */
+.strip-preview-fixed-column {
+  width: 440px;
+  min-width: 440px;
+  max-width: 440px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
 }
 
-.filter-interactive-frame {
-  position: relative;
-  padding: 14px 14px 20px;
+.strip-preview-fixed-frame {
+  box-shadow: 0 16px 45px rgba(53, 28, 21, 0.12), 0 0 0 2px rgba(80, 42, 29, 0.08);
   border-radius: 16px;
-  box-shadow: 0 16px 45px rgba(45, 36, 38, 0.15), 0 0 0 2px rgba(45, 36, 38, 0.08);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  max-height: calc(100vh - 220px);
-  user-select: none;
+  padding: 12px 12px 16px;
+  box-sizing: border-box;
+  transition: all var(--transition-normal);
+  position: relative;
 }
 
-.filter-action-hints {
+/* Kích thước CỐ ĐỊNH cho Khung Strip 2x6 */
+.frame-size-2x6 {
+  width: 148px;
+  height: 480px;
+}
+
+/* Kích thước CỐ ĐỊNH cho Khung Postcard 4x6 */
+.frame-size-4x6 {
+  width: 320px;
+  height: 440px;
+}
+
+.strip-preview-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  flex: 1;
+}
+
+.grid-preview-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+  flex: 1;
+}
+
+.theme-slot-photo {
+  flex: 1;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #2a2220;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.theme-slot-photo img {
   width: 100%;
-  max-width: 420px;
-  margin-top: 10px;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.filter-guide-text {
-  font-size: 0.8rem;
-  color: #4b5563;
-  background: rgba(255, 255, 255, 0.85);
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(45, 36, 38, 0.08);
-  box-shadow: 0 2px 8px rgba(45, 36, 38, 0.04);
+.theme-slot-placeholder {
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
-/* Right Side: Filter Selector Panel */
+.strip-branding-footer {
+  text-align: center;
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* ── Right Side: Filter Selector Panel (Chỉ 3 bộ lọc) ─────────────────────── */
 .filter-selector-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  background: var(--color-white);
-  padding: 24px 28px;
-  border-radius: var(--radius-lg);
-  box-shadow: 0 12px 36px rgba(45, 36, 38, 0.06);
-  border: 1.5px solid rgba(45, 36, 38, 0.08);
-  max-width: 720px;
+  gap: 20px;
+  max-width: 520px;
 }
 
-.filter-active-banner {
-  background: var(--color-pink-soft);
-  border: 1.5px solid var(--color-pink-primary);
-  border-radius: 12px;
-  padding: 10px 16px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--color-pink-primary);
+.filter-selector-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
 }
 
-.filter-active-tag {
-  font-size: 0.8rem;
+.filter-selector-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
   font-weight: 800;
-  background: #ffffff;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-pink-primary);
+  color: var(--brand-primary);
+}
+
+.filter-selector-count {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .filter-list-presets {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  max-height: calc(100vh - 300px);
-  overflow-y: auto;
-  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .filter-preset-card {
-  background: #f8fafc;
-  border: 2px solid rgba(45, 36, 38, 0.08);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  background: var(--surface-default);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 18px 24px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 18px;
   cursor: pointer;
-  position: relative;
+  box-shadow: var(--shadow-sm);
   transition: all var(--transition-fast);
+  outline: none;
 }
 
 .filter-preset-card:hover {
-  border-color: var(--color-pink-primary);
-  background: var(--color-white);
+  border-color: var(--brand-primary);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .filter-preset-card.selected {
-  border-color: var(--color-pink-primary);
-  background: #ffffff;
-  box-shadow: 0 0 18px rgba(244, 114, 154, 0.45);
-  transform: scale(1.02);
+  border: 2.5px solid var(--brand-primary);
+  background: #FFFDFB;
+  box-shadow: var(--shadow-brand);
 }
 
 .filter-card-circle {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: 1.5px solid rgba(45, 36, 38, 0.15);
-  box-shadow: 0 2px 6px rgba(45, 36, 38, 0.08);
-  flex-shrink: 0;
+  border: 2px solid var(--border-default);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(53, 28, 21, 0.08);
 }
 
-.filter-card-check {
-  font-size: 0.85rem;
-  font-weight: 900;
-  color: var(--color-pink-primary);
-  text-shadow: 0 0 3px #ffffff, 0 0 5px #ffffff;
+.filter-card-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .filter-card-name {
-  flex: 1;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--color-dark-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--brand-primary);
 }
 
-.filter-preset-card.selected .filter-card-name {
-  color: var(--color-pink-primary);
-  font-weight: 800;
+.filter-card-desc {
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .filter-card-tag {
-  font-size: 0.72rem;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
   font-weight: 800;
-  letter-spacing: 0.5px;
-  color: var(--color-text-secondary);
-  background: rgba(45, 36, 38, 0.06);
-  padding: 3px 8px;
-  border-radius: 6px;
+  color: var(--brand-primary);
+  background: var(--bg-secondary);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
 .filter-preset-card.selected .filter-card-tag {
-  background: var(--color-pink-soft);
-  color: var(--color-pink-primary);
+  background: var(--brand-primary);
+  color: var(--text-inverse);
+  border-color: var(--brand-primary);
 }
 
-/* Bottom Bar */
+/* ── Bottom Bar ──────────────────────────────────────────────────────────── */
 .filter-bottom-bar {
-  height: 68px;
+  height: 72px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  max-width: 1400px;
+  justify-content: flex-end;
+  max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+}
+
+.btn-proceed-filter {
+  height: 54px;
+  padding: 0 44px;
+  background: var(--brand-primary);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  font-size: var(--font-size-btn);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand);
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.btn-proceed-filter:hover {
+  background: var(--brand-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(80, 42, 29, 0.38);
+}
+
+.btn-proceed-filter:active {
+  transform: scale(0.97);
 }
