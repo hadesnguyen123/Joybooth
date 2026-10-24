@@ -1,8 +1,9 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, screen } from 'electron'
 import { join } from 'path'
 import * as path from 'path'
 import * as fs from 'fs'
 import { execSync, exec, spawn, ChildProcess } from 'child_process'
+import { SessionDB } from './sessionDatabase.cjs'
 
 // ─── FOTOLISM ELECTRON BACKEND CONFIGURATION ─────────────────────────────────
 const isDev = process.env.NODE_ENV === 'development'
@@ -97,6 +98,47 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null
+  })
+}
+
+// ─── OVERHEAD MULTI-MONITOR DISPLAY MANAGER (FR-08) ─────────────────────────
+let overheadWindow: BrowserWindow | null = null
+
+function createOverheadWindow(displayId?: number) {
+  const displays = screen.getAllDisplays()
+  let targetDisplay = displays.find((d) => d.id === displayId)
+  if (!targetDisplay) {
+    targetDisplay = displays.find((d) => d.id !== screen.getPrimaryDisplay().id) || screen.getPrimaryDisplay()
+  }
+
+  if (overheadWindow && !overheadWindow.isDestroyed()) {
+    try { overheadWindow.close() } catch {}
+    overheadWindow = null
+  }
+
+  overheadWindow = new BrowserWindow({
+    x: targetDisplay.bounds.x,
+    y: targetDisplay.bounds.y,
+    width: targetDisplay.bounds.width,
+    height: targetDisplay.bounds.height,
+    fullscreen: !isDev,
+    frame: false,
+    backgroundColor: '#000000',
+    webPreferences: {
+      preload: join(__dirname, 'preload.cjs'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: true,
+    },
+  })
+
+  const overheadUrl = isDev
+    ? `${VITE_DEV_SERVER_URL}?mode=overhead`
+    : `file://${join(__dirname, '../dist/index.html')}?mode=overhead`
+
+  overheadWindow.loadURL(overheadUrl)
+  overheadWindow.on('closed', () => {
+    overheadWindow = null
   })
 }
 
@@ -353,46 +395,144 @@ ipcMain.handle('camera:canon-daemon-status', async () => {
   return { success: true, data: { running: isRunning, url: CANON_DAEMON_URL } }
 })
 
-// ─── EDSDK HARDWARE CAPTURE (24MP HIGH RESOLUTION) ───────────────────────────
-ipcMain.handle('camera:edsdk-capture', async (_event, payload: { savePath: string; shotIndex: number }) => {
+// ─── CANON PERSISTENT DAEMON DIAGNOSTICS (FR-09) ────────────────────────────
+ipcMain.handle('camera:canon-diagnostics', async () => {
   try {
-    const savePath = join(payload.savePath)
-    const saveDir = join(savePath, '..')
-    if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true })
-
-    // 1. Ưu tiên hàng đầu: Thử chụp qua Canon Daemon Persistent (Zero-delay, không bao giờ mất stream)
-    const daemonReady = await ensureCanonDaemon()
-    if (daemonReady) {
-      try {
-        console.log(`[Canon Daemon] Requesting hardware capture -> ${savePath}`)
-        const daemonRes = await fetch(`${CANON_DAEMON_URL}/capture?savePath=${encodeURIComponent(savePath)}`, {
-          signal: AbortSignal.timeout(HARDWARE_TIMEOUT_MS),
-        })
-        if (daemonRes.ok) {
-          const result = (await daemonRes.json()) as any
-          if (result.success && fs.existsSync(savePath) && fs.statSync(savePath).size > 1000) {
-            const buffer = fs.readFileSync(savePath)
-            const sizeMb = (buffer.length / (1024 * 1024)).toFixed(1)
-            console.log(`[Canon Daemon] Shutter success! Saved: ${savePath} (${sizeMb} MB) in ${result.latencyMs}ms`)
-            return {
-              success: true,
-              data: {
-                savedPath: savePath,
-                dataUrl: `data:image/jpeg;base64,${buffer.toString('base64')}`,
-                source: 'Canon EOS R100 (EDSDK Persistent Daemon)',
-                resolution: '24MP (Full Resolution)',
-                fileSizeMb: sizeMb,
-                latencyMs: result.latencyMs,
-              },
-            }
-          } else if (result.error) {
-            console.warn('[Canon Daemon] Daemon error:', result.error)
-          }
-        }
-      } catch (daemonErr: any) {
-        console.warn('[Canon Daemon] Capture request failed, falling back:', daemonErr.message)
-      }
+    const res = await fetch(`${CANON_DAEMON_URL}/api/diagnostics`, { signal: AbortSignal.timeout(1000) })
+    if (res.ok) {
+      const data = await res.json()
+      return { success: true, data }
     }
+  } catch {}
+  return {
+    success: true,
+    data: {
+      cameraState: 'DISCONNECTED',
+      connected: false,
+      evfReady: false,
+      evfFps: 0,
+      evfLatencyMs: 0,
+      activeLiveViewClients: 0,
+      reconnectCount: 0,
+      totalCaptures: 0,
+      failedCaptures: 0,
+      averageCaptureLatencyMs: 0,
+      recentLogs: [],
+    },
+  }
+})
+
+// ─── EDSDK HARDWARE CAPTURE (FOTOLISM 2.2 IDEMPOTENCY & SESSIONS) ───────────
+ipcMain.handle(
+  'camera:edsdk-capture',
+  async (
+    _event,
+    payload: {
+      savePath?: string
+      shotIndex?: number
+      captureId?: string
+      sessionId?: string
+      slotIndex?: number
+    }
+  ) => {
+    try {
+      const sessionId = payload.sessionId || `session_${Date.now()}`
+      const slotIndex = payload.slotIndex ?? payload.shotIndex ?? 0
+      const captureId = payload.captureId || `cap_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+
+      // 1. Chụp qua Canon Daemon Persistent (FR-01, FR-02, FR-03, FR-05)
+      const daemonReady = await ensureCanonDaemon()
+      if (daemonReady) {
+        try {
+          console.log(`[Canon Daemon] Posting capture: ID=${captureId}, Session=${sessionId}, Slot=${slotIndex}`)
+          const daemonRes = await fetch(`${CANON_DAEMON_URL}/api/captures`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ captureId, sessionId, slotIndex }),
+            signal: AbortSignal.timeout(HARDWARE_TIMEOUT_MS),
+          })
+
+          if (daemonRes.ok) {
+            const result = (await daemonRes.json()) as any
+            const targetPath = result.savedPath || payload.savePath
+            if (result.success && targetPath && fs.existsSync(targetPath) && fs.statSync(targetPath).size > 1000) {
+              const buffer = fs.readFileSync(targetPath)
+              const sizeMb = (buffer.length / (1024 * 1024)).toFixed(1)
+
+              // Lưu trạng thái chụp vào SQLite persistent session storage (FR-06)
+              try {
+                SessionDB.saveCapture({
+                  id: captureId,
+                  session_id: sessionId,
+                  slot_index: slotIndex,
+                  status: 'COMPLETED',
+                  file_path: targetPath,
+                  raw_file_path: targetPath,
+                  is_retake: 0,
+                  retake_count: 0,
+                  latency_ms: result.latencyMs,
+                  shutter_ms: result.shutterMs,
+                  transfer_ms: result.transferMs,
+                })
+
+                SessionDB.recordMediaFile({
+                  id: `media_${captureId}`,
+                  session_id: sessionId,
+                  capture_id: captureId,
+                  type: 'raw',
+                  file_path: targetPath,
+                  file_size: buffer.length,
+                })
+              } catch (dbErr) {
+                console.warn('[SessionDB] SQLite record warning:', dbErr)
+              }
+
+              console.log(
+                `[Canon Daemon] Shutter success! Saved: ${targetPath} (${sizeMb} MB) in ${result.latencyMs}ms (Idempotent: ${Boolean(result.idempotent)})`
+              )
+              return {
+                success: true,
+                data: {
+                  savedPath: targetPath,
+                  dataUrl: `data:image/jpeg;base64,${buffer.toString('base64')}`,
+                  source: result.source || 'Canon EOS R100 (EDSDK Persistent Daemon 2.2)',
+                  resolution: result.resolution || '24MP (Full Resolution)',
+                  fileSizeMb: sizeMb,
+                  latencyMs: result.latencyMs,
+                  shutterMs: result.shutterMs,
+                  transferMs: result.transferMs,
+                  captureId,
+                  sessionId,
+                  slotIndex,
+                  idempotent: Boolean(result.idempotent),
+                },
+              }
+            } else if (result.error) {
+              console.warn('[Canon Daemon] Daemon capture returned error:', result.error)
+              try {
+                SessionDB.saveCapture({
+                  id: captureId,
+                  session_id: sessionId,
+                  slot_index: slotIndex,
+                  status: result.status || 'FAILED',
+                  file_path: targetPath,
+                  is_retake: 0,
+                  retake_count: 0,
+                  latency_ms: result.latencyMs || 0,
+                })
+              } catch {}
+              return { success: false, error: result.error, idempotent: Boolean(result.idempotent) }
+            }
+          }
+        } catch (daemonErr: any) {
+          console.warn('[Canon Daemon] POST /api/captures failed, trying legacy route:', daemonErr.message)
+        }
+      }
+
+      // Fallback: Legacy /capture route if daemon running older revision or direct file path
+      const savePath = payload.savePath || join(getFotolismDir(), `fotolism_shot_${Date.now()}.jpg`)
+      const saveDir = join(savePath, '..')
+      if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true })
 
     // 2. Fallback: Trực tiếp gọi native Canon EDSDK 64-bit EXE (KHÔNG truyền -noaf vì EOS R100 cần Halfway AF để nhả màn trập)
     const canonExePaths = [
@@ -509,13 +649,13 @@ ipcMain.handle('camera:edsdk-capture', async (_event, payload: { savePath: strin
 
     // 3. Thử qua gPhoto2 CLI (nếu có cài trên Windows)
     try {
-      await runAsyncCommand(`gphoto2 --capture-image-and-download --filename "${payload.savePath}"`, HARDWARE_TIMEOUT_MS)
-      if (fs.existsSync(payload.savePath) && fs.statSync(payload.savePath).size > 1000) {
-        const buffer = fs.readFileSync(payload.savePath)
+      await runAsyncCommand(`gphoto2 --capture-image-and-download --filename "${savePath}"`, HARDWARE_TIMEOUT_MS)
+      if (fs.existsSync(savePath) && fs.statSync(savePath).size > 1000) {
+        const buffer = fs.readFileSync(savePath)
         return {
           success: true,
           data: {
-            savedPath: payload.savePath,
+            savedPath: savePath,
             dataUrl: `data:image/jpeg;base64,${buffer.toString('base64')}`,
             source: 'gphoto2',
             resolution: 'full-24mp',
@@ -546,6 +686,77 @@ ipcMain.handle('camera:edsdk-liveview-frame', async () => {
   } catch (_err) {
     return { success: false, error: 'EDSDK Live View chưa kết nối' }
   }
+})
+
+// ─── SQLITE PERSISTENT SESSION HANDLERS (FR-06) ─────────────────────────────
+ipcMain.handle('session:create', (_event, sessionData) => {
+  try {
+    const record = SessionDB.createSession(sessionData)
+    return { success: true, data: record }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('session:get', (_event, sessionId: string) => {
+  try {
+    const record = SessionDB.getSession(sessionId)
+    return { success: true, data: record }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('session:update', (_event, payload: { id: string; updates: any }) => {
+  try {
+    SessionDB.updateSession(payload.id, payload.updates)
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('session:get-captures', (_event, sessionId: string) => {
+  try {
+    const records = SessionDB.getCaptures(sessionId)
+    return { success: true, data: records }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+// ─── OVERHEAD MULTI-MONITOR IPC HANDLERS (FR-08) ────────────────────────────
+ipcMain.handle('overhead:get-displays', () => {
+  try {
+    const primaryId = screen.getPrimaryDisplay().id
+    const displays = screen.getAllDisplays().map((d) => ({
+      id: d.id,
+      label: `Màn hình ${d.id} (${d.bounds.width}x${d.bounds.height})${d.id === primaryId ? ' - Kiosk Chính' : ' - Overhead Phụ'}`,
+      bounds: d.bounds,
+      isPrimary: d.id === primaryId,
+    }))
+    return { success: true, data: displays }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('overhead:toggle', (_event, payload: { enabled: boolean; displayId?: number }) => {
+  try {
+    if (payload.enabled) {
+      createOverheadWindow(payload.displayId)
+    } else if (overheadWindow && !overheadWindow.isDestroyed()) {
+      try { overheadWindow.close() } catch {}
+      overheadWindow = null
+    }
+    return { success: true, data: { active: Boolean(overheadWindow && !overheadWindow.isDestroyed()) } }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('overhead:status', () => {
+  return { success: true, data: { active: Boolean(overheadWindow && !overheadWindow.isDestroyed()) } }
 })
 
 // ─── Config Handlers ─────────────────────────────────────────────────────────

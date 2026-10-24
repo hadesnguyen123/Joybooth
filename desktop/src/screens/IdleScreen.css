@@ -1,3 +1,13 @@
+/* ==========================================================================
+   FOTOLISM 3.0 — IDLE SCREEN
+   Principles:
+   1. Minimalism First: Pure, serene canvas. Zero visual noise or banners.
+   2. Touch & Remote First: Expansive tactile touch targets, full-card tap, keyboard focus.
+   3. One Screen, One Action: Uncluttered focus on choosing the photo experience.
+   4. Visual Over Text: Refined architectural SVG illustrations instead of emoji clutter.
+   5. Effortless Experience: Instant session start, fluid micro-interactions.
+   ========================================================================== */
+
 .idle-screen {
   width: 100vw;
   height: 100vh;
@@ -6,130 +16,18 @@
   max-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   position: relative;
   overflow: hidden;
   user-select: none;
-  background: radial-gradient(ellipse at 50% 45%, #FFFFFF 0%, #FFF8F2 60%, #FDE8EF 100%);
-  padding: 24px 36px;
+  background: radial-gradient(circle at 50% 36%, #FFFFFF 0%, #FAF6F1 52%, #EFE5DB 100%);
+  padding: 24px 44px 28px;
   box-sizing: border-box;
 }
 
-/* Decorative orbs */
-.idle-bg-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  pointer-events: none;
-}
-
-.idle-bg-orb--1 {
-  width: 650px;
-  height: 650px;
-  background: #F4729A;
-  opacity: 0.28;
-  top: -200px;
-  right: -100px;
-  animation: float1 9s ease-in-out infinite;
-}
-
-.idle-bg-orb--2 {
-  width: 550px;
-  height: 550px;
-  background: #D94F78;
-  opacity: 0.22;
-  bottom: -150px;
-  left: -100px;
-  animation: float2 11s ease-in-out infinite;
-}
-
-.idle-bg-orb--3 {
-  width: 400px;
-  height: 400px;
-  background: #FBCFE8;
-  opacity: 0.35;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-@keyframes float1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(-40px, 40px) scale(1.05); }
-}
-
-@keyframes float2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(35px, -35px) scale(1.08); }
-}
-
-/* Side Mockup Strips */
-.idle-side-strip {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  opacity: 0.85;
-  z-index: 1;
-}
-
-.idle-side-strip--left {
-  left: 3vw;
-  transform: translateY(-50%) rotate(-6deg);
-  animation: stripSwayLeft 6s ease-in-out infinite alternate;
-}
-
-.idle-side-strip--right {
-  right: 3vw;
-  transform: translateY(-50%) rotate(6deg);
-  animation: stripSwayRight 6s ease-in-out infinite alternate;
-}
-
-@keyframes stripSwayLeft {
-  0% { transform: translateY(-50%) rotate(-6deg); }
-  100% { transform: translateY(-53%) rotate(-4deg); }
-}
-
-@keyframes stripSwayRight {
-  0% { transform: translateY(-50%) rotate(6deg); }
-  100% { transform: translateY(-47%) rotate(8deg); }
-}
-
-.idle-strip-card {
-  width: 130px;
-  background: #ffffff;
-  padding: 12px 10px 18px;
-  border-radius: 14px;
-  box-shadow: 0 16px 36px rgba(45, 36, 38, 0.12);
-  border: 3px solid rgba(244, 114, 154, 0.2);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.idle-strip-photo {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.8rem;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-.idle-strip-footer {
-  text-align: center;
-  font-size: 0.65rem;
-  font-weight: 800;
-  color: #F4729A;
-  letter-spacing: 1px;
-  margin-top: 4px;
-}
-
-/* ── Top Header Bar ── */
-.idle-top-header {
+/* ── 1. Top Header (Discreet Staff Admin) ── */
+.idle-header {
   width: 100%;
   display: flex;
   align-items: center;
@@ -138,287 +36,275 @@
   flex-shrink: 0;
 }
 
-.idle-header-badge {
+.idle-header-spacer {
+  width: 120px;
+}
+
+.idle-admin-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 8px 24px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  padding: 8px 18px;
   border-radius: var(--radius-full);
-  border: 1.5px solid rgba(244, 114, 154, 0.4);
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: #F4729A;
-  letter-spacing: 1.5px;
-  box-shadow: 0 4px 15px rgba(244, 114, 154, 0.15);
-}
-
-/* Nút Quản Trị Hệ Thống Rõ Ràng */
-.idle-admin-pill-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: #ffffff;
-  border: 2px solid #2d2426;
-  color: #2d2426;
-  padding: 10px 22px;
-  border-radius: var(--radius-full);
-  font-family: var(--font-body) !important;
-  font-size: 0.95rem;
-  font-weight: 800;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(45, 36, 38, 0.12);
+  box-shadow: var(--shadow-sm);
   transition: all var(--transition-fast);
 }
 
-.idle-admin-pill-btn:hover {
-  background: #2d2426;
-  color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(45, 36, 38, 0.25);
+.idle-admin-btn:hover {
+  background: #ffffff;
+  color: var(--brand-primary);
+  border-color: var(--brand-primary);
+  box-shadow: 0 4px 14px rgba(80, 42, 29, 0.12);
+  transform: translateY(-1px);
 }
 
-.idle-admin-pill-btn:hover .admin-icon {
+.idle-admin-icon {
+  transition: transform 0.4s ease;
+}
+
+.idle-admin-btn:hover .idle-admin-icon {
   transform: rotate(60deg);
 }
 
-.idle-admin-pill-btn .admin-icon {
-  font-size: 1.15rem;
-  transition: transform 0.3s ease;
-}
-
-/* Center Content */
-.idle-content {
+/* ── 2. Center Attract & Selection Area ── */
+.idle-main {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  z-index: 2;
-  max-width: 1020px;
   width: 100%;
+  max-width: 980px;
+  margin: auto 0;
+  z-index: 2;
+  animation: idleFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.idle-logo-title {
+@keyframes idleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Brand Typography */
+.idle-brand {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.idle-brand-title {
   font-family: var(--font-display);
-  font-size: 5.2rem;
+  font-size: 5rem;
   font-weight: 900;
-  color: #F4729A;
+  color: var(--brand-primary);
   line-height: 1.02;
-  text-shadow: 0 8px 28px rgba(244, 114, 154, 0.4);
   letter-spacing: -2px;
   margin: 0;
+  text-shadow: 0 2px 12px rgba(80, 42, 29, 0.08);
 }
 
-.idle-event-subtitle {
-  font-family: var(--font-display);
-  font-size: 1.45rem;
-  font-weight: 800;
-  color: #2D2426;
-  letter-spacing: 3px;
-  margin-top: 8px;
-  margin-bottom: 20px;
-  text-transform: uppercase;
-}
-
-.idle-mode-prompt {
-  font-size: 1.05rem;
+.idle-brand-subtitle {
+  font-family: var(--font-body);
+  font-size: 1.15rem;
   font-weight: 700;
-  color: #64748b;
-  margin-bottom: 20px;
-  letter-spacing: 0.5px;
+  color: var(--brand-accent);
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  margin-top: 10px;
+  margin-bottom: 0;
 }
 
-/* ── 2 Modes Interactive Cards Container ── */
-.idle-modes-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px;
+.idle-prompt {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+
+/* ── 3. Dual Modes Selection (Touch & Remote First) ── */
+.idle-modes {
+  display: flex;
+  gap: 36px;
   width: 100%;
-  max-width: 900px;
-  margin-bottom: 28px;
+  max-width: 920px;
+  justify-content: center;
+  align-items: stretch;
 }
 
 .idle-mode-card {
-  background: #ffffff;
-  border-radius: 32px;
-  padding: 36px 32px 30px;
+  flex: 1;
+  max-width: 430px;
+  min-width: 340px;
+  background: var(--surface-default);
+  border-radius: 28px;
+  border: 1.5px solid var(--border-default);
+  box-shadow: 0 12px 32px rgba(80, 42, 29, 0.06), 0 2px 6px rgba(80, 42, 29, 0.03);
+  padding: 38px 32px 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  position: relative;
   cursor: pointer;
-  box-shadow: 0 16px 40px rgba(45, 36, 38, 0.08);
+  position: relative;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  outline: none;
 }
 
+/* Touch & Remote Focus / Hover States */
 .idle-mode-card:hover {
-  transform: translateY(-8px) scale(1.02);
+  transform: translateY(-8px);
+  border-color: var(--brand-secondary);
+  box-shadow: 0 22px 50px rgba(80, 42, 29, 0.12), 0 4px 12px rgba(80, 42, 29, 0.04);
 }
 
-.card-photobooth {
-  border: 3.5px solid #F4729A;
+.idle-mode-card:focus-visible {
+  outline: 3px solid var(--brand-primary);
+  outline-offset: 4px;
 }
 
-.card-photobooth:hover {
-  box-shadow: 0 24px 60px rgba(244, 114, 154, 0.35);
-  border-color: #d946ef;
+.idle-mode-card:active {
+  transform: scale(0.985);
+  box-shadow: 0 6px 18px rgba(80, 42, 29, 0.08);
 }
 
-.card-selfbooth {
-  border: 3.5px solid #0284c7;
-}
-
-.card-selfbooth:hover {
-  box-shadow: 0 24px 60px rgba(2, 132, 199, 0.35);
-  border-color: #0369a1;
-}
-
-.mode-card-badge {
-  position: absolute;
-  top: 16px;
-  display: inline-flex;
+/* Visual Over Text: Artwork container */
+.mode-card-visual {
+  width: 140px;
+  height: 140px;
+  border-radius: 24px;
+  background: var(--surface-warm);
+  border: 1px solid var(--border-default);
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  font-weight: 800;
-  padding: 5px 16px;
-  border-radius: var(--radius-full);
-  letter-spacing: 0.5px;
+  justify-content: center;
+  margin-bottom: 22px;
+  box-shadow: inset 0 2px 8px rgba(80, 42, 29, 0.03);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.badge-photobooth {
-  background: #fff0f5;
-  color: #F4729A;
-  border: 1px solid #fbcfe8;
+.idle-mode-card:hover .mode-card-visual {
+  transform: scale(1.08);
 }
 
-.badge-selfbooth {
-  background: #f0f9ff;
-  color: #0284c7;
-  border: 1px solid #bae6fd;
+.visual-svg {
+  filter: drop-shadow(0 4px 10px rgba(80, 42, 29, 0.08));
 }
 
-.mode-card-icon {
-  font-size: 4.2rem;
-  margin-top: 18px;
-  margin-bottom: 12px;
-  line-height: 1;
-  transition: transform 0.25s ease;
-}
-
-.idle-mode-card:hover .mode-card-icon {
-  transform: scale(1.15) rotate(4deg);
+/* Typography Inside Card */
+.mode-card-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 26px;
 }
 
 .mode-card-title {
   font-family: var(--font-display);
-  font-size: 2.1rem;
+  font-size: 1.95rem;
   font-weight: 900;
+  color: var(--brand-primary);
+  letter-spacing: 1.2px;
   margin: 0;
   line-height: 1.15;
-  letter-spacing: 1px;
 }
 
-.card-photobooth .mode-card-title {
-  color: #F4729A;
-}
-
-.card-selfbooth .mode-card-title {
-  color: #0284c7;
-}
-
-.mode-card-subtitle {
+.mode-card-caption {
   font-size: 1rem;
-  font-weight: 700;
-  color: #64748b;
-  margin: 8px 0 24px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  margin-bottom: 0;
+  letter-spacing: 0.3px;
 }
 
-.mode-card-action {
+/* Button CTA (Touch First — Generous Hit Area) */
+.mode-card-btn {
   width: 100%;
+  height: 58px;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 14px 28px;
-  border-radius: var(--radius-full);
-  font-size: 1.15rem;
+  gap: 12px;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
   font-weight: 800;
-  color: #ffffff;
-  letter-spacing: 1.5px;
+  letter-spacing: 1.8px;
+  pointer-events: none; /* Let parent card capture tap naturally */
   transition: all 0.25s ease;
 }
 
-.btn-action-photobooth {
-  background: linear-gradient(135deg, #F4729A 0%, #ec4899 100%);
-  box-shadow: 0 10px 30px rgba(244, 114, 154, 0.45);
-  animation: pulsePhotobooth 2.4s infinite ease-in-out;
+.mode-card-btn--primary {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+  box-shadow: 0 6px 20px rgba(80, 42, 29, 0.28);
 }
 
-@keyframes pulsePhotobooth {
-  0%, 100% { box-shadow: 0 8px 25px rgba(244, 114, 154, 0.4); transform: scale(1); }
-  50% { box-shadow: 0 14px 35px rgba(244, 114, 154, 0.65); transform: scale(1.02); }
+.idle-mode-card:hover .mode-card-btn--primary {
+  background: var(--brand-primary-hover);
+  box-shadow: 0 10px 28px rgba(80, 42, 29, 0.38);
 }
 
-.btn-action-photobooth:hover {
-  background: linear-gradient(135deg, #e11d48 0%, #db2777 100%);
+.mode-card-btn--secondary {
+  background: var(--brand-secondary);
+  color: #FFFFFF;
+  box-shadow: 0 6px 20px rgba(120, 69, 47, 0.26);
 }
 
-.btn-action-selfbooth {
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
-  box-shadow: 0 10px 30px rgba(2, 132, 199, 0.45);
-  animation: pulseSelfbooth 2.4s infinite ease-in-out;
+.idle-mode-card:hover .mode-card-btn--secondary {
+  background: #633726;
+  box-shadow: 0 10px 28px rgba(120, 69, 47, 0.36);
 }
 
-@keyframes pulseSelfbooth {
-  0%, 100% { box-shadow: 0 8px 25px rgba(2, 132, 199, 0.4); transform: scale(1); }
-  50% { box-shadow: 0 14px 35px rgba(2, 132, 199, 0.65); transform: scale(1.02); }
-}
-
-.btn-action-selfbooth:hover {
-  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
-}
-
-.action-arrow {
-  font-size: 1.3rem;
+.mode-card-btn svg {
   transition: transform 0.2s ease;
 }
 
-.idle-mode-card:hover .action-arrow {
-  transform: translateX(6px);
+.idle-mode-card:hover .mode-card-btn svg {
+  transform: translateX(5px);
 }
 
-/* Feature Row */
-.idle-features-row {
+/* ── 4. Subtle Bottom Footer ── */
+.idle-footer {
+  width: 100%;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 16px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(8px);
-  padding: 10px 28px;
-  border-radius: var(--radius-full);
-  box-shadow: 0 6px 20px rgba(45, 36, 38, 0.06);
-  border: 1px solid rgba(45, 36, 38, 0.08);
-  margin-top: 6px;
+  padding: 8px 0;
+  flex-shrink: 0;
 }
 
-.idle-feature-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #2D2426;
+.idle-footer-line {
+  width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(80, 42, 29, 0.12);
 }
 
-.idle-feat-icon {
-  font-size: 1.1rem;
-}
-
-.idle-feature-dot {
-  color: #F4729A;
-  font-size: 1rem;
+/* ── Responsive Refinements ── */
+@media (max-width: 900px) {
+  .idle-brand-title {
+    font-size: 3.8rem;
+  }
+  .idle-modes {
+    gap: 20px;
+  }
+  .idle-mode-card {
+    padding: 28px 20px 24px;
+  }
 }

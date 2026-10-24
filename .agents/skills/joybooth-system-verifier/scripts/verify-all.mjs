@@ -124,11 +124,64 @@ function checkDesktopKioskStructure() {
   }
 }
 
+// 5. Kiểm tra Canon Persistent Daemon 64-bit (Fotolism 3.0)
+function checkCanonDaemon() {
+  try {
+    const daemonExe = path.join(ROOT_DIR, 'desktop/electron/fotolism_canon_daemon.exe')
+    const daemonSrc = path.join(ROOT_DIR, 'desktop/native-daemon/CanonDaemon.cs')
+
+    const hasExe = fs.existsSync(daemonExe)
+    const hasSrc = fs.existsSync(daemonSrc)
+
+    if (hasExe && hasSrc) {
+      const exeSize = fs.statSync(daemonExe).size
+      addResult(
+        'CANON_DAEMON',
+        'Canon EDSDK Persistent Daemon 64-bit',
+        exeSize > 10000,
+        `Binary sẵn sàng (${exeSize} bytes) và mã nguồn C# chuẩn hóa`
+      )
+    } else {
+      addResult('CANON_DAEMON', 'Canon EDSDK Daemon', false, 'Thiếu fotolism_canon_daemon.exe hoặc CanonDaemon.cs')
+    }
+  } catch (err) {
+    addResult('CANON_DAEMON', 'Kiểm tra Canon Daemon', false, err.message)
+  }
+}
+
+// 6. Kiểm tra SQLite Session Storage & Multi-Monitor Overhead (Fotolism 3.0)
+function checkFotolism3Features() {
+  try {
+    const dbPath = path.join(ROOT_DIR, 'desktop/electron/sessionDatabase.cts')
+    const overheadPath = path.join(ROOT_DIR, 'desktop/src/screens/OverheadScreen.tsx')
+
+    const hasDb = fs.existsSync(dbPath)
+    const hasOverhead = fs.existsSync(overheadPath)
+
+    if (hasDb && hasOverhead) {
+      const dbCode = fs.readFileSync(dbPath, 'utf-8')
+      const hasTables = dbCode.includes('Sessions') && dbCode.includes('Captures') && dbCode.includes('PrintJobs')
+      addResult(
+        'FOTOLISM_3_CORE',
+        'SQLite Session DB & Overhead Multi-Monitor',
+        hasTables,
+        'Cơ sở dữ liệu SQLite Sessions/Captures/Prints và màn hình phụ Overhead sẵn sàng'
+      )
+    } else {
+      addResult('FOTOLISM_3_CORE', 'Tính năng Fotolism 3.0', false, 'Thiếu sessionDatabase.cts hoặc OverheadScreen.tsx')
+    }
+  } catch (err) {
+    addResult('FOTOLISM_3_CORE', 'Kiểm tra tính năng 3.0', false, err.message)
+  }
+}
+
 // Chạy tuần tự các bài test
 checkPortsConfig()
 checkDatabaseMigration()
 checkReconciliationModule()
 checkDesktopKioskStructure()
+checkCanonDaemon()
+checkFotolism3Features()
 
 console.log('='.repeat(65))
 const passCount = results.filter((r) => r.passed).length

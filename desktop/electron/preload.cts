@@ -5,6 +5,14 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 type IpcResponse<T = unknown> = Promise<{ success: boolean; data?: T; error?: string }>
 
+export interface EdsdkCapturePayload {
+  savePath?: string
+  shotIndex?: number
+  captureId?: string
+  sessionId?: string
+  slotIndex?: number
+}
+
 const api = {
   // ── AI ───────────────────────────────────────────────────────────────────
   ai: {
@@ -27,7 +35,7 @@ const api = {
       ipcRenderer.invoke('print:list-printers'),
   },
 
-  // ── Camera ───────────────────────────────────────────────────────────────
+  // ── Camera (Fotolism 2.2 EDSDK & Reliability) ─────────────────────────────
   camera: {
     list: (): IpcResponse =>
       ipcRenderer.invoke('camera:list'),
@@ -51,21 +59,68 @@ const api = {
     installDigiCam: (): IpcResponse<{ message?: string }> =>
       ipcRenderer.invoke('camera:install-digicam'),
 
-    /** EDSDK: Kích hoạt chụp ảnh máy ảnh thật, trả về dataUrl ảnh gốc 24MP */
-    edsdkCapture: (savePath: string, shotIndex: number): IpcResponse<{
+    /** EDSDK: Kích hoạt chụp ảnh máy ảnh thật với Idempotency & Session Support */
+    edsdkCapture: (
+      payloadOrPath: EdsdkCapturePayload | string,
+      maybeShotIndex?: number
+    ): IpcResponse<{
       savedPath: string
       dataUrl: string
       source: string
       resolution: string
-    }> => ipcRenderer.invoke('camera:edsdk-capture', { savePath, shotIndex }),
+      latencyMs?: number
+      shutterMs?: number
+      transferMs?: number
+      captureId?: string
+      sessionId?: string
+      slotIndex?: number
+      idempotent?: boolean
+    }> => {
+      const payload: EdsdkCapturePayload =
+        typeof payloadOrPath === 'string'
+          ? { savePath: payloadOrPath, shotIndex: maybeShotIndex ?? 0, slotIndex: maybeShotIndex ?? 0 }
+          : payloadOrPath
+      return ipcRenderer.invoke('camera:edsdk-capture', payload)
+    },
 
     /** EDSDK: Lấy 1 frame Live View chất lượng cao từ máy ảnh */
     edsdkLiveviewFrame: (): IpcResponse<{ dataUrl: string }> =>
       ipcRenderer.invoke('camera:edsdk-liveview-frame'),
 
     /** Canon Persistent Daemon Status */
-    canonDaemonStatus: (): IpcResponse<{ running: boolean; url: string }> =>
+    canonDaemonStatus: (): IpcResponse<{ running: boolean; url: string; state?: string }> =>
       ipcRenderer.invoke('camera:canon-daemon-status'),
+
+    /** Canon Persistent Daemon Diagnostics (FR-09) */
+    canonDiagnostics: (): IpcResponse<any> =>
+      ipcRenderer.invoke('camera:canon-diagnostics'),
+  },
+
+  // ── Session & SQLite Persistence (FR-06) ──────────────────────────────────
+  session: {
+    create: (sessionData: any): IpcResponse<any> =>
+      ipcRenderer.invoke('session:create', sessionData),
+
+    get: (sessionId: string): IpcResponse<any> =>
+      ipcRenderer.invoke('session:get', sessionId),
+
+    update: (sessionId: string, updates: any): IpcResponse<any> =>
+      ipcRenderer.invoke('session:update', { id: sessionId, updates }),
+
+    getCaptures: (sessionId: string): IpcResponse<any[]> =>
+      ipcRenderer.invoke('session:get-captures', sessionId),
+  },
+
+  // ── Multi-Monitor & Overhead (FR-08) ──────────────────────────────────────
+  overhead: {
+    getDisplays: (): IpcResponse<Array<{ id: number; bounds: any; isPrimary: boolean; label: string }>> =>
+      ipcRenderer.invoke('overhead:get-displays'),
+
+    toggle: (enabled: boolean, displayId?: number): IpcResponse<{ active: boolean; displayId?: number }> =>
+      ipcRenderer.invoke('overhead:toggle', { enabled, displayId }),
+
+    status: (): IpcResponse<{ active: boolean; displayId?: number }> =>
+      ipcRenderer.invoke('overhead:status'),
   },
 
   // ── Config ───────────────────────────────────────────────────────────────

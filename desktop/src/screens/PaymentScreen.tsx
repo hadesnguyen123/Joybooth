@@ -99,7 +99,6 @@ export default function PaymentScreen() {
     setCouponError(null)
   }
 
-  // Tăng giảm số lượng in
   function handleIncreaseCopies() {
     const next = copies + copyStep
     if (next <= 12) {
@@ -116,16 +115,16 @@ export default function PaymentScreen() {
     }
   }
 
-  // Xác nhận thanh toán & chuyển vào màn hình chụp
-  function handleConfirmPaid(methodUsed: 'vietqr' | 'cash' | 'free' = paymentMethod) {
+  function handleConfirmPaid(methodUsed: 'vietqr' | 'cash' | 'free') {
     setIsProcessing(true)
-    setSelectedCopies(copies)
+
     setSessionPayment({
-      paidAmount: finalAmount,
-      paidCopies: copies,
-      paymentMethod: finalAmount === 0 ? 'free' : methodUsed,
-      discountCodeUsed: appliedCoupon ? appliedCoupon.code : null,
-      discountAmount,
+      method: methodUsed,
+      amount: finalAmount,
+      orderCode,
+      paidAt: new Date().toISOString(),
+      copies,
+      couponCode: appliedCoupon?.code,
     })
 
     setTimeout(() => {
@@ -313,7 +312,7 @@ export default function PaymentScreen() {
                 </div>
                 <div className="bank-meta-row">
                   <span>Số tiền:</span>
-                  <b style={{ color: '#e11d48' }}>{formatVND(finalAmount)}</b>
+                  <b style={{ color: 'var(--brand-primary, #502A1D)', fontWeight: 700 }}>{formatVND(finalAmount)}</b>
                 </div>
                 <div className="bank-meta-row">
                   <span>Nội dung chuyển khoản:</span>
@@ -345,7 +344,7 @@ export default function PaymentScreen() {
                 <div className="cash-icon-circle">💵</div>
                 <h3>Thanh Toán Bằng Tiền Mặt</h3>
                 <p>
-                  Vui lòng chuẩn bị đúng số tiền: <strong style={{ color: '#e11d48', fontSize: '1.2rem' }}>{formatVND(finalAmount)}</strong>
+                  Vui lòng chuẩn bị đúng số tiền: <strong style={{ color: 'var(--brand-primary, #502A1D)', fontSize: '1.2rem', fontWeight: 700 }}>{formatVND(finalAmount)}</strong>
                 </p>
                 <div className="cash-steps-list">
                   <div className="cash-step-item">

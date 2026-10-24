@@ -84,7 +84,7 @@ export async function getFaceLandmarker(): Promise<FaceLandmarker | null> {
  */
 export function extractFaceData(
   result: FaceLandmarkerResult,
-  mirror: boolean = false
+  mirror: boolean = true
 ): FaceDetectionData[] {
   if (!result.faceLandmarks || result.faceLandmarks.length === 0) {
     return []

@@ -21,8 +21,8 @@ export const APP_YEAR = '2026'
 export const APP_DOMAIN = 'fotolism.app'
 
 // ── 2. Security & Admin ──
-/** Mã PIN quản trị mặc định */
-export const DEFAULT_ADMIN_PIN = '1234'
+/** Mã PIN quản trị mặc định (Có thể thiết lập mã PIN riêng trong Cài Đặt) */
+export const DEFAULT_ADMIN_PIN = '8888'
 
 // ── 3. File System & Storage ──
 /** Tên thư mục lưu ảnh */

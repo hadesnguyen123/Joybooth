@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppStore, COLOR_FILTERS, BEAUTY_PRESETS, type CapturedPhoto } from '../store/appStore'
-import { fotolismApi, isBrowser, mockApi } from '../lib/api'
+import { fotolismApi, isBrowser, mockApi, api } from '../lib/api'
 import {
   FILE_PREFIX_SHOT,
   FILE_PREFIX_SELF,
@@ -30,7 +30,7 @@ function playCameraShutterSound() {
     gain.connect(ctx.destination)
     osc.start(now)
     osc.stop(now + 0.05)
-  } catch {}
+  } catch { }
 }
 
 export default function CaptureScreen() {
@@ -40,6 +40,7 @@ export default function CaptureScreen() {
     countdownSeconds,
     setCountdownSeconds,
     selectedLayout,
+    selectedCopies,
     selectFilter,
     selectedBeautyPreset,
     applyBeautyPreset,
@@ -102,9 +103,25 @@ export default function CaptureScreen() {
   const [justCapturedSlot, setJustCapturedSlot] = useState<number | null>(null)
   const [cameraFreezeFrame, setCameraFreezeFrame] = useState<string | null>(null)
 
+  // ── Session ID cho Fotolism 2.2 SQLite & Idempotency ──
+  const [sessionId] = useState<string>(() => `session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`)
+
   // ── Chế độ PHOTOBOOTH CỔ ĐIỂN (Có Retake / Xóa ô xấu) ──
   const [slots, setSlots] = useState<(CapturedPhoto | null)[]>(Array(totalShots).fill(null))
   const [retakeSlotIndex, setRetakeSlotIndex] = useState<number | null>(null)
+
+  useEffect(() => {
+    // Khởi tạo phiên trong SQLite persistent session storage (FR-06)
+    api.session?.create({
+      id: sessionId,
+      status: 'ACTIVE',
+      started_at: new Date().toISOString(),
+      total_slots: totalShots,
+      layout_id: selectedLayout?.id,
+      payment_status: 'PAID',
+      print_copies: selectedCopies || 1,
+    }).catch(console.warn)
+  }, [sessionId, totalShots, selectedLayout?.id, selectedCopies])
 
   // ── Chế độ SELFBOOTH (Chụp tự do theo thời gian & Chọn ảnh vào khung) ──
   const [isSelfboothRunning, setIsSelfboothRunning] = useState<boolean>(false)
@@ -124,13 +141,13 @@ export default function CaptureScreen() {
       if (daemonRes?.success && daemonRes.data?.running) {
         daemonActive = true
       }
-    } catch {}
+    } catch { }
 
     // Lấy toàn bộ danh sách thiết bị video của hệ thống
     let allDevices: MediaDeviceInfo[] = []
     try {
       allDevices = await navigator.mediaDevices.enumerateDevices()
-    } catch {}
+    } catch { }
 
     // Kiểm tra xem người dùng có đang cố tình chọn một webcam phụ (ví dụ webcam laptop) hay không
     const isExplicitNonCanonWebcam =
@@ -267,7 +284,7 @@ export default function CaptureScreen() {
         }
         if (videoRef.current) {
           videoRef.current.srcObject = fallbackStream
-          videoRef.current.play().catch(() => {})
+          videoRef.current.play().catch(() => { })
         }
         setHasCamera(true)
       } catch (fallbackErr) {
@@ -290,8 +307,8 @@ export default function CaptureScreen() {
   useEffect(() => {
     // Reset bộ lọc về Tự nhiên khi bắt đầu chụp để ảnh gốc luôn sạch
     selectFilter(COLOR_FILTERS[0])
-    // Gương luôn luôn tắt theo quy chuẩn chất lượng ảnh chụp
-    setMirrorCamera(false)
+    // Gương mặc định là lật theo chuẩn Photobooth
+    setMirrorCamera(true)
   }, [selectFilter, setMirrorCamera])
 
   useEffect(() => {
@@ -304,7 +321,7 @@ export default function CaptureScreen() {
         timelapseTimerRef.current = null
       }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        try { mediaRecorderRef.current.stop() } catch {}
+        try { mediaRecorderRef.current.stop() } catch { }
       }
       if (currentStreamRef.current) {
         currentStreamRef.current.getTracks().forEach((track) => track.stop())
@@ -313,7 +330,24 @@ export default function CaptureScreen() {
     }
   }, [startCamera])
 
-  const finishSelfboothRef = useRef<() => void>(() => {})
+  // Tự động phát hiện và kết nối lại máy ảnh Canon EOS ngay khi máy bật nguồn hoặc cắm lại cáp USB
+  useEffect(() => {
+    if (isCanonDaemonActive) return
+
+    const probeTimer = setInterval(async () => {
+      try {
+        const daemonRes = await (isBrowser ? mockApi : fotolismApi).camera.canonDaemonStatus?.()
+        if (daemonRes?.success && daemonRes.data?.running) {
+          console.log('⚡ [CaptureScreen] Canon EOS Daemon detected active, auto-switching to live stream...')
+          startCamera('canon-daemon-stream')
+        }
+      } catch { }
+    }, 2000)
+
+    return () => clearInterval(probeTimer)
+  }, [isCanonDaemonActive, startCamera])
+
+  const finishSelfboothRef = useRef<() => void>(() => { })
 
   // Đếm ngược thời gian phiên Selfbooth
   useEffect(() => {
@@ -581,8 +615,15 @@ export default function CaptureScreen() {
         api.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save photo error:', err))
       }
 
-      // 6. PHƯƠNG ÁN 2: KÍCH HOẠT MÁY ẢNH CANON EOS THẬT (24MP FULL EXIF)
-      await api.camera.edsdkCapture(canonSavePath, targetIndex)
+      // 6. PHƯƠNG ÁN 2: KÍCH HOẠT MÁY ẢNH CANON EOS THẬT (24MP FULL EXIF) - FOTOLISM 2.2 IDEMPOTENCY
+      const captureId = `cap_${sessionId}_slot${targetIndex}_${Date.now()}`
+      await api.camera.edsdkCapture({
+        captureId,
+        sessionId,
+        slotIndex: targetIndex,
+        savePath: canonSavePath,
+        shotIndex: targetIndex,
+      })
         .then((res) => {
           if (res && res.success && res.data && res.data.dataUrl) {
             const canonData = res.data
@@ -716,8 +757,15 @@ export default function CaptureScreen() {
         selfApi.storage.savePhoto(photoDataUrl, fileName).catch((err) => console.warn('Save selfbooth photo error:', err))
       }
 
-      // PHƯƠNG ÁN 2 cho Selfbooth: Chụp ảnh thật từ cảm biến máy ảnh Canon
-      await selfApi.camera.edsdkCapture(canonSelfPath, photoNum)
+      // PHƯƠNG ÁN 2 cho Selfbooth: Chụp ảnh thật từ cảm biến máy ảnh Canon (Fotolism 2.2 Idempotency)
+      const captureId = `cap_${sessionId}_self${photoNum}_${Date.now()}`
+      await selfApi.camera.edsdkCapture({
+        captureId,
+        sessionId,
+        slotIndex: photoNum,
+        savePath: canonSelfPath,
+        shotIndex: photoNum,
+      })
         .then((res) => {
           if (res && res.success && res.data && res.data.dataUrl) {
             const canonData = res.data
@@ -726,11 +774,11 @@ export default function CaptureScreen() {
               prev.map((p) =>
                 p.id === newPhoto.id
                   ? {
-                      ...p,
-                      rawPath: canonData.savedPath,
-                      enhancedPath: canonData.dataUrl,
-                      compositedPath: canonData.dataUrl,
-                    }
+                    ...p,
+                    rawPath: canonData.savedPath,
+                    enhancedPath: canonData.dataUrl,
+                    compositedPath: canonData.dataUrl,
+                  }
                   : p
               )
             )
@@ -788,7 +836,7 @@ export default function CaptureScreen() {
   // Chọn ảnh từ gallery gán vào slot trong Photo Picker
   function handleAssignPhotoToSlot(photo: CapturedPhoto) {
     const nextPicked = [...pickedSlots]
-    
+
     // Nếu ảnh này đã có ở một slot khác, tháo ra
     const existingIndex = nextPicked.findIndex((p) => p?.id === photo.id)
     if (existingIndex !== -1) {
@@ -1193,7 +1241,7 @@ export default function CaptureScreen() {
               <BeautyCameraView
                 ref={beautyCameraRef}
                 stream={isCanonDaemonActive ? null : activeMediaStream}
-                mjpegUrl={isCanonDaemonActive ? 'http://127.0.0.1:8899/liveview' : undefined}
+                mjpegUrl={isCanonDaemonActive && !(typeof window !== 'undefined' && window.location.search.includes('noLiveStream=1')) ? 'http://127.0.0.1:8899/liveview' : undefined}
                 mirrorCamera={mirrorCamera}
                 slimFace={slimFace}
                 skinSmoothing={skinSmoothing}
@@ -1424,10 +1472,10 @@ export default function CaptureScreen() {
                     {isCapturingShot
                       ? `Đang đếm ngược...`
                       : retakeSlotIndex !== null
-                      ? `📸 Chụp Lại Ô ${retakeSlotIndex + 1}`
-                      : filledSlotsCount === 0
-                      ? `Bắt đầu chụp (Ảnh 1 / ${totalShots})`
-                      : `Chụp tiếp ảnh ${filledSlotsCount + 1} / ${totalShots}`}
+                        ? `📸 Chụp Lại Ô ${retakeSlotIndex + 1}`
+                        : filledSlotsCount === 0
+                          ? `Bắt đầu chụp (Ảnh 1 / ${totalShots})`
+                          : `Chụp tiếp ảnh ${filledSlotsCount + 1} / ${totalShots}`}
                   </span>
                 </button>
               )}

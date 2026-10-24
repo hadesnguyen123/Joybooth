@@ -50,6 +50,8 @@ export default function AdminScreen() {
     resetAdjustments,
     applyBeautyPreset,
     selectedBeautyPreset,
+    mirrorCamera,
+    setMirrorCamera,
   } = useAppStore()
 
   // PIN Lock State
@@ -78,6 +80,13 @@ export default function AdminScreen() {
   const [isTestingShutter, setIsTestingShutter] = useState<boolean>(false)
   const [shutterTestResult, setShutterTestResult] = useState<string | null>(null)
 
+  // Fotolism 2.2 Diagnostics & Multi-Monitor Overhead (FR-08, FR-09)
+  const [diagnostics, setDiagnostics] = useState<any>(null)
+  const [overheadDisplays, setOverheadDisplays] = useState<any[]>([])
+  const [overheadActive, setOverheadActive] = useState<boolean>(false)
+  const [selectedDisplayId, setSelectedDisplayId] = useState<number | undefined>(undefined)
+  const [isTogglingOverhead, setIsTogglingOverhead] = useState<boolean>(false)
+
   async function handleTestShutter() {
     setIsTestingShutter(true)
     setShutterTestResult(null)
@@ -98,6 +107,22 @@ export default function AdminScreen() {
     }
   }
 
+  async function handleToggleOverhead() {
+    setIsTogglingOverhead(true)
+    try {
+      const api = isBrowser ? mockApi : fotolismApi
+      const nextActive = !overheadActive
+      const res = await api.overhead.toggle(nextActive, selectedDisplayId)
+      if (res?.success && res.data) {
+        setOverheadActive(res.data.active)
+      }
+    } catch (err: any) {
+      console.warn('Toggle overhead error:', err)
+    } finally {
+      setIsTogglingOverhead(false)
+    }
+  }
+
   useEffect(() => {
     if (activeTab === 'hardware' && isAuthenticated) {
       const api = isBrowser ? mockApi : fotolismApi
@@ -106,6 +131,24 @@ export default function AdminScreen() {
           setCameraDriverStatus(res.data)
         }
       }).catch(console.warn)
+
+      const pollData = () => {
+        api.camera.canonDiagnostics?.().then((res) => {
+          if (res?.success && res.data) setDiagnostics(res.data)
+        }).catch(console.warn)
+
+        api.overhead.getDisplays?.().then((res) => {
+          if (res?.success && res.data) setOverheadDisplays(res.data)
+        }).catch(console.warn)
+
+        api.overhead.status?.().then((res) => {
+          if (res?.success && res.data) setOverheadActive(res.data.active)
+        }).catch(console.warn)
+      }
+
+      pollData()
+      const pollTimer = setInterval(pollData, 1800)
+      return () => clearInterval(pollTimer)
     }
   }, [activeTab, isAuthenticated])
 
@@ -460,6 +503,21 @@ export default function AdminScreen() {
                 </div>
 
                 <div className="form-group">
+                  <label className="form-label">🔐 Mã PIN Quản Trị Hệ Thống (Bảo Mật)</label>
+                  <input
+                    type="password"
+                    maxLength={8}
+                    className="form-input"
+                    value={eventConfig.adminPin || ''}
+                    placeholder="Mã PIN riêng (Mặc định: 8888)"
+                    onChange={(e) => setEventConfig({ adminPin: e.target.value })}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)', marginTop: 4, display: 'block' }}>
+                    Thiết lập mã PIN riêng để bảo vệ các cài đặt kiosk Fotolism.
+                  </span>
+                </div>
+
+                <div className="form-group">
                   <label className="form-label">🎬 Quay Video Timelapse Hậu Trường</label>
                   <select
                     className="form-input"
@@ -718,7 +776,7 @@ export default function AdminScreen() {
                     {adminStream ? (
                       <BeautyCameraView
                         stream={adminStream}
-                        mirrorCamera={false}
+                        mirrorCamera={mirrorCamera}
                         slimFace={slimFace}
                         skinSmoothing={skinSmoothing}
                         whiteningTone={whiteningTone}
@@ -754,6 +812,32 @@ export default function AdminScreen() {
                       }}
                     >
                       ✨ Xem Trực Tiếp Live View (WebGL Shader 60 FPS)
+                    </div>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 8,
+                        right: 8,
+                        zIndex: 10,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        style={{
+                          fontSize: '0.72rem',
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          background: mirrorCamera ? 'var(--brand-primary, #502A1D)' : 'rgba(0,0,0,0.7)',
+                          color: '#fff',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                        onClick={() => setMirrorCamera(!mirrorCamera)}
+                        title="Bấm để bật/tắt lật gương camera"
+                      >
+                        🪞 Lật Gương: {mirrorCamera ? 'Bật (Mặc định)' : 'Tắt'}
+                      </button>
                     </div>
                   </div>
 
@@ -992,6 +1076,231 @@ export default function AdminScreen() {
                     {shutterTestResult}
                   </div>
                 )}
+              </div>
+
+              {/* CARD: FOTOLISM 2.2 LIVE CAMERA DIAGNOSTICS & TELEMETRY (FR-09) */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #18181b 0%, #1e1e24 100%)',
+                  borderRadius: 16,
+                  padding: 20,
+                  marginBottom: 20,
+                  color: '#fff',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>📊</span>
+                      <span>Fotolism 2.2 — Giám Sát Trạng Thái & Telemetry Thời Gian Thực</span>
+                    </h3>
+                    <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                      Theo dõi Camera State Machine, FPS Live View, độ trễ p95 và nhật ký kết nối PTP/USB-C.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: 9999,
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        background:
+                          diagnostics?.cameraState === 'READY' || diagnostics?.cameraState === 'LIVEVIEW'
+                            ? 'rgba(34, 197, 94, 0.2)'
+                            : diagnostics?.cameraState === 'CAPTURING' || diagnostics?.cameraState === 'TRANSFERRING'
+                            ? 'rgba(56, 189, 248, 0.2)'
+                            : 'rgba(239, 68, 68, 0.2)',
+                        border:
+                          diagnostics?.cameraState === 'READY' || diagnostics?.cameraState === 'LIVEVIEW'
+                            ? '1px solid rgba(34, 197, 94, 0.4)'
+                            : diagnostics?.cameraState === 'CAPTURING' || diagnostics?.cameraState === 'TRANSFERRING'
+                            ? '1px solid rgba(56, 189, 248, 0.4)'
+                            : '1px solid rgba(239, 68, 68, 0.4)',
+                        color:
+                          diagnostics?.cameraState === 'READY' || diagnostics?.cameraState === 'LIVEVIEW'
+                            ? '#4ade80'
+                            : diagnostics?.cameraState === 'CAPTURING' || diagnostics?.cameraState === 'TRANSFERRING'
+                            ? '#38bdf8'
+                            : '#f87171',
+                      }}
+                    >
+                      Trạng thái: {diagnostics?.cameraState || 'DISCONNECTED'}
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                    gap: 10,
+                    marginBottom: 14,
+                  }}
+                >
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 10, textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Live View FPS</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#38bdf8', marginTop: 2 }}>
+                      {diagnostics?.evfFps ? diagnostics.evfFps.toFixed(1) : '0.0'}
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 10, textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Độ Trễ Frame</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#4ade80', marginTop: 2 }}>
+                      {diagnostics?.evfLatencyMs || 0} ms
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 10, textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Tổng Lần Chụp</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#facc15', marginTop: 2 }}>
+                      {diagnostics?.totalCaptures || 0}
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 10, textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Thời Gian Chụp TB</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#a78bfa', marginTop: 2 }}>
+                      {diagnostics?.averageCaptureLatencyMs ? diagnostics.averageCaptureLatencyMs.toFixed(0) : 0} ms
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 10, textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Tái Kết Nối USB</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fb923c', marginTop: 2 }}>
+                      {diagnostics?.reconnectCount || 0}
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 10, textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Clients Stream</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#e879f9', marginTop: 2 }}>
+                      {diagnostics?.activeLiveViewClients || 0}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Structured Logs Viewer */}
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', marginBottom: 6 }}>
+                    📜 Nhật Ký Sự Kiện Hệ Thống Gần Nhất (Ring Buffer)
+                  </div>
+                  <div
+                    style={{
+                      maxHeight: 140,
+                      overflowY: 'auto',
+                      background: '#09090b',
+                      borderRadius: 8,
+                      padding: '8px 12px',
+                      fontSize: '0.72rem',
+                      fontFamily: 'Consolas, monospace',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                    }}
+                  >
+                    {diagnostics?.recentLogs && diagnostics.recentLogs.length > 0 ? (
+                      diagnostics.recentLogs.slice(-12).reverse().map((log: any, idx: number) => (
+                        <div key={idx} style={{ marginBottom: 4, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                          <span style={{ color: '#64748b' }}>{log.timestamp ? log.timestamp.split('T')[1]?.slice(0, 8) : ''}</span>
+                          <span
+                            style={{
+                              color: log.level === 'ERROR' ? '#f87171' : log.level === 'WARN' ? '#fbbf24' : '#38bdf8',
+                              fontWeight: 700,
+                            }}
+                          >
+                            [{log.event}]
+                          </span>
+                          <span style={{ color: '#cbd5e1' }}>{log.details || ''}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ color: '#64748b' }}>Chưa có sự kiện nào được ghi nhận.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD: MULTI-MONITOR OVERHEAD DISPLAY MANAGER (FR-08) */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #18181b 0%, #201a24 100%)',
+                  borderRadius: 16,
+                  padding: 20,
+                  marginBottom: 20,
+                  color: '#fff',
+                  border: '1px solid rgba(232, 121, 249, 0.25)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#e879f9', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>🖥️</span>
+                      <span>Màn Hình Phụ Treo Cao (Overhead Display)</span>
+                    </h3>
+                    <p style={{ fontSize: '0.8rem', color: '#a1a1aa', margin: '4px 0 0 0' }}>
+                      Mở cửa sổ Live View tràn viền độc lập trên màn hình thứ hai (HDMI/DP) cho khách tạo dáng từ xa.
+                    </p>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={isTogglingOverhead}
+                      onClick={handleToggleOverhead}
+                      style={{
+                        padding: '10px 20px',
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        borderRadius: 10,
+                        background: overheadActive
+                          ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                          : 'linear-gradient(135deg, #d946ef, #c026d3)',
+                        color: '#fff',
+                        border: 'none',
+                        cursor: isTogglingOverhead ? 'not-allowed' : 'pointer',
+                        boxShadow: overheadActive
+                          ? '0 4px 16px rgba(239, 68, 68, 0.4)'
+                          : '0 4px 16px rgba(217, 70, 239, 0.4)',
+                      }}
+                    >
+                      {overheadActive ? '⏹️ Tắt Màn Hình Phụ Overhead' : '▶️ Bật Màn Hình Phụ Overhead'}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 260 }}>
+                    <label style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', marginBottom: 4 }}>
+                      Chọn Màn Hình Hiển Thị ({overheadDisplays.length} màn hình kết nối):
+                    </label>
+                    <select
+                      className="form-input"
+                      value={selectedDisplayId || ''}
+                      onChange={(e) => setSelectedDisplayId(e.target.value ? Number(e.target.value) : undefined)}
+                      style={{ background: '#09090b', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}
+                    >
+                      <option value="">Tự động (Ưu tiên màn hình phụ HDMI/DP)</option>
+                      {overheadDisplays.map((disp) => (
+                        <option key={disp.id} value={disp.id}>
+                          {disp.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18 }}>
+                    <span
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        background: overheadActive ? '#22c55e' : '#71717a',
+                        boxShadow: overheadActive ? '0 0 10px #22c55e' : 'none',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: overheadActive ? '#4ade80' : '#a1a1aa' }}>
+                      {overheadActive ? 'Đang phát sóng Overhead (Full HD MJPEG)' : 'Đang tắt'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="admin-form-grid">

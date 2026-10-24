@@ -677,11 +677,23 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
       }
     }, [stream, mjpegUrl, mirrorCamera, slimFace, skinSmoothing, whiteningTone, rosyTone, glowClarity])
 
-    // Tính toán CSS filter cho MJPEG Image stream
+    // Tính toán CSS filter cho MJPEG Image stream (Tối ưu độ nét và màu sắc)
     const mjpegFilters: string[] = []
-    if (whiteningTone > 0) mjpegFilters.push(`brightness(${(1 + (whiteningTone / 100) * 0.12).toFixed(3)})`)
-    if (skinSmoothing > 0) mjpegFilters.push(`blur(${(skinSmoothing * 0.005).toFixed(2)}px)`)
-    if (rosyTone > 0) mjpegFilters.push(`saturate(${(1 + (rosyTone / 100) * 0.15).toFixed(3)}) hue-rotate(-${(rosyTone * 0.08).toFixed(1)}deg)`)
+    
+    // 1. Áp dụng ma trận làm nét cạnh viền (Convolution Sharpening) để triệt tiêu hoàn toàn mờ nội suy
+    if (glowClarity > 50) {
+      mjpegFilters.push('url(#canon-sharpen-crisp)')
+    } else {
+      mjpegFilters.push('url(#canon-sharpen-medium)')
+    }
+
+    if (whiteningTone > 0) mjpegFilters.push(`brightness(${(1 + (whiteningTone / 100) * 0.10).toFixed(3)})`)
+    if (glowClarity > 0) {
+      mjpegFilters.push(`contrast(${(1.03 + (glowClarity / 100) * 0.12).toFixed(3)})`)
+    } else {
+      mjpegFilters.push('contrast(1.04)') // Tăng nhẹ độ tương phản viền chống mờ nội suy upscale
+    }
+    if (rosyTone > 0) mjpegFilters.push(`saturate(${(1 + (rosyTone / 100) * 0.12).toFixed(3)}) hue-rotate(-${(rosyTone * 0.06).toFixed(1)}deg)`)
     const mjpegFilterStyle = mjpegFilters.length > 0 ? mjpegFilters.join(' ') : 'none'
 
     return (
@@ -696,6 +708,40 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
           ...style,
         }}
       >
+        {/* Bộ lọc ma trận chập tăng cường độ sắc nét cạnh (GPU Convolution Sharpening) */}
+        <svg
+          style={{
+            position: 'absolute',
+            width: 0,
+            height: 0,
+            pointerEvents: 'none',
+          }}
+          aria-hidden="true"
+        >
+          <defs>
+            <filter id="canon-sharpen-medium" colorInterpolationFilters="sRGB">
+              <feConvolveMatrix
+                order="3 3"
+                preserveAlpha="true"
+                kernelMatrix="
+                   0   -0.35   0
+                 -0.35  2.4  -0.35
+                   0   -0.35   0"
+              />
+            </filter>
+            <filter id="canon-sharpen-crisp" colorInterpolationFilters="sRGB">
+              <feConvolveMatrix
+                order="3 3"
+                preserveAlpha="true"
+                kernelMatrix="
+                   0   -0.55   0
+                 -0.55  3.2  -0.55
+                   0   -0.55   0"
+              />
+            </filter>
+          </defs>
+        </svg>
+
         {/* Hiển thị trực tiếp luồng Canon EDSDK MJPEG độ phân giải cao hoặc WebGL Canvas cho Webcam */}
         {mjpegUrl ? (
           <img
@@ -720,6 +766,7 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
               objectFit: 'cover',
               transform: mirrorCamera ? 'scaleX(-1)' : 'none',
               filter: mjpegFilterStyle,
+              imageRendering: '-webkit-optimize-contrast' as any,
               display: 'block',
               zIndex: 1,
             }}

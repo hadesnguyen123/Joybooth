@@ -223,17 +223,17 @@ describe('UT-02: Pure Camera Defaults & Zero Filter Guarantee', () => {
     expect(resultCss).toBe('none')
   })
 
-  it('Gương (mirrorCamera) phải luôn luôn tắt (false) mặc định và khi bắt đầu session mới', () => {
+  it('Gương (mirrorCamera) mặc định là lật (true) và khi bắt đầu session mới', () => {
     const state = useAppStore.getState()
-    expect(state.mirrorCamera).toBe(false)
+    expect(state.mirrorCamera).toBe(true)
 
     // Kiểm tra sau khi resetAdjustments
     state.resetAdjustments()
-    expect(useAppStore.getState().mirrorCamera).toBe(false)
+    expect(useAppStore.getState().mirrorCamera).toBe(true)
 
     // Kiểm tra sau khi clearSession
     state.clearSession()
-    expect(useAppStore.getState().mirrorCamera).toBe(false)
+    expect(useAppStore.getState().mirrorCamera).toBe(true)
   })
 })
 

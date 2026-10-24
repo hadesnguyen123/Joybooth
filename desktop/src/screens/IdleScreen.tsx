@@ -1,11 +1,8 @@
 import { useAppStore, type CaptureMode } from '../store/appStore'
 import {
   BRAND_NAME,
-  BRAND_NAME_UPPER,
   DEFAULT_EVENT_NAME,
-  APP_YEAR,
   DEFAULT_ADMIN_PIN,
-  DEFAULT_SELFBOOTH_DURATION_SECONDS,
 } from '../lib/constants'
 import './IdleScreen.css'
 
@@ -16,157 +13,175 @@ export default function IdleScreen() {
     setCaptureMode(mode)
     startNewSession()
     if (mode === 'selfbooth') {
-      // Đối với Selfbooth: Vào thẳng màn hình chụp, mặc định không thanh toán trước
+      // Selfbooth: Vào thẳng màn hình chụp tự do
       setScreen('capture')
     } else {
-      // Đối với Photobooth: Bắt đầu chọn Khung (2x6 vs 4x6) -> Bố cục -> Thanh toán -> Chụp
+      // Photobooth: Bắt đầu chọn Khung (2x6 vs 4x6) -> Bố cục -> Thanh toán -> Chụp
       setScreen('select-size')
     }
   }
 
   return (
     <div className="idle-screen" id="idle-screen">
-      {/* Decorative background orbs */}
-      <div className="idle-bg-orb idle-bg-orb--1" />
-      <div className="idle-bg-orb idle-bg-orb--2" />
-      <div className="idle-bg-orb idle-bg-orb--3" />
-
-      {/* Floating decorative photo strips on sides */}
-      <div className="idle-side-strip idle-side-strip--left">
-        <div className="idle-strip-card">
-          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #ffd1dc, #fbcfe8)' }}>🌸</div>
-          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #fbcfe8, #f4729a)' }}>✨</div>
-          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #f4729a, #d94f78)' }}>💖</div>
-          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #d94f78, #b8325c)' }}>📸</div>
-          <div className="idle-strip-footer">{BRAND_NAME_UPPER} • {APP_YEAR}</div>
-        </div>
-      </div>
-
-      <div className="idle-side-strip idle-side-strip--right">
-        <div className="idle-strip-card">
-          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)' }}>🫧</div>
-          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #7dd3fc, #38bdf8)' }}>🎀</div>
-          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #fde047, #facc15)' }}>⭐️</div>
-          <div className="idle-strip-photo" style={{ background: 'linear-gradient(135deg, #fed7aa, #fb923c)' }}>🧸</div>
-          <div className="idle-strip-footer">PHOTO STUDIO</div>
-        </div>
-      </div>
-
-      {/* Top Header with prominent Admin Button */}
-      <header className="idle-top-header">
-        <div className="idle-header-badge">
-          <span>✨</span>
-          <span>PHOTOBOOTH HÀN QUỐC CAO CẤP</span>
-        </div>
-
-        {/* Nút Quản Trị Hệ Thống rõ ràng ngay màn hình chính */}
+      {/* Top Header: Discreet, refined Admin access */}
+      <header className="idle-header">
+        <div className="idle-header-spacer" />
         <button
-          className="idle-admin-pill-btn"
+          className="idle-admin-btn"
           id="idle-admin-btn"
           onClick={(e) => {
             e.stopPropagation()
             setScreen('admin')
           }}
-          title={`Vào cài đặt hệ thống (PIN: ${eventConfig.adminPin || DEFAULT_ADMIN_PIN})`}
+          title={`Quản trị hệ thống (PIN: ${eventConfig.adminPin || DEFAULT_ADMIN_PIN})`}
+          aria-label="Quản trị hệ thống"
         >
-          <span className="admin-icon">⚙️</span>
-          <span className="admin-text">Quản Trị Hệ Thống</span>
+          <svg
+            className="idle-admin-icon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          <span className="idle-admin-text">Cài Đặt</span>
         </button>
       </header>
 
-      {/* Center main attract content */}
-      <div className="idle-content fade-in">
-        {/* Brand & Event Title */}
-        <div className="idle-logo">
+      {/* Main Focus: Editorial Brand + Dual Experience Selection */}
+      <main className="idle-main">
+        {/* Brand Presentation */}
+        <div className="idle-brand">
           {eventConfig.eventLogo ? (
-            <img src={eventConfig.eventLogo} alt="Event Logo" />
+            <img src={eventConfig.eventLogo} alt="Event Logo" className="idle-logo-img" />
           ) : (
-            <h1 className="idle-logo-title">{BRAND_NAME}</h1>
+            <h1 className="idle-brand-title">{BRAND_NAME}</h1>
           )}
+          <p className="idle-brand-subtitle">
+            {eventConfig.eventName || DEFAULT_EVENT_NAME}
+          </p>
+          <p className="idle-prompt">Chạm để chọn trải nghiệm chụp</p>
         </div>
 
-        <p className="idle-event-subtitle">
-          {eventConfig.eventName || DEFAULT_EVENT_NAME}
-        </p>
-
-        <p className="idle-mode-prompt">
-          Chạm để bắt đầu
-        </p>
-
-        {/* ── 2 Chế Độ Chụp Tại Màn Hình Chính ── */}
-        <div className="idle-modes-container">
-          {/* Chế độ 1: PHOTOBOOTH */}
+        {/* ── Principle 2 & 3: Touch & Remote First — One Screen, One Action ── */}
+        <div className="idle-modes" role="group" aria-label="Lựa chọn chế độ chụp">
+          {/* Card 1: PHOTOBOOTH */}
           <div
             className="idle-mode-card card-photobooth"
             id="mode-photobooth-card"
+            role="button"
+            tabIndex={0}
+            aria-label="Chọn Photobooth - Khung Strip và in ảnh lấy ngay"
             onClick={() => handleSelectMode('photobooth')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleSelectMode('photobooth')
+              }
+            }}
           >
-            <div className="mode-card-badge badge-photobooth">
-              <span>⭐️</span>
-              <span>PHỔ BIẾN NHẤT</span>
+            {/* Visual Over Text: Elegant Dual Strip Graphic */}
+            <div className="mode-card-visual" aria-hidden="true">
+              <svg width="130" height="130" viewBox="0 0 130 130" fill="none" className="visual-svg">
+                {/* Background strip (slightly tilted left) */}
+                <g transform="rotate(-6 52 65)">
+                  <rect x="24" y="10" width="48" height="110" rx="8" fill="#F4ECE4" stroke="#D8C7B8" strokeWidth="1.5" />
+                  <rect x="29" y="16" width="38" height="26" rx="4" fill="#E8DDD3" />
+                  <rect x="29" y="46" width="38" height="26" rx="4" fill="#E8DDD3" />
+                  <rect x="29" y="76" width="38" height="26" rx="4" fill="#E8DDD3" />
+                  <circle cx="48" cy="111" r="2.5" fill="#C8B2A4" />
+                </g>
+                {/* Foreground strip (slightly tilted right) */}
+                <g transform="rotate(4 75 65)">
+                  <rect x="52" y="10" width="50" height="110" rx="8" fill="#FFFFFF" stroke="#502A1D" strokeWidth="2" />
+                  <rect x="57" y="16" width="40" height="26" rx="4" fill="#F7F2EB" />
+                  <rect x="57" y="46" width="40" height="26" rx="4" fill="#FAF6F1" />
+                  <rect x="57" y="76" width="40" height="26" rx="4" fill="#F7F2EB" />
+                  {/* Subtle portrait silhouette in center frame */}
+                  <circle cx="77" cy="56" r="4.5" fill="#D8C7B8" />
+                  <path d="M70 67 C70 62 84 62 84 67" fill="#D8C7B8" />
+                  {/* Footer brand mark */}
+                  <rect x="67" y="109" width="20" height="3" rx="1.5" fill="#502A1D" opacity="0.6" />
+                </g>
+              </svg>
             </div>
 
-            <div className="mode-card-icon">📸</div>
+            <div className="mode-card-info">
+              <h2 className="mode-card-title">PHOTOBOOTH</h2>
+              <p className="mode-card-caption">Khung Strip & In Lấy Ngay</p>
+            </div>
 
-            <h2 className="mode-card-title">PHOTOBOOTH</h2>
-            <p className="mode-card-subtitle">
-              Chụp theo khung hình • In 2 dải Strip
-            </p>
-
-            <div className="mode-card-action btn-action-photobooth">
+            <div className="mode-card-btn mode-card-btn--primary">
               <span>BẮT ĐẦU</span>
-              <span className="action-arrow">➔</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
             </div>
           </div>
 
-          {/* Chế độ 2: SELFBOOTH */}
+          {/* Card 2: SELFBOOTH */}
           <div
             className="idle-mode-card card-selfbooth"
             id="mode-selfbooth-card"
+            role="button"
+            tabIndex={0}
+            aria-label="Chọn Selfbooth - Chụp tự do với Remote"
             onClick={() => handleSelectMode('selfbooth')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleSelectMode('selfbooth')
+              }
+            }}
           >
-            <div className="mode-card-badge badge-selfbooth">
-              <span>🔥</span>
-              <span>HOT TREND</span>
+            {/* Visual Over Text: Camera Shutter & Wireless Remote Graphic */}
+            <div className="mode-card-visual" aria-hidden="true">
+              <svg width="130" height="130" viewBox="0 0 130 130" fill="none" className="visual-svg">
+                {/* Outer studio lens ring */}
+                <circle cx="58" cy="65" r="46" stroke="#C8B2A4" strokeWidth="2" strokeDasharray="3 4" opacity="0.7" />
+                <circle cx="58" cy="65" r="38" fill="#FBF8F4" stroke="#502A1D" strokeWidth="2" />
+                <circle cx="58" cy="65" r="26" fill="#F0E6DC" stroke="#78452F" strokeWidth="1.5" />
+                {/* Lens glass reflections */}
+                <circle cx="58" cy="65" r="14" fill="#502A1D" />
+                <circle cx="54" cy="61" r="4" fill="#FFFFFF" opacity="0.75" />
+                {/* Wireless Remote Trigger */}
+                <g transform="translate(14, 0)">
+                  <rect x="76" y="38" width="28" height="54" rx="14" fill="#502A1D" stroke="#FAF6F1" strokeWidth="2" />
+                  <circle cx="90" cy="53" r="6" fill="#FFFFFF" />
+                  {/* Signal wave arcs */}
+                  <path d="M107 46 A14 14 0 0 1 107 68" stroke="#A66A43" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M112 40 A22 22 0 0 1 112 74" stroke="#A66A43" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+                </g>
+              </svg>
             </div>
 
-            <div className="mode-card-icon">⏱️</div>
+            <div className="mode-card-info">
+              <h2 className="mode-card-title">SELFBOOTH</h2>
+              <p className="mode-card-caption">Tự Do Chụp Với Remote</p>
+            </div>
 
-            <h2 className="mode-card-title">SELFBOOTH</h2>
-            <p className="mode-card-subtitle">
-              Tự do tạo dáng trong {eventConfig.selfboothDurationSeconds || DEFAULT_SELFBOOTH_DURATION_SECONDS}s
-            </p>
-
-            <div className="mode-card-action btn-action-selfbooth">
+            <div className="mode-card-btn mode-card-btn--secondary">
               <span>BẮT ĐẦU</span>
-              <span className="action-arrow">➔</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
             </div>
           </div>
         </div>
+      </main>
 
-        {/* Features row */}
-        <div className="idle-features-row">
-          <div className="idle-feature-item">
-            <span className="idle-feat-icon">🎞️</span>
-            <span>Khung Strip & Grid</span>
-          </div>
-          <div className="idle-feature-dot">•</div>
-          <div className="idle-feature-item">
-            <span className="idle-feat-icon">🫧</span>
-            <span>Làn Da K-Beauty</span>
-          </div>
-          <div className="idle-feature-dot">•</div>
-          <div className="idle-feature-item">
-            <span className="idle-feat-icon">⚡</span>
-            <span>In Nhiệt Lấy Ngay</span>
-          </div>
-          <div className="idle-feature-dot">•</div>
-          <div className="idle-feature-item">
-            <span className="idle-feat-icon">📲</span>
-            <span>Google Drive QR Tức Thì</span>
-          </div>
-        </div>
-      </div>
+      {/* Subtle bottom aesthetic anchor */}
+      <footer className="idle-footer">
+        <div className="idle-footer-line" />
+      </footer>
     </div>
   )
 }
