@@ -1201,8 +1201,9 @@ export default function CaptureScreen() {
           </div>
         )}
 
-        {/* ── Center Camera Viewfinder Stage ── */}
-        <div className={`camera-viewfinder-wrapper ${isSessionActive && !isPhotoboothFull ? 'shooting-focus' : ''}`}>
+        {/* ── CỘT LIVE VIEW: Chiếm 10/12 (approx 83.33%) ── */}
+        <div className="liveview-grid-col-10">
+          <div className={`camera-viewfinder-wrapper ${isSessionActive && !isPhotoboothFull ? 'shooting-focus' : ''}`}>
           {hasCamera ? (
             <>
               <BeautyCameraView
@@ -1335,15 +1336,12 @@ export default function CaptureScreen() {
                       : `✨ Đã lưu vào ô ${snapshotFlyer.slotIndex + 1}`}
                 </div>
               </div>
-            </div>
+          </div>
         </div>
 
-        {/* ── Right Vertical Slots Dock (Đưa các ô sang bên phải theo chiều dọc) ── */}
+        {/* ── CỘT DẢI Ô DỌC: Chiếm 2/12 (approx 16.67%) ── */}
         {!isSelfboothMode && (
-          <aside className="right-slots-dock">
-            <div className="vertical-slots-counter">
-              <span className="counter-fraction">{filledSlotsCount}/{totalShots}</span>
-            </div>
+          <aside className="slots-grid-col-2 right-slots-dock">
             <div className="vertical-slots-list">
               {Array.from({ length: totalShots }).map((_, index) => {
                 const slotItem = slots[index]
@@ -1386,16 +1384,20 @@ export default function CaptureScreen() {
                 )
               })}
             </div>
+            <div className="vertical-slots-counter">
+              <span className="counter-fraction">{filledSlotsCount}/{totalShots}</span>
+            </div>
           </aside>
         )}
       </div>
 
-      {/* ── Bottom Deck: Shutter Action Control (Gọn gàng, tối ưu không gian cho Live View) ── */}
+      {/* ── Bottom Deck: Shutter Action Control (Căn thẳng theo Live View 10/12) ── */}
       <footer className="capture-bottom-deck">
         {!isSelfboothMode ? (
           /* ── PHOTOBOOTH MODE CONTROLS ── */
-          <>
-            <div className="capture-shutter-container">
+          <div className="bottom-deck-12col">
+            <div className="shutter-col-10">
+              <div className="capture-shutter-container">
               {isPhotoboothFull && retakeSlotIndex === null ? (
                 /* ĐÃ ĐỦ FULL ẢNH: Nút Hài Lòng & Tiếp Tục */
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1433,9 +1435,10 @@ export default function CaptureScreen() {
                 <button className="cancel-shoot-btn" onClick={handleResetShootSession}>
                   ↩ Chụp lại từ đầu
                 </button>
-              )}
+              </div>
             </div>
-          </>
+            <div className="shutter-col-2" />
+          </div>
         ) : (
           /* ── SELFBOOTH MODE CONTROLS ── */
           <div className="selfbooth-bottom-controls">
