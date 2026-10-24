@@ -1475,21 +1475,23 @@ export default function CaptureScreen() {
                   </button>
                 )}
 
-                {isSessionActive && !isCapturingShot && (
-                  sessionResetCount < 1 ? (
-                    <button
-                      className="cancel-shoot-btn"
-                      onClick={handleResetShootSession}
-                      title="Chỉ được phép chụp lại từ đầu 1 lần duy nhất"
-                    >
-                      ↩ Chụp lại từ đầu (Còn 1 lần)
-                    </button>
-                  ) : (
-                    <span className="cancel-shoot-used-text" title="Bạn đã dùng hết lượt chụp lại từ đầu">
-                      🔒 Đã dùng lượt chụp lại (1/1)
-                    </span>
-                  )
-                )}
+                <div className="capture-aux-action-slot">
+                  {isSessionActive && !isCapturingShot ? (
+                    sessionResetCount < 1 ? (
+                      <button
+                        className="cancel-shoot-btn"
+                        onClick={handleResetShootSession}
+                        title="Chỉ được phép chụp lại từ đầu 1 lần duy nhất"
+                      >
+                        ↩ Chụp lại từ đầu (Còn 1 lần)
+                      </button>
+                    ) : (
+                      <span className="cancel-shoot-used-text" title="Bạn đã dùng hết lượt chụp lại từ đầu">
+                        🔒 Đã dùng lượt chụp lại (1/1)
+                      </span>
+                    )
+                  ) : null}
+                </div>
               </div>
             </div>
             <div className="shutter-col-2" />
