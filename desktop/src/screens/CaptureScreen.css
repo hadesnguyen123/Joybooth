@@ -547,11 +547,11 @@
   gap: 10px;
 }
 
-/* Ô thumbnail phóng to rõ nét - Design cũ */
+/* Ô thumbnail phóng to rõ nét - Tăng 1.3 lần theo yêu cầu */
 .live-slot-thumb {
-  width: 82px;
-  height: 82px;
-  border-radius: 14px;
+  width: 108px;
+  height: 108px;
+  border-radius: 18px;
   overflow: hidden;
   background: #f1f2f5;
   display: flex;
@@ -563,19 +563,19 @@
 }
 
 .vertical-slots-deck .live-slot-thumb {
-  width: clamp(66px, 8.8vh, 82px);
-  height: clamp(66px, 8.8vh, 82px);
+  width: clamp(86px, 11.5vh, 108px);
+  height: clamp(86px, 11.5vh, 108px);
 }
 
 .live-slot-thumb.filled {
-  border: 3px solid var(--color-pink-primary, #F4729A);
-  box-shadow: 0 4px 14px rgba(244, 114, 154, 0.4);
+  border: 3px solid var(--brand-primary, #502A1D);
+  box-shadow: 0 6px 18px rgba(80, 42, 29, 0.35);
   cursor: pointer;
 }
 
 .live-slot-thumb.filled:hover {
   transform: scale(1.05);
-  box-shadow: 0 8px 22px rgba(244, 114, 154, 0.55);
+  box-shadow: 0 10px 26px rgba(80, 42, 29, 0.5);
 }
 
 .live-slot-thumb.filled img {
@@ -616,11 +616,11 @@
 
 .live-slots-counter {
   font-family: var(--font-display, inherit);
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   font-weight: 900;
-  color: #0284c7;
+  color: var(--brand-primary, #502A1D);
   padding-top: 8px;
-  border-top: 2px solid rgba(45, 36, 38, 0.12);
+  border-top: 2px solid var(--border-default, #E6D9CF);
   width: 100%;
   text-align: center;
   letter-spacing: 0.5px;
@@ -937,28 +937,28 @@
 
 .slot-index-badge {
   position: absolute;
-  bottom: 4px;
+  bottom: 5px;
   left: 6px;
   background: rgba(0, 0, 0, 0.72);
   color: #ffffff;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 800;
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: var(--radius-full);
   pointer-events: none;
 }
 
 .slot-delete-btn {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 24px;
-  height: 24px;
+  top: 5px;
+  right: 5px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: #ef4444;
   color: #ffffff;
   border: 2px solid #ffffff;
-  font-size: 0.75rem;
+  font-size: 0.88rem;
   font-weight: 900;
   display: flex;
   align-items: center;
@@ -978,15 +978,15 @@
 /* Badge khóa ô đã chụp lại 1 lần (không hiển thị nút xóa nữa) */
 .slot-locked-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
+  top: 5px;
+  right: 5px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: #10b981;
   color: #ffffff;
   border: 1.5px solid #ffffff;
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 900;
   display: flex;
   align-items: center;
@@ -997,13 +997,13 @@
 }
 
 .slot-retake-used-tag {
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   font-weight: 800;
   color: #8b5cf6;
   background: #ede9fe;
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: 6px;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 .live-slot-thumb.retake-locked {
@@ -1034,18 +1034,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
 }
 
 .slot-empty-plus {
-  font-size: 1.6rem;
+  font-size: 2.1rem;
   font-weight: 800;
   color: #94a3b8;
   line-height: 1;
 }
 
 .slot-empty-label {
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #94a3b8;
 }
