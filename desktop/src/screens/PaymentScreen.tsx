@@ -119,12 +119,11 @@ export default function PaymentScreen() {
     setIsProcessing(true)
 
     setSessionPayment({
-      method: methodUsed,
-      amount: finalAmount,
-      orderCode,
-      paidAt: new Date().toISOString(),
-      copies,
-      couponCode: appliedCoupon?.code,
+      paidAmount: finalAmount,
+      paidCopies: copies,
+      paymentMethod: methodUsed,
+      discountCodeUsed: appliedCoupon?.code || null,
+      discountAmount,
     })
 
     setTimeout(() => {
