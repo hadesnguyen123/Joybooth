@@ -8,7 +8,7 @@ import {
   SESSION_FOLDER_PREFIX,
 } from '../lib/constants'
 import { BeautyCameraView, type BeautyCameraHandle } from '../components/BeautyCameraView'
-import { Sparkles, Lightbulb, Camera, Settings, X, ArrowRight } from 'lucide-react'
+import { Sparkles, Lightbulb, Camera, Settings, X, ArrowRight, ArrowLeft, Palette, FlipHorizontal } from 'lucide-react'
 import './CaptureScreen.css'
 
 // ── Giả lập âm thanh màn trập cơ học "TÁCH!" dứt khoát 1 lần duy nhất qua Web Audio API ──
@@ -42,6 +42,7 @@ export default function CaptureScreen() {
     setCountdownSeconds,
     selectedLayout,
     selectedCopies,
+    selectedFilter,
     selectFilter,
     selectedBeautyPreset,
     applyBeautyPreset,
@@ -93,7 +94,7 @@ export default function CaptureScreen() {
   const selfboothDuration = eventConfig.selfboothDurationSeconds || 60
 
   const [hasCamera, setHasCamera] = useState<boolean>(false)
-  const [activeFlyout, setActiveFlyout] = useState<'beauty' | 'lighting' | null>(null)
+  const [activeFlyout, setActiveFlyout] = useState<'filter' | 'beauty' | 'lighting' | null>(null)
 
   // ── Trạng thái chung khi chụp ──
   const [isSessionActive, setIsSessionActive] = useState<boolean>(false)
@@ -911,6 +912,16 @@ export default function CaptureScreen() {
     }
   }
 
+  // Quay lại màn hình trước đó
+  function handleGoBack() {
+    if (isSessionActive || isSelfboothRunning) {
+      const confirmLeave = window.confirm('Bạn có chắc muốn thoát phiên chụp để quay lại bước trước?')
+      if (!confirmLeave) return
+      handleResetShootSession()
+    }
+    setScreen('select-layout')
+  }
+
   return (
     <div className="capture-screen-pastel" id="capture-screen">
       {/* Screen Flash Animation */}
@@ -919,40 +930,60 @@ export default function CaptureScreen() {
       {/* Focus Dim Backdrop: Làm tối xung quanh khi đang chụp */}
       {isSessionActive && !isPhotoPickerOpen && <div className="focus-dim-backdrop" />}
 
-      {/* ── Top Bar: Countdown Pills (5s / 3s) + Utility Icon Buttons ── */}
+      {/* ── Top Bar: Back Button + Timer / Countdown + Utility Icon Buttons ── */}
       <header className="capture-top-bar">
-        {!isSelfboothMode ? (
-          <div className="countdown-capsule-group">
-            {[5, 3].map((sec) => (
-              <button
-                key={sec}
-                className={`countdown-pill ${countdownSeconds === sec ? 'active' : ''}`}
-                onClick={() => setCountdownSeconds(sec)}
-                title={`Thời gian đếm ngược ${sec} giây`}
-              >
-                <span>{sec}s</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          /* Selfbooth Session Timer Badge */
-          <div className={`selfbooth-session-timer-badge ${selfboothTimeLeft <= 10 && isSelfboothRunning ? 'timer-warning' : ''}`}>
-            <span className="timer-icon">{isSelfboothRunning ? '⏱️' : '⏳'}</span>
-            <span className="timer-label">Selfbooth:</span>
-            <strong className="timer-digits">{formatTime(selfboothTimeLeft)}</strong>
-            <span className="timer-photos-count">({selfboothLibrary.length} ảnh)</span>
-          </div>
-        )}
+        <div className="capture-top-left">
+          <button
+            className="utility-icon-btn back-utility-btn"
+            onClick={handleGoBack}
+            title="Quay lại chọn bố cục"
+            aria-label="Quay lại"
+          >
+            <ArrowLeft size={24} strokeWidth={2.2} />
+          </button>
 
-        {/* Right utility options — Chỉ để icon Cài đặt, Close, Máy ảnh (Đổi Camera) */}
+          {!isSelfboothMode ? (
+            <div className="countdown-capsule-group">
+              {[5, 3].map((sec) => (
+                <button
+                  key={sec}
+                  className={`countdown-pill ${countdownSeconds === sec ? 'active' : ''}`}
+                  onClick={() => setCountdownSeconds(sec)}
+                  title={`Thời gian đếm ngược ${sec} giây`}
+                >
+                  <span>{sec}s</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            /* Selfbooth Session Timer Badge */
+            <div className={`selfbooth-session-timer-badge ${selfboothTimeLeft <= 10 && isSelfboothRunning ? 'timer-warning' : ''}`}>
+              <span className="timer-icon">{isSelfboothRunning ? '⏱️' : '⏳'}</span>
+              <span className="timer-label">Selfbooth:</span>
+              <strong className="timer-digits">{formatTime(selfboothTimeLeft)}</strong>
+              <span className="timer-photos-count">({selfboothLibrary.length} ảnh)</span>
+            </div>
+          )}
+        </div>
+
+        {/* Right utility options — Lật gương, Đổi Camera, Cài đặt, Thoát */}
         <div className="top-utility-actions">
+          <button
+            className={`utility-icon-btn ${mirrorCamera ? 'active-utility' : ''}`}
+            onClick={() => setMirrorCamera(!mirrorCamera)}
+            title={mirrorCamera ? 'Đang bật lật gương camera (Bấm để tắt)' : 'Lật gương camera (Mirror)'}
+            aria-label="Lật gương camera"
+          >
+            <FlipHorizontal size={24} strokeWidth={2} />
+          </button>
+
           <button
             className="utility-icon-btn"
             onClick={handleCycleCamera}
             title="Đổi Camera (Laptop / Canon R100)"
             aria-label="Đổi camera"
           >
-            <Camera size={26} strokeWidth={1.8} />
+            <Camera size={24} strokeWidth={1.8} />
           </button>
 
           <button
@@ -961,28 +992,43 @@ export default function CaptureScreen() {
             title="Cài đặt quản trị"
             aria-label="Cài đặt"
           >
-            <Settings size={26} strokeWidth={1.8} />
+            <Settings size={24} strokeWidth={1.8} />
           </button>
 
           <button
             className="utility-icon-btn"
-            onClick={() => setScreen('idle')}
+            onClick={() => {
+              if (isSessionActive || isSelfboothRunning) {
+                if (!window.confirm('Bạn có chắc muốn thoát phiên chụp về màn hình chờ?')) return
+                handleResetShootSession()
+              }
+              setScreen('idle')
+            }}
             title="Thoát về màn hình chờ"
             aria-label="Thoát"
           >
-            <X size={26} strokeWidth={2} />
+            <X size={24} strokeWidth={2} />
           </button>
         </div>
       </header>
 
       {/* ── Main Stage Area: 1/12 Dock + 9/12 Live View + 2/12 Vertical Slots ── */}
       <div className="capture-main-stage">
-        {/* ── CỘT 1/12: Làm đẹp da & Đèn sáng studio ── */}
+        {/* ── CỘT 1/12: Bộ lọc màu + Làm đẹp da + Đèn sáng studio ── */}
         <aside className={`dock-grid-col-1 left-sidebar-dock ${isSessionActive && !isPhotoboothFull ? 'locked-dimmed' : ''}`}>
+          <button
+            className={`dock-btn ${activeFlyout === 'filter' ? 'active' : ''}`}
+            onClick={() => setActiveFlyout(activeFlyout === 'filter' ? null : 'filter')}
+            title="Bộ lọc màu ảnh"
+            aria-label="Bộ lọc màu"
+          >
+            <Palette size={28} strokeWidth={1.8} />
+          </button>
+
           <button
             className={`dock-btn ${activeFlyout === 'beauty' ? 'active' : ''}`}
             onClick={() => setActiveFlyout(activeFlyout === 'beauty' ? null : 'beauty')}
-            title="Làm đẹp da"
+            title="Làm đẹp da chuẩn K-Beauty"
             aria-label="Làm đẹp da"
           >
             <Sparkles size={28} strokeWidth={1.8} />
@@ -997,6 +1043,49 @@ export default function CaptureScreen() {
             <Lightbulb size={28} strokeWidth={1.8} />
           </button>
         </aside>
+
+        {/* ── Flyout Panel 1: Bộ Lọc Màu (Color Filter) ── */}
+        {activeFlyout === 'filter' && (
+          <div className="flyout-panel animate-pop">
+            <div className="flyout-header">
+              <span className="flyout-title">🎨 Bộ Lọc Màu Ảnh</span>
+              <button className="flyout-close-btn" onClick={() => setActiveFlyout(null)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="flyout-content">
+              <div className="filter-presets-container">
+                <div className="filter-presets-title">📸 BỘ LỌC CHUẨN STUDIO</div>
+                <div className="filter-presets-list">
+                  {COLOR_FILTERS.map((filter) => {
+                    const isSelected = selectedFilter?.id === filter.id
+                    return (
+                      <button
+                        key={filter.id}
+                        className={`filter-preset-card ${isSelected ? 'active' : ''}`}
+                        onClick={() => selectFilter(filter)}
+                      >
+                        <div
+                          className="filter-preview-chip"
+                          style={{
+                            background: filter.previewColor,
+                            border: filter.id === 'normal' ? '1.5px solid #E6D9CF' : 'none',
+                          }}
+                        />
+                        <div className="filter-card-info">
+                          <span className="filter-card-name">{filter.name}</span>
+                          <span className="filter-card-tag">{filter.tag}</span>
+                        </div>
+                        {isSelected && <span className="filter-card-check">✓</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Flyout Panel 2: Làm đẹp & Chỉnh sáng ── */}
         {activeFlyout === 'beauty' && (
@@ -1234,6 +1323,9 @@ export default function CaptureScreen() {
                 brightnessAdjust={brightnessAdjust}
                 contrastAdjust={contrastAdjust}
                 saturationAdjust={saturationAdjust}
+                style={{
+                  filter: selectedFilter?.cssFilter && selectedFilter.cssFilter !== 'none' ? selectedFilter.cssFilter : undefined,
+                }}
                 className="camera-preview-element"
               />
               {cameraFreezeFrame && (
@@ -1430,7 +1522,41 @@ export default function CaptureScreen() {
             </div>
           </aside>
         ) : (
-          <aside className="slots-grid-col-2 right-slots-dock" />
+          <aside className="slots-grid-col-2 right-slots-dock">
+            <div className="live-slots-deck vertical-slots-deck selfbooth-slots-deck">
+              <div className="selfbooth-slots-header">
+                <span className="selfbooth-dock-title">KHO ẢNH CHỤP</span>
+                <span className="selfbooth-dock-sub">Chọn {totalShots} ảnh đẹp nhất</span>
+              </div>
+
+              <div className="live-slots-list selfbooth-library-stream">
+                {selfboothLibrary.length === 0 ? (
+                  Array.from({ length: Math.min(totalShots, 4) }).map((_, index) => (
+                    <div key={index} className="live-slot-thumb empty selfbooth-empty-slot">
+                      <div className="slot-empty-content">
+                        <span className="slot-empty-plus">+</span>
+                        <span className="slot-empty-label">Ô {index + 1}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  selfboothLibrary.slice(-6).map((photo, pIdx) => {
+                    const realIndex = selfboothLibrary.indexOf(photo) + 1
+                    return (
+                      <div key={photo.id || pIdx} className="live-slot-thumb filled selfbooth-thumb-preview">
+                        <img src={photo.compositedPath || photo.rawPath} alt={`Photo ${realIndex}`} />
+                        <span className="slot-index-badge">#{realIndex}</span>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              <div className="live-slots-counter selfbooth-counter">
+                {selfboothLibrary.length} ảnh
+              </div>
+            </div>
+          </aside>
         )}
       </div>
 
@@ -1498,56 +1624,63 @@ export default function CaptureScreen() {
           </div>
         ) : (
           /* ── SELFBOOTH MODE CONTROLS ── */
-          <div className="selfbooth-bottom-controls">
-            {!isSelfboothRunning ? (
-              <div className="selfbooth-start-box">
-                <button
-                  className="start-capture-btn-pink selfbooth-start-btn"
-                  onClick={handleStartSelfbooth}
-                >
-                  <span style={{ fontSize: '1.5rem' }}>🚀</span>
-                  <span>Bắt Đầu Phiên Selfbooth ({Math.round(selfboothDuration / 60)} Phút)</span>
-                </button>
-                <p className="selfbooth-start-desc">
-                  Thỏa sức tạo dáng và bấm chụp không giới hạn số ảnh. Khi hết giờ, bạn sẽ tự tay chọn ra {totalShots} ảnh đẹp nhất!
-                </p>
-              </div>
-            ) : (
-              <div className="selfbooth-running-box">
-                <div className="selfbooth-stat-bar">
-                  <div className="selfbooth-stat-item">
-                    <span>⏱️ Còn lại:</span>
-                    <strong className={selfboothTimeLeft <= 10 ? 'text-danger' : ''}>
-                      {formatTime(selfboothTimeLeft)}
-                    </strong>
-                  </div>
-                  <div className="selfbooth-stat-item">
-                    <span>📸 Đã chụp:</span>
-                    <strong>{selfboothLibrary.length} tấm</strong>
-                  </div>
-                </div>
-
-                <div className="selfbooth-actions-row">
-                  <button
-                    className="start-capture-btn-pink selfbooth-shutter-btn"
-                    disabled={isCapturingShot}
-                    onClick={handleTakeSelfboothShot}
-                  >
-                    <span style={{ fontSize: '1.6rem' }}>📸</span>
-                    <span>{isCapturingShot ? 'Đang chụp...' : 'Bấm Chụp Ảnh (Pose!)'}</span>
-                  </button>
-
-                  {selfboothLibrary.length >= totalShots && (
+          <div className="bottom-deck-12col">
+            <div className="shutter-col-1" />
+            <div className="shutter-col-9">
+              <div className="selfbooth-bottom-controls">
+                {!isSelfboothRunning ? (
+                  <div className="selfbooth-start-box">
                     <button
-                      className="selfbooth-finish-early-btn"
-                      onClick={handleFinishSelfboothSession}
+                      className="start-capture-btn-pink selfbooth-start-btn"
+                      onClick={handleStartSelfbooth}
                     >
-                      ✨ Xong Sớm & Chọn Ảnh ➔
+                      <Camera size={24} strokeWidth={2} />
+                      <span>Bắt Đầu Phiên Selfbooth ({Math.round(selfboothDuration / 60)} Phút)</span>
                     </button>
-                  )}
-                </div>
+                    <p className="selfbooth-start-desc">
+                      Thỏa sức tạo dáng và bấm chụp không giới hạn số ảnh. Khi hết giờ, bạn sẽ tự tay chọn ra {totalShots} ảnh đẹp nhất!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="selfbooth-running-box">
+                    <div className="selfbooth-stat-bar">
+                      <div className="selfbooth-stat-item">
+                        <span>⏱️ Còn lại:</span>
+                        <strong className={selfboothTimeLeft <= 10 ? 'text-danger' : ''}>
+                          {formatTime(selfboothTimeLeft)}
+                        </strong>
+                      </div>
+                      <div className="selfbooth-stat-item">
+                        <span>📸 Đã chụp:</span>
+                        <strong>{selfboothLibrary.length} tấm</strong>
+                      </div>
+                    </div>
+
+                    <div className="selfbooth-actions-row">
+                      <button
+                        className="start-capture-btn-pink selfbooth-shutter-btn"
+                        disabled={isCapturingShot}
+                        onClick={handleTakeSelfboothShot}
+                      >
+                        <Camera size={24} strokeWidth={2} />
+                        <span>{isCapturingShot ? 'Đang chụp...' : 'Bấm Chụp Ảnh (Pose!)'}</span>
+                      </button>
+
+                      {selfboothLibrary.length >= totalShots && (
+                        <button
+                          className="selfbooth-finish-early-btn"
+                          onClick={handleFinishSelfboothSession}
+                        >
+                          <span>Chọn {totalShots} Ảnh</span>
+                          <ArrowRight size={20} strokeWidth={2.2} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+            <div className="shutter-col-2" />
           </div>
         )}
       </footer>

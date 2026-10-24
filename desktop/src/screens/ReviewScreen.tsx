@@ -13,7 +13,7 @@ import {
   DEFAULT_IDLE_TIMEOUT_SECONDS,
 } from '../lib/constants'
 import QRCode from 'qrcode'
-import { ArrowLeft, ArrowRight, Printer, Check, QrCode } from 'lucide-react'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import './ReviewScreen.css'
 
 export default function ReviewScreen() {

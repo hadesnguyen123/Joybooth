@@ -46,6 +46,13 @@
   filter: blur(1px);
 }
 
+.capture-top-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .countdown-capsule-group {
   display: flex;
   align-items: center;
@@ -109,7 +116,7 @@
   box-shadow: var(--shadow-brand);
 }
 
-/* Top utility actions — Only 3 round icon buttons */
+/* Top utility actions — 4 round icon buttons */
 .top-utility-actions {
   display: flex;
   align-items: center;
@@ -142,6 +149,13 @@
 
 .utility-icon-btn:active {
   transform: scale(0.95);
+}
+
+.utility-icon-btn.active-utility {
+  background: var(--brand-primary, #502A1D);
+  color: #FFFFFF;
+  border-color: var(--brand-primary, #502A1D);
+  box-shadow: 0 4px 14px rgba(80, 42, 29, 0.28);
 }
 
 .utility-icon-btn:focus-visible {
@@ -1062,20 +1076,48 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   SELFBOOTH MODE CONTROLS & TIMERS
+   SELFBOOTH MODE CONTROLS & TIMERS (Fotolism 3.0 Warm Luxury)
 ════════════════════════════════════════════════════════════════════════ */
 
 .selfbooth-session-timer-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: #ffffff;
-  border: 2px solid #0284c7;
+  gap: 10px;
+  background: var(--surface-default, #FFFFFF);
+  border: 1.5px solid var(--border-default, #E6D9CF);
   padding: 8px 20px;
-  border-radius: var(--radius-full);
-  font-size: 1rem;
-  color: #0f172a;
-  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.2);
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.95rem;
+  color: var(--text-primary, #351C15);
+  box-shadow: var(--shadow-sm, 0 4px 16px rgba(80, 42, 29, 0.08));
+  font-family: var(--font-body, inherit);
+  font-weight: 700;
+}
+
+.selfbooth-session-timer-badge .timer-icon {
+  font-size: 1.15rem;
+}
+
+.selfbooth-session-timer-badge .timer-label {
+  font-weight: 700;
+  color: var(--text-secondary, #70594F);
+}
+
+.selfbooth-session-timer-badge .timer-digits {
+  font-size: 1.25rem;
+  font-weight: 900;
+  font-family: var(--font-display, inherit);
+  color: var(--brand-primary, #502A1D);
+}
+
+.selfbooth-session-timer-badge .timer-photos-count {
+  font-size: 0.85rem;
+  color: var(--brand-primary, #502A1D);
+  font-weight: 700;
+  background: var(--bg-primary, #FAF6F1);
+  padding: 2px 10px;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid var(--border-default, #E6D9CF);
 }
 
 .selfbooth-session-timer-badge.timer-warning {
@@ -1084,33 +1126,21 @@
   animation: timerWarningBlink 0.8s infinite alternate;
 }
 
-@keyframes timerWarningBlink {
-  from { transform: scale(1); box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3); }
-  to   { transform: scale(1.05); box-shadow: 0 6px 24px rgba(239, 68, 68, 0.6); }
-}
-
-.selfbooth-session-timer-badge .timer-digits {
-  font-size: 1.25rem;
-  font-weight: 900;
-  font-family: var(--font-display);
-  color: #0284c7;
-}
-
 .selfbooth-session-timer-badge.timer-warning .timer-digits {
   color: #ef4444;
 }
 
-.selfbooth-session-timer-badge .timer-photos-count {
-  font-size: 0.85rem;
-  color: #64748b;
-  font-weight: 700;
+@keyframes timerWarningBlink {
+  from { transform: scale(1); box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3); }
+  to   { transform: scale(1.05); box-shadow: 0 6px 24px rgba(239, 68, 68, 0.6); }
 }
 
 .selfbooth-bottom-controls {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
 }
 
@@ -1123,53 +1153,73 @@
 }
 
 .selfbooth-start-btn {
-  padding: 16px 52px;
-  font-size: 1.3rem;
-  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
-  box-shadow: 0 8px 30px rgba(2, 132, 199, 0.45);
+  height: 52px;
+  min-height: 52px;
+  padding: 0 44px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: var(--font-display, inherit);
+  background: var(--brand-primary, #502A1D) !important;
+  color: #FFFFFF !important;
+  border: none;
+  border-radius: var(--radius-full, 9999px);
+  box-shadow: 0 8px 24px rgba(80, 42, 29, 0.28) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
 .selfbooth-start-btn:hover {
-  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+  background: var(--brand-primary-hover, #633726) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(80, 42, 29, 0.38) !important;
 }
 
 .selfbooth-start-desc {
   font-size: 0.92rem;
-  color: #475569;
-  font-weight: 700;
-  max-width: 600px;
+  color: var(--text-secondary, #70594F);
+  font-weight: 600;
+  max-width: 620px;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .selfbooth-running-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .selfbooth-stat-bar {
   display: flex;
   align-items: center;
-  gap: 20px;
-  background: #ffffff;
-  padding: 8px 24px;
-  border-radius: var(--radius-full);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border: 1.5px solid rgba(45, 36, 38, 0.1);
+  gap: 22px;
+  background: var(--surface-default, #FFFFFF);
+  padding: 6px 22px;
+  border-radius: var(--radius-full, 9999px);
+  box-shadow: var(--shadow-sm, 0 4px 16px rgba(80, 42, 29, 0.08));
+  border: 1.5px solid var(--border-default, #E6D9CF);
 }
 
 .selfbooth-stat-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.95rem;
-  color: #334155;
+  font-size: 0.92rem;
+  color: var(--text-secondary, #70594F);
+  font-weight: 600;
 }
 
 .selfbooth-stat-item strong {
   font-size: 1.15rem;
-  color: #0284c7;
+  color: var(--brand-primary, #502A1D);
   font-weight: 900;
+  font-family: var(--font-display, inherit);
 }
 
 .selfbooth-stat-item strong.text-danger {
@@ -1179,42 +1229,182 @@
 .selfbooth-actions-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .selfbooth-shutter-btn {
-  padding: 14px 44px;
-  font-size: 1.25rem;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 42px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: var(--font-display, inherit);
+  background: var(--brand-primary, #502A1D) !important;
+  color: #FFFFFF !important;
+  border-radius: var(--radius-full, 9999px);
+  box-shadow: 0 8px 24px rgba(80, 42, 29, 0.28) !important;
+}
+
+.selfbooth-shutter-btn:hover:not(:disabled) {
+  background: var(--brand-primary-hover, #633726) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(80, 42, 29, 0.38) !important;
 }
 
 .selfbooth-finish-early-btn {
-  padding: 12px 28px;
-  border-radius: var(--radius-full);
-  background: #ffffff;
-  border: 2px solid var(--color-pink-primary);
-  color: var(--color-pink-primary);
-  font-family: var(--font-body);
+  height: 52px;
+  min-height: 52px;
+  padding: 0 28px;
+  border-radius: var(--radius-full, 9999px);
+  background: #237A57; /* Emerald Luxury */
+  color: #FFFFFF;
+  border: none;
+  font-family: var(--font-display, inherit);
   font-size: 1.05rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(244, 114, 154, 0.2);
-  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(35, 122, 87, 0.32);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
 }
 
 .selfbooth-finish-early-btn:hover {
-  background: #fff0f5;
+  background: #1B6245;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(244, 114, 154, 0.35);
+  box-shadow: 0 12px 32px rgba(35, 122, 87, 0.42);
+}
+
+/* ── Cột dải ô dọc bên phải chế độ Selfbooth ── */
+.selfbooth-slots-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selfbooth-slots-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding-bottom: 6px;
+  border-bottom: 1.5px solid var(--border-default, #E6D9CF);
+}
+
+.selfbooth-dock-title {
+  font-family: var(--font-display, inherit);
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--brand-primary, #502A1D);
+}
+
+.selfbooth-dock-sub {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary, #70594F);
+}
+
+.selfbooth-library-stream {
+  overflow-y: auto;
+  max-height: calc(100vh - 275px);
+  padding-right: 2px;
+}
+
+.selfbooth-counter {
+  color: var(--brand-primary, #502A1D) !important;
+}
+
+/* ── Flyout Panel: Bộ Lọc Màu (Palette) ── */
+.filter-presets-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-presets-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary, #70594F);
+}
+
+.filter-presets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-preset-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface-default, #FFFFFF);
+  border: 1.5px solid var(--border-default, #E6D9CF);
+  border-radius: var(--radius-md, 12px);
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.2s ease);
+  text-align: left;
+}
+
+.filter-preset-card:hover {
+  background: var(--bg-primary, #FAF6F1);
+  border-color: var(--brand-primary, #502A1D);
+  transform: translateX(2px);
+}
+
+.filter-preset-card.active {
+  background: var(--bg-primary, #FAF6F1);
+  border-color: var(--brand-primary, #502A1D);
+  box-shadow: 0 4px 12px rgba(80, 42, 29, 0.12);
+}
+
+.filter-preview-chip {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.filter-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.filter-card-name {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text-primary, #351C15);
+  font-family: var(--font-body, inherit);
+}
+
+.filter-card-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary, #70594F);
+  letter-spacing: 0.5px;
+}
+
+.filter-card-check {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--brand-primary, #502A1D);
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   SELFBOOTH PHOTO PICKER MODAL
+   SELFBOOTH PHOTO PICKER MODAL (Fotolism 3.0 Warm Minimalist Luxury)
 ════════════════════════════════════════════════════════════════════════ */
 
 .photo-picker-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(18, 14, 16, 0.88);
+  background: rgba(18, 14, 16, 0.85);
   backdrop-filter: blur(8px);
   z-index: 200;
   display: flex;
@@ -1227,7 +1417,7 @@
   width: 95vw;
   max-width: 1180px;
   max-height: 92vh;
-  background: #ffffff;
+  background: var(--surface-default, #FFFFFF);
   border-radius: 28px;
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.45);
   display: flex;
@@ -1235,38 +1425,39 @@
   overflow: hidden;
   padding: 24px 32px;
   gap: 18px;
+  border: 1.5px solid var(--border-default, #E6D9CF);
 }
 
 .photo-picker-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 2px solid #f1f5f9;
+  border-bottom: 2px solid var(--border-default, #E6D9CF);
   padding-bottom: 14px;
 }
 
 .photo-picker-title {
-  font-family: var(--font-display);
+  font-family: var(--font-display, inherit);
   font-size: 1.6rem;
   font-weight: 900;
-  color: var(--color-pink-primary);
+  color: var(--brand-primary, #502A1D);
   margin: 0;
 }
 
 .photo-picker-subtitle {
   font-size: 0.92rem;
-  color: #64748b;
+  color: var(--text-secondary, #70594F);
   margin: 4px 0 0;
 }
 
 .photo-picker-badge {
-  background: #fff0f5;
-  color: var(--color-pink-primary);
-  border: 1.5px solid var(--color-pink-primary);
+  background: var(--bg-primary, #FAF6F1);
+  color: var(--brand-primary, #502A1D);
+  border: 1.5px solid var(--border-default, #E6D9CF);
   font-weight: 800;
   font-size: 1rem;
   padding: 6px 18px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-full, 9999px);
 }
 
 /* Các ô slot đích của khung */
@@ -1275,9 +1466,10 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: 10px 0;
-  background: #f8fafc;
+  padding: 12px 0;
+  background: var(--bg-primary, #FAF6F1);
   border-radius: 18px;
+  border: 1px solid var(--border-default, #E6D9CF);
 }
 
 .picker-slot-card {
@@ -1287,7 +1479,7 @@
   overflow: hidden;
   position: relative;
   background: #ffffff;
-  border: 3px dashed #cbd5e1;
+  border: 2.5px dashed var(--border-default, #E6D9CF);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1296,13 +1488,13 @@
 }
 
 .picker-slot-card.filled {
-  border: 3px solid var(--color-pink-primary);
-  box-shadow: 0 6px 18px rgba(244, 114, 154, 0.35);
+  border: 3px solid var(--brand-primary, #502A1D);
+  box-shadow: 0 6px 18px rgba(80, 42, 29, 0.25);
 }
 
 .picker-slot-card.active-target {
-  border-color: #d946ef;
-  box-shadow: 0 0 20px rgba(217, 70, 239, 0.6);
+  border-color: var(--brand-primary, #502A1D);
+  box-shadow: 0 0 20px rgba(80, 42, 29, 0.35);
   transform: scale(1.05);
 }
 
@@ -1371,7 +1563,7 @@
   align-items: center;
   font-weight: 800;
   font-size: 0.95rem;
-  color: #1e293b;
+  color: var(--text-primary, #351C15);
 }
 
 .picker-library-grid {
@@ -1396,12 +1588,12 @@
 
 .picker-library-item:hover {
   transform: translateY(-2px);
-  border-color: var(--color-pink-primary);
-  box-shadow: 0 6px 16px rgba(244, 114, 154, 0.3);
+  border-color: var(--brand-primary, #502A1D);
+  box-shadow: 0 6px 16px rgba(80, 42, 29, 0.2);
 }
 
 .picker-library-item.assigned {
-  border-color: var(--color-pink-primary);
+  border-color: var(--brand-primary, #502A1D);
   opacity: 0.65;
 }
 
@@ -1427,7 +1619,7 @@
   position: absolute;
   bottom: 6px;
   right: 6px;
-  background: var(--color-pink-primary);
+  background: var(--brand-primary, #502A1D);
   color: #ffffff;
   font-size: 0.72rem;
   font-weight: 900;
@@ -1440,13 +1632,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 12px;
-  border-top: 2px solid #f1f5f9;
+  padding-top: 14px;
+  border-top: 2px solid var(--border-default, #E6D9CF);
 }
 
 .picker-confirm-btn {
-  padding: 14px 44px;
+  height: 52px;
+  padding: 0 44px;
   font-size: 1.15rem;
+  background: var(--brand-primary, #502A1D) !important;
+  color: #FFFFFF !important;
+}
+
+.picker-confirm-btn:hover:not(:disabled) {
+  background: var(--brand-primary-hover, #633726) !important;
 }
 
 /* ── Floating Camera Switcher on Viewfinder ────────────────────────────── */
@@ -1494,7 +1693,7 @@
 }
 
 .viewfinder-switch-btn {
-  background: var(--color-pink-primary);
+  background: var(--brand-primary, #502A1D);
   border: none;
   border-radius: var(--radius-full);
   padding: 5px 14px;
@@ -1502,12 +1701,12 @@
   font-size: 0.82rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(244, 114, 154, 0.4);
+  box-shadow: 0 2px 6px rgba(80, 42, 29, 0.3);
   transition: all 0.2s ease;
 }
 
 .viewfinder-switch-btn:hover {
-  background: var(--color-pink-hover);
+  background: var(--brand-primary-hover, #633726);
   transform: scale(1.05);
 }
 

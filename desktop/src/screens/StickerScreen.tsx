@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAppStore, STICKER_LIBRARY, type StickerCategory } from '../store/appStore'
 import { DEFAULT_EVENT_NAME } from '../lib/constants'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import './StickerScreen.css'
 
 export default function StickerScreen() {
