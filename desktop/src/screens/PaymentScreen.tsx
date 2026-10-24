@@ -272,7 +272,7 @@ export default function PaymentScreen() {
 
         {/* CỘT PHẢI: LỰA CHỌN PHƯƠNG THỨC THANH TOÁN (VIETQR / TIỀN MẶT) */}
         <section className="payment-method-card" aria-label="Phương thức thanh toán">
-          {/* Method Segmented Switcher */}
+          {/* Method Segmented Switcher — Tab Tiền Mặt bị disable theo yêu cầu */}
           <div className="method-switcher">
             <button
               className={`method-switch-btn ${paymentMethod === 'vietqr' ? 'active' : ''}`}
@@ -281,8 +281,10 @@ export default function PaymentScreen() {
               Quét Mã QR
             </button>
             <button
-              className={`method-switch-btn ${paymentMethod === 'cash' ? 'active' : ''}`}
-              onClick={() => setPaymentMethod('cash')}
+              className="method-switch-btn disabled"
+              disabled
+              title="Phương thức thanh toán tiền mặt tạm thời bị vô hiệu hoá"
+              aria-disabled="true"
             >
               Tiền Mặt
             </button>
@@ -383,31 +385,8 @@ export default function PaymentScreen() {
         </section>
       </main>
 
-      {/* ── Footer Navigation Bar ── */}
+      {/* ── Footer Navigation Bar (Chỉ giữ 1 mũi tên trên góc trái, bỏ nút mũi tên dưới) ── */}
       <footer className="payment-footer">
-        {/* Nút Quay Lại dạng Icon-Only ở chân trang */}
-        <button
-          className="payment-footer-back-btn"
-          onClick={() => setScreen('select-layout')}
-          aria-label="Quay lại"
-          title="Quay lại"
-        >
-          <svg
-            className="payment-back-icon"
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-        </button>
-
         <div className="payment-footer-actions">
           {paymentMethod === 'vietqr' && (
             <button

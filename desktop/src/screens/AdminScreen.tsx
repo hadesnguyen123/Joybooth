@@ -260,10 +260,10 @@ export default function AdminScreen() {
       <div className="admin-screen" id="admin-screen">
         <div className="admin-lock-screen">
           <div className="pin-pad-card">
-            <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--color-gold-primary)' }}>
+            <h2 className="pin-pad-title">
               🔒 Quản Trị {BRAND_NAME}
             </h2>
-            <p style={{ color: 'var(--color-text-dim)', fontSize: '0.85rem' }}>
+            <p className="pin-pad-sub">
               Nhập mã PIN để truy cập cài đặt (Mặc định: {DEFAULT_ADMIN_PIN})
             </p>
 
@@ -785,6 +785,8 @@ export default function AdminScreen() {
                         whiteningTone={whiteningTone}
                         rosyTone={rosyTone}
                         glowClarity={glowClarity}
+                        brightnessAdjust={brightnessAdjust}
+                        contrastAdjust={contrastAdjust}
                       />
                     ) : (
                       <div

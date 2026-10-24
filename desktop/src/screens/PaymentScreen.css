@@ -439,6 +439,16 @@
   box-shadow: 0 4px 12px rgba(80, 42, 29, 0.22);
 }
 
+.method-switch-btn.disabled,
+.method-switch-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: transparent !important;
+  color: var(--text-secondary, #70594F) !important;
+  box-shadow: none !important;
+}
+
 /* VietQR View */
 .vietqr-stage {
   display: flex;
@@ -687,7 +697,7 @@
   margin: 12px auto 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex-shrink: 0;
 }
 

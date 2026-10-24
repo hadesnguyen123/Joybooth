@@ -17,6 +17,9 @@ interface BeautyCameraViewProps {
   whiteningTone: number // 0 - 100 (Nâng tone trắng sáng)
   rosyTone: number // 0 - 100 (Trắng hồng tự nhiên)
   glowClarity: number // 0 - 100 (Sáng nét chi tiết)
+  brightnessAdjust?: number // 80 - 130
+  contrastAdjust?: number // 80 - 130
+  saturationAdjust?: number // 70 - 150
   className?: string
   style?: React.CSSProperties
 }
@@ -58,37 +61,51 @@ void main() {
     }
 
     // ── 1. Thon Gọn Mặt V-Line Theo Tọa Độ Khuôn Mặt Thật (MediaPipe Tracking) ──
-    if (u_slimFace > 0.0 && u_numFaces > 0) {
-        for (int i = 0; i < 4; i++) {
-            if (i >= u_numFaces) break;
+    if (u_slimFace > 0.0) {
+        if (u_numFaces > 0) {
+            for (int i = 0; i < 4; i++) {
+                if (i >= u_numFaces) break;
 
-            vec4 bounds = u_faceBounds[i];
-            vec4 vline = u_faceVLine[i];
-            float chinY = vline.y;
-            float noseY = vline.w;
-            float centerX = bounds.x;
-            float faceW = bounds.z;
-            float faceH = bounds.w;
+                vec4 bounds = u_faceBounds[i];
+                vec4 vline = u_faceVLine[i];
+                float chinY = vline.y;
+                float noseY = vline.w;
+                float centerX = bounds.x;
+                float faceW = bounds.z;
+                float faceH = bounds.w;
 
-            // Kiểm tra pixel có nằm trong vùng hàm dưới của khuôn mặt này không
-            float dy = uv.y - noseY;
-            float jawRange = max(chinY - noseY, 0.05);
+                // Kiểm tra pixel có nằm trong vùng hàm dưới của khuôn mặt này không
+                float dy = uv.y - noseY;
+                float jawRange = max(chinY - noseY, 0.05);
 
-            if (dy > 0.0 && uv.y < chinY + faceH * 0.08) {
-                float yNorm = dy / jawRange; // 0 ở chóp mũi, 1 ở đáy cằm
-                // Trọng số bóp hàm: cao nhất quanh góc xương hàm và gò má (0.35 - 0.85)
-                float yWeight = smoothstep(0.05, 0.45, yNorm) * smoothstep(1.08, 0.82, yNorm);
+                if (dy > 0.0 && uv.y < chinY + faceH * 0.08) {
+                    float yNorm = dy / jawRange; // 0 ở chóp mũi, 1 ở đáy cằm
+                    // Trọng số bóp hàm: cao nhất quanh góc xương hàm và gò má (0.35 - 0.85)
+                    float yWeight = smoothstep(0.05, 0.45, yNorm) * smoothstep(1.08, 0.82, yNorm);
 
-                float dx = uv.x - centerX;
-                float halfJawW = max(faceW * 0.52, 0.04);
-                float xNorm = abs(dx) / halfJawW;
+                    float dx = uv.x - centerX;
+                    float halfJawW = max(faceW * 0.52, 0.04);
+                    float xNorm = abs(dx) / halfJawW;
 
-                if (xNorm < 1.0) {
-                    // Warp co nhẹ nhàng về trục giữa khuôn mặt
-                    float xWeight = smoothstep(1.0, 0.15, xNorm);
-                    float warpFactor = (u_slimFace * 0.15) * yWeight * xWeight;
-                    uv.x += dx * warpFactor;
+                    if (xNorm < 1.0) {
+                        // Warp co nhẹ nhàng về trục giữa khuôn mặt
+                        float xWeight = smoothstep(1.0, 0.15, xNorm);
+                        float warpFactor = (u_slimFace * 0.15) * yWeight * xWeight;
+                        uv.x += dx * warpFactor;
+                    }
                 }
+            }
+        } else {
+            // Dự phòng V-line trung tâm khi MediaPipe chưa trả kết quả
+            float dx = uv.x - 0.5;
+            float dy = uv.y - 0.56;
+            if (dy > -0.15 && dy < 0.28 && abs(dx) < 0.35) {
+                float yNorm = (dy + 0.15) / 0.43;
+                float yWeight = smoothstep(0.05, 0.45, yNorm) * smoothstep(1.02, 0.76, yNorm);
+                float xNorm = abs(dx) / 0.35;
+                float xWeight = smoothstep(1.0, 0.15, xNorm);
+                float warpFactor = (u_slimFace * 0.12) * yWeight * xWeight;
+                uv.x += dx * warpFactor;
             }
         }
     }
@@ -100,7 +117,7 @@ void main() {
     // Chuyển sang không gian YCbCr để phát hiện màu da người
     float Cb = -0.168736 * centerColor.r - 0.331264 * centerColor.g + 0.5 * centerColor.b + 0.5;
     float Cr = 0.5 * centerColor.r - 0.418688 * centerColor.g - 0.081312 * centerColor.b + 0.5;
-    bool colorIsSkin = (Cb >= 0.30 && Cb <= 0.52 && Cr >= 0.52 && Cr <= 0.72);
+    bool colorIsSkin = (Cb >= 0.24 && Cb <= 0.60 && Cr >= 0.46 && Cr <= 0.78);
 
     if (u_numFaces > 0) {
         for (int i = 0; i < 4; i++) {
@@ -114,13 +131,15 @@ void main() {
                 if (colorIsSkin) {
                     isSkin = max(isSkin, prox);
                 } else {
-                    isSkin = max(isSkin, prox * 0.4);
+                    isSkin = max(isSkin, prox * 0.5);
                 }
             }
         }
     } else {
         if (colorIsSkin) {
             isSkin = 1.0;
+        } else {
+            isSkin = 0.6; // Đảm bảo làm mịn da luôn phát huy tác dụng
         }
     }
 
@@ -189,6 +208,9 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
       whiteningTone,
       rosyTone,
       glowClarity,
+      brightnessAdjust = 100,
+      contrastAdjust = 100,
+      saturationAdjust = 100,
       className,
       style,
     },
@@ -288,14 +310,30 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
             const ctx = off.getContext('2d')
             if (ctx) {
               const filters: string[] = []
-              if (whiteningTone > 0) {
-                filters.push(`brightness(${(1 + (whiteningTone / 100) * 0.12).toFixed(3)})`)
+              const whiteMultiplier = 1 + (whiteningTone / 100) * 0.12
+              const baseBright = (brightnessAdjust && brightnessAdjust !== 100) ? brightnessAdjust / 100 : 1
+              const totalBright = baseBright * whiteMultiplier
+              if (totalBright !== 1) {
+                filters.push(`brightness(${totalBright.toFixed(3)})`)
               }
+
+              const baseContrast = (contrastAdjust && contrastAdjust !== 100) ? contrastAdjust / 100 : 1
+              const clarityMult = 1 + (glowClarity / 100) * 0.08
+              const totalContrast = baseContrast * clarityMult
+              if (totalContrast !== 1) {
+                filters.push(`contrast(${totalContrast.toFixed(3)})`)
+              }
+
+              const baseSat = (saturationAdjust && saturationAdjust !== 100) ? saturationAdjust / 100 : 1
+              if (baseSat !== 1) {
+                filters.push(`saturate(${baseSat.toFixed(3)})`)
+              }
+
               if (skinSmoothing > 0) {
-                filters.push(`blur(${(skinSmoothing * 0.005).toFixed(2)}px)`)
+                filters.push(`blur(${(skinSmoothing * 0.0065).toFixed(2)}px)`)
               }
               if (rosyTone > 0) {
-                filters.push(`saturate(${(1 + (rosyTone / 100) * 0.15).toFixed(3)}) hue-rotate(-${(rosyTone * 0.08).toFixed(1)}deg)`)
+                filters.push(`saturate(${(1 + (rosyTone / 100) * 0.12).toFixed(3)}) hue-rotate(-${(rosyTone * 0.075).toFixed(1)}deg)`)
               }
               if (filters.length > 0) {
                 ctx.filter = filters.join(' ')
@@ -675,26 +713,56 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
           animIdRef.current = null
         }
       }
-    }, [stream, mjpegUrl, mirrorCamera, slimFace, skinSmoothing, whiteningTone, rosyTone, glowClarity])
+    }, [stream, mjpegUrl, mirrorCamera, slimFace, skinSmoothing, whiteningTone, rosyTone, glowClarity, brightnessAdjust, contrastAdjust, saturationAdjust])
 
-    // Tính toán CSS filter cho MJPEG Image stream (Tối ưu độ nét và màu sắc)
+    // Tính toán CSS filter cho MJPEG Image stream (Canon EOS R100 Live View)
     const mjpegFilters: string[] = []
     
-    // 1. Áp dụng ma trận làm nét cạnh viền (Convolution Sharpening) để triệt tiêu hoàn toàn mờ nội suy
+    // 1. Áp dụng ma trận làm nét cạnh viền (Convolution Sharpening)
     if (glowClarity > 50) {
       mjpegFilters.push('url(#canon-sharpen-crisp)')
-    } else {
+    } else if (glowClarity > 0) {
       mjpegFilters.push('url(#canon-sharpen-medium)')
     }
 
-    if (whiteningTone > 0) mjpegFilters.push(`brightness(${(1 + (whiteningTone / 100) * 0.10).toFixed(3)})`)
-    if (glowClarity > 0) {
-      mjpegFilters.push(`contrast(${(1.03 + (glowClarity / 100) * 0.12).toFixed(3)})`)
-    } else {
-      mjpegFilters.push('contrast(1.04)') // Tăng nhẹ độ tương phản viền chống mờ nội suy upscale
+    // 2. Whitening + Brightness
+    const whiteMultiplier = 1 + (whiteningTone / 100) * 0.12
+    const baseBright = (brightnessAdjust && brightnessAdjust !== 100) ? brightnessAdjust / 100 : 1
+    const totalBright = baseBright * whiteMultiplier
+    if (totalBright !== 1) {
+      mjpegFilters.push(`brightness(${totalBright.toFixed(3)})`)
     }
-    if (rosyTone > 0) mjpegFilters.push(`saturate(${(1 + (rosyTone / 100) * 0.12).toFixed(3)}) hue-rotate(-${(rosyTone * 0.06).toFixed(1)}deg)`)
+
+    // 3. Contrast + Glow
+    const baseContrast = (contrastAdjust && contrastAdjust !== 100) ? contrastAdjust / 100 : 1
+    const clarityMult = 1 + (glowClarity / 100) * 0.08
+    const totalContrast = baseContrast * clarityMult
+    if (totalContrast !== 1) {
+      mjpegFilters.push(`contrast(${totalContrast.toFixed(3)})`)
+    }
+
+    // 4. Saturation
+    const baseSat = (saturationAdjust && saturationAdjust !== 100) ? saturationAdjust / 100 : 1
+    if (baseSat !== 1) {
+      mjpegFilters.push(`saturate(${baseSat.toFixed(3)})`)
+    }
+
+    // 5. Làm Mịn Da (Skin Smoothing)
+    if (skinSmoothing > 0) {
+      mjpegFilters.push(`blur(${(skinSmoothing * 0.0065).toFixed(2)}px)`)
+    }
+
+    // 6. Trắng hồng đào (Rosy Tone)
+    if (rosyTone > 0) {
+      mjpegFilters.push(`hue-rotate(-${(rosyTone * 0.075).toFixed(1)}deg) saturate(${(1 + rosyTone * 0.0025).toFixed(3)})`)
+    }
+
     const mjpegFilterStyle = mjpegFilters.length > 0 ? mjpegFilters.join(' ') : 'none'
+
+    // Tính toán tỷ lệ co V-Line cho luồng Canon R100
+    const mjpegScaleX = (mirrorCamera ? -1 : 1) * (1 - (slimFace / 100) * 0.055)
+    const mjpegScaleY = 1 + (slimFace / 100) * 0.015
+    const mjpegTransform = `scale(${mjpegScaleX.toFixed(4)}, ${mjpegScaleY.toFixed(4)})`
 
     return (
       <div
@@ -764,7 +832,7 @@ export const BeautyCameraView = forwardRef<BeautyCameraHandle, BeautyCameraViewP
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              transform: mirrorCamera ? 'scaleX(-1)' : 'none',
+              transform: mjpegTransform,
               filter: mjpegFilterStyle,
               imageRendering: '-webkit-optimize-contrast' as any,
               display: 'block',

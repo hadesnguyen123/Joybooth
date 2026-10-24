@@ -1215,6 +1215,9 @@ export default function CaptureScreen() {
                 whiteningTone={whiteningTone}
                 rosyTone={rosyTone}
                 glowClarity={glowClarity}
+                brightnessAdjust={brightnessAdjust}
+                contrastAdjust={contrastAdjust}
+                saturationAdjust={saturationAdjust}
                 className="camera-preview-element"
               />
               {cameraFreezeFrame && (
@@ -1333,62 +1336,65 @@ export default function CaptureScreen() {
                 </div>
               </div>
             </div>
-          )}
         </div>
+
+        {/* ── Right Vertical Slots Dock (Đưa các ô sang bên phải theo chiều dọc) ── */}
+        {!isSelfboothMode && (
+          <aside className="right-slots-dock">
+            <div className="vertical-slots-counter">
+              <span className="counter-fraction">{filledSlotsCount}/{totalShots}</span>
+            </div>
+            <div className="vertical-slots-list">
+              {Array.from({ length: totalShots }).map((_, index) => {
+                const slotItem = slots[index]
+                const isFilled = slotItem !== null
+                const isRetaking = retakeSlotIndex === index
+                const isJustCaptured = justCapturedSlot === index
+
+                return (
+                  <div
+                    key={index}
+                    className={`vertical-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isRetaking ? 'retaking-target' : ''} ${isJustCaptured ? 'just-captured' : ''}`}
+                    onClick={() => {
+                      if (isFilled && !isCapturingShot) {
+                        handleDeleteSlot(index)
+                      }
+                    }}
+                  >
+                    {isFilled ? (
+                      <>
+                        <img src={slotItem.compositedPath || slotItem.rawPath} alt={`Slot ${index + 1}`} />
+                        <span className="slot-index-badge">{index + 1}</span>
+                        <button
+                          className="slot-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteSlot(index)
+                          }}
+                          title={`Xóa ảnh ô ${index + 1} để chụp lại`}
+                        >
+                          ✕
+                        </button>
+                      </>
+                    ) : (
+                      <div className="slot-empty-content">
+                        <span className="slot-empty-plus">+</span>
+                        <span className="slot-empty-label">Ô {index + 1}</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </aside>
+        )}
       </div>
 
-      {/* ── Bottom Deck: 
-          1) PHOTOBOOTH MODE: Hiển thị các ô slot kèm nút X xóa & Chụp lại
-          2) SELFBOOTH MODE: Hiển thị đếm số ảnh & Nút Bấm Chụp / Nút Kết Thúc Sớm 
-      ── */}
+      {/* ── Bottom Deck: Shutter Action Control (Gọn gàng, tối ưu không gian cho Live View) ── */}
       <footer className="capture-bottom-deck">
         {!isSelfboothMode ? (
           /* ── PHOTOBOOTH MODE CONTROLS ── */
           <>
-            <div className="live-slots-deck">
-              <div className="live-slots-list">
-                {Array.from({ length: totalShots }).map((_, index) => {
-                  const slotItem = slots[index]
-                  const isFilled = slotItem !== null
-                  const isRetaking = retakeSlotIndex === index
-                  const isJustCaptured = justCapturedSlot === index
-
-                  return (
-                    <div
-                      key={index}
-                      className={`live-slot-thumb ${isFilled ? 'filled' : 'empty'} ${isRetaking ? 'retaking-target' : ''} ${isJustCaptured ? 'just-captured' : ''}`}
-                    >
-                      {isFilled ? (
-                        <>
-                          <img src={slotItem.compositedPath || slotItem.rawPath} alt={`Slot ${index + 1}`} />
-                          <span className="slot-index-badge">{index + 1}</span>
-                          {/* Nút xóa ảnh không đẹp để chụp lại */}
-                          <button
-                            className="slot-delete-btn"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteSlot(index)
-                            }}
-                            title={`Xóa ảnh ô ${index + 1} để chụp lại`}
-                          >
-                            ✕
-                          </button>
-                        </>
-                      ) : (
-                        <div className="slot-empty-content">
-                          <span className="slot-empty-plus">+</span>
-                          <span className="slot-empty-label">Ô {index + 1}</span>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="live-slots-counter">
-                {filledSlotsCount}/{totalShots}
-              </div>
-            </div>
-
             <div className="capture-shutter-container">
               {isPhotoboothFull && retakeSlotIndex === null ? (
                 /* ĐÃ ĐỦ FULL ẢNH: Nút Hài Lòng & Tiếp Tục */

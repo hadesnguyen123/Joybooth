@@ -218,8 +218,8 @@
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(18px);
   border-radius: var(--radius-lg);
-  box-shadow: 0 16px 45px rgba(45, 36, 38, 0.16);
-  border: 2px solid rgba(244, 114, 154, 0.3);
+  box-shadow: 0 16px 45px rgba(80, 42, 29, 0.16);
+  border: 1.5px solid var(--border-default, #E6D9CF);
   z-index: 50;
   display: flex;
   flex-direction: column;
@@ -227,17 +227,17 @@
 
 .flyout-header {
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(45, 36, 38, 0.08);
+  border-bottom: 1px solid var(--border-default, #E6D9CF);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .flyout-title {
-  font-family: var(--font-display);
+  font-family: var(--font-display, inherit);
   font-size: 1.15rem;
   font-weight: 800;
-  color: var(--color-pink-primary);
+  color: var(--brand-primary, #502A1D);
 }
 
 .flyout-close-btn {
@@ -325,8 +325,8 @@
 
 /* Beauty & Glam adjustments panel */
 .beauty-section-box {
-  background: #ffffff;
-  border: 1.5px solid rgba(45, 36, 38, 0.08);
+  background: var(--surface-default, #FFFFFF);
+  border: 1.5px solid var(--border-default, #E6D9CF);
   border-radius: 14px;
   padding: 14px;
   margin-bottom: 14px;
@@ -335,7 +335,7 @@
 .beauty-section-header {
   font-size: 0.88rem;
   font-weight: 800;
-  color: var(--color-pink-primary);
+  color: var(--brand-primary, #502A1D);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -356,38 +356,41 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.85rem;
-  color: #4b5563;
+  color: var(--text-secondary, #70594F);
   margin-bottom: 6px;
 }
 
 .beauty-val-badge {
   font-weight: 800;
-  color: var(--color-pink-primary);
-  background: var(--color-pink-soft);
+  color: var(--brand-primary, #502A1D);
+  background: var(--surface-warm, #FFF9F4);
+  border: 1px solid var(--border-default, #E6D9CF);
   padding: 1px 8px;
   border-radius: 6px;
 }
 
-/* ── Camera Viewfinder Container (16:9 ratio, centered) ─────────────────── */
+/* ── Camera Viewfinder Container (16:9 ratio, centered & expanded) ──────── */
 .camera-viewfinder-wrapper {
   aspect-ratio: 16 / 9;
-  max-width: calc(100% - 120px);
-  max-height: 100%;
+  width: auto;
+  height: 100%;
+  max-height: calc(100vh - 175px);
+  max-width: calc(100vw - 230px);
   margin: 0 auto;
   position: relative;
   border-radius: 24px;
   overflow: hidden;
   background: #111111;
-  box-shadow: 0 12px 36px rgba(45, 36, 38, 0.12), 0 0 0 2px rgba(80, 42, 29, 0.1);
+  box-shadow: 0 16px 48px rgba(80, 42, 29, 0.12), 0 0 0 1.5px var(--border-default, #E6D9CF);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 30;
-  transition: box-shadow 0.35s ease;
+  transition: all 0.35s ease;
 }
 
 .camera-viewfinder-wrapper.shooting-focus {
-  box-shadow: 0 0 60px rgba(0, 0, 0, 0.8), 0 0 0 4px var(--brand-primary);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.8), 0 0 0 4px var(--brand-primary, #502A1D);
 }
 
 .camera-preview-element {
@@ -450,86 +453,114 @@
   100% { transform: scale(1); opacity: 0.6; }
 }
 
-/* ── Live Slot Progress Bar (Phóng to các ô thumbnail) ──────────────────── */
-.live-slots-deck {
-  background: var(--color-white);
-  border: 2px solid rgba(45, 36, 38, 0.1);
-  border-radius: var(--radius-xl);
-  padding: 12px 24px;
+/* ── Right Vertical Slots Dock (Các ô dọc bên phải) ───────────────────────── */
+.right-slots-dock {
+  width: 100px;
+  height: 100%;
+  max-height: calc(100vh - 175px);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
-  box-shadow: 0 10px 30px rgba(45, 36, 38, 0.08);
+  justify-content: center;
+  gap: 10px;
+  padding-right: 18px;
+  padding-left: 6px;
+  z-index: 35;
+  flex-shrink: 0;
 }
 
-.live-slots-list {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.vertical-slots-counter {
+  background: var(--surface-warm, #FFF9F4);
+  border: 1.5px solid var(--border-default, #E6D9CF);
+  border-radius: var(--radius-full, 9999px);
+  padding: 4px 14px;
+  box-shadow: 0 2px 6px rgba(80, 42, 29, 0.05);
+  margin-bottom: 2px;
 }
 
-/* Ô thumbnail phóng to rõ nét */
-.live-slot-thumb {
-  width: 82px;
-  height: 82px;
-  border-radius: 14px;
+.counter-fraction {
+  font-family: var(--font-display, inherit);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--brand-primary, #502A1D);
+  letter-spacing: 0.5px;
+}
+
+.vertical-slots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.vertical-slot-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
   overflow: hidden;
-  background: #f1f2f5;
+  background: var(--surface-default, #FFFFFF);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: all var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(80, 42, 29, 0.06);
 }
 
-.live-slot-thumb.filled {
-  border: 3px solid var(--color-pink-primary);
-  box-shadow: 0 4px 14px rgba(244, 114, 154, 0.4);
+.vertical-slot-thumb.empty {
+  border: 2px dashed var(--border-strong, #C8B2A4);
+  color: var(--text-secondary, #70594F);
+  background: var(--surface-warm, #FFF9F4);
 }
 
-.live-slot-thumb.filled img {
+.vertical-slot-thumb.filled {
+  border: 2.5px solid var(--brand-primary, #502A1D);
+  box-shadow: 0 6px 18px rgba(80, 42, 29, 0.2);
+  cursor: pointer;
+}
+
+.vertical-slot-thumb.filled:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 22px rgba(80, 42, 29, 0.28);
+}
+
+.vertical-slot-thumb.filled img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.live-slot-thumb.empty {
-  border: 2.5px dashed #cbd5e1;
-  color: #94a3b8;
-  font-size: 1.8rem;
-  font-weight: 800;
-}
-
-.live-slot-thumb.current {
-  border-color: var(--color-pink-primary);
+.vertical-slot-thumb.retaking-target {
+  border-color: #A66A43;
+  box-shadow: 0 0 16px rgba(166, 106, 67, 0.6);
   animation: pulseSlot 1s infinite alternate;
 }
 
-.live-slot-thumb.just-captured {
+.vertical-slot-thumb.just-captured {
   animation: slotBounceGlow 0.9s ease-in-out;
-  border-color: var(--color-pink-primary) !important;
-  box-shadow: 0 0 24px rgba(244, 114, 154, 0.95) !important;
+  border-color: var(--brand-primary, #502A1D) !important;
+  box-shadow: 0 0 24px rgba(80, 42, 29, 0.5) !important;
 }
 
-@keyframes slotBounceGlow {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.24); box-shadow: 0 0 30px var(--color-pink-primary); }
-  70%  { transform: scale(1.08); }
-  100% { transform: scale(1); }
+.vertical-slot-thumb .slot-empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
-@keyframes pulseSlot {
-  from { transform: scale(1); border-color: #cbd5e1; }
-  to   { transform: scale(1.06); border-color: var(--color-pink-primary); }
+.vertical-slot-thumb .slot-empty-plus {
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--text-secondary, #70594F);
+  font-weight: 700;
 }
 
-.live-slots-counter {
-  font-family: var(--font-display);
-  font-size: 1.45rem;
-  font-weight: 900;
-  color: #0284c7;
-  padding-left: 14px;
-  border-left: 2px solid rgba(45, 36, 38, 0.12);
+.vertical-slot-thumb .slot-empty-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-secondary, #70594F);
+  text-transform: uppercase;
 }
 
 /* ── Flying Photo Snap Effect Overlay ── */
@@ -597,42 +628,52 @@
 /* ── Bottom Shutter Deck (Luôn nằm gọn trong màn hình) ──────────────────── */
 .capture-bottom-deck {
   flex-shrink: 0;
-  padding: 8px 24px 18px;
+  padding: 6px 24px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
   z-index: 40;
-  gap: 10px;
+  gap: 8px;
 }
 
 .start-capture-btn-pink {
-  padding: 14px 48px;
-  border-radius: var(--radius-full);
-  background: var(--color-pink-primary);
-  color: var(--color-white);
-  font-family: var(--font-body);
-  font-size: 1.25rem;
+  padding: 12px 44px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--brand-primary, #502A1D);
+  color: #FFFFFF;
+  font-family: var(--font-body, inherit);
+  font-size: 1.15rem;
   font-weight: 800;
   display: flex;
   align-items: center;
   gap: 12px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 8px 26px rgba(244, 114, 154, 0.45);
-  transition: all var(--transition-fast);
+  box-shadow: 0 8px 24px rgba(80, 42, 29, 0.28);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   flex-shrink: 0;
 }
 
 .start-capture-btn-pink:hover {
-  background: var(--color-dark-pink);
+  background: var(--brand-primary-hover, #633726);
   transform: translateY(-2px);
-  box-shadow: 0 14px 38px rgba(217, 79, 120, 0.55);
+  box-shadow: 0 12px 32px rgba(80, 42, 29, 0.38);
 }
 
 .start-capture-btn-pink:active {
   transform: scale(0.97);
+}
+
+.start-capture-btn-pink.proceed-glow-btn {
+  background: #237A57;
+  box-shadow: 0 8px 24px rgba(35, 122, 87, 0.32);
+}
+
+.start-capture-btn-pink.proceed-glow-btn:hover {
+  background: #1B6245;
+  box-shadow: 0 12px 32px rgba(35, 122, 87, 0.42);
 }
 
 .start-capture-btn-pink:disabled {
