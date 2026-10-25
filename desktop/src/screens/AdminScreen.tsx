@@ -18,6 +18,7 @@ import {
   DEFAULT_GDRIVE_FOLDER_URL,
 } from '../lib/constants'
 import { BeautyCameraView } from '../components/BeautyCameraView'
+import { ArrowLeft } from 'lucide-react'
 import './AdminScreen.css'
 
 type AdminTab = 'event' | 'beauty' | 'frames' | 'hardware' | 'cloud' | 'payment' | 'stats'
@@ -259,10 +260,10 @@ export default function AdminScreen() {
       <div className="admin-screen" id="admin-screen">
         <div className="admin-lock-screen">
           <div className="pin-pad-card">
-            <h2 style={{ fontFamily: 'var(--font-display)', color: 'var(--color-gold-primary)' }}>
+            <h2 className="pin-pad-title">
               🔒 Quản Trị {BRAND_NAME}
             </h2>
-            <p style={{ color: 'var(--color-text-dim)', fontSize: '0.85rem' }}>
+            <p className="pin-pad-sub">
               Nhập mã PIN để truy cập cài đặt (Mặc định: {DEFAULT_ADMIN_PIN})
             </p>
 
@@ -293,11 +294,13 @@ export default function AdminScreen() {
             </div>
 
             <button
-              className="btn btn-ghost"
-              style={{ fontSize: '0.85rem', marginTop: 8 }}
+              className="screen-back-btn"
+              style={{ marginTop: 12 }}
               onClick={() => setScreen('idle')}
+              title="Quay lại"
+              aria-label="Quay lại"
             >
-              ← Quay lại Màn hình chính
+              <ArrowLeft size={24} strokeWidth={2} />
             </button>
           </div>
         </div>
@@ -782,6 +785,8 @@ export default function AdminScreen() {
                         whiteningTone={whiteningTone}
                         rosyTone={rosyTone}
                         glowClarity={glowClarity}
+                        brightnessAdjust={brightnessAdjust}
+                        contrastAdjust={contrastAdjust}
                       />
                     ) : (
                       <div

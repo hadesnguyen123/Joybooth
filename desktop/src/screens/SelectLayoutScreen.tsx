@@ -1,5 +1,6 @@
 import { useAppStore, ALL_LAYOUTS, type LayoutCategory, type GridLayoutItem } from '../store/appStore'
 import { DEFAULT_PRICE_2X6, DEFAULT_PRICE_4X6 } from '../lib/constants'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import './SelectLayoutScreen.css'
 
 export default function SelectLayoutScreen() {
@@ -46,15 +47,28 @@ export default function SelectLayoutScreen() {
 
   return (
     <div className="layout-screen-container" id="select-layout-screen">
-      {/* Title */}
-      <div className="screen-title-banner">
-        <div className="title-bubble-badge">CHỌN BỐ CỤC</div>
-        <p style={{ margin: '6px 0 0', fontSize: '0.95rem', color: '#64748b', fontWeight: 700 }}>
-          {selectedFrameSize === '2x6' ? 'Dải Strip 2x6' : 'Postcard 4x6'} • {basePriceFormatted}đ
-        </p>
-      </div>
+      {/* ── Top Header: Single Left Back Arrow + Center Title ── */}
+      <header className="layout-screen-header">
+        <button
+          className="screen-back-btn"
+          onClick={() => setScreen('select-size')}
+          title="Quay lại chọn khổ in"
+          aria-label="Quay lại"
+        >
+          <ArrowLeft size={28} strokeWidth={2} />
+        </button>
 
-      {/* Category Tabs */}
+        <div className="layout-header-center">
+          <h1 className="layout-header-title">Chọn Bố Cục</h1>
+          <p className="layout-header-subtitle">
+            {selectedFrameSize === '2x6' ? 'Dải Strip 2×6' : 'Postcard 4×6'} • {basePriceFormatted}đ
+          </p>
+        </div>
+
+        <div className="header-placeholder" />
+      </header>
+
+      {/* ── Category Tabs (Touch-First Pills) ── */}
       <div className="category-tabs-row">
         {categories.map((cat) => {
           const isActive = selectedCategory === cat
@@ -70,8 +84,8 @@ export default function SelectLayoutScreen() {
         })}
       </div>
 
-      {/* Layout Options Stage */}
-      <div className="layout-options-stage">
+      {/* ── Layout Options Stage ── */}
+      <main className="layout-options-stage">
         {currentCategoryLayouts.map((layout) => {
           const isSelected = selectedLayout.id === layout.id
           return (
@@ -79,6 +93,8 @@ export default function SelectLayoutScreen() {
               key={layout.id}
               className={`layout-preview-card ${isSelected ? 'selected' : ''}`}
               onClick={() => handleChooseLayout(layout)}
+              role="button"
+              tabIndex={0}
             >
               <div className="layout-card-sheet">
                 {layout.strip ? (
@@ -125,24 +141,16 @@ export default function SelectLayoutScreen() {
             </div>
           )
         })}
-      </div>
+      </main>
 
-      {/* Bottom bar */}
+      {/* ── Bottom Bar: Only Single Primary Action ── */}
       <footer className="layout-bottom-bar">
         <button
-          className="btn btn-pill-white"
-          style={{ padding: '12px 28px', fontSize: '1rem', color: '#2563eb', borderColor: '#93c5fd' }}
-          onClick={() => setScreen('select-size')}
-        >
-          ← Quay Lại
-        </button>
-
-        <button
-          className="btn btn-pink"
-          style={{ padding: '14px 44px', fontSize: '1.15rem', fontWeight: 900 }}
+          className="btn-proceed-layout"
           onClick={handleProceed}
         >
-          {eventConfig.paymentRequiredForPhotobooth ? 'TIẾP TỤC THANH TOÁN ➔' : 'BẮT ĐẦU CHỤP ➔'}
+          <span>{eventConfig.paymentRequiredForPhotobooth ? 'Tiếp Tục Thanh Toán' : 'Bắt Đầu Chụp'}</span>
+          <ArrowRight size={22} strokeWidth={2.2} />
         </button>
       </footer>
     </div>

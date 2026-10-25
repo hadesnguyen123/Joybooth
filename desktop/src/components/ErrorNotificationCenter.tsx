@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useLogStore, type LogCategory, type LogStatus } from '../store/logStore'
+import { useAppStore } from '../store/appStore'
 import './ErrorNotificationCenter.css'
 
 export default function ErrorNotificationCenter() {
+  const currentScreen = useAppStore((s) => s.screen)
   const { logs, activeToasts, isDrawerOpen, unreadErrorCount, dismissToast, clearLogs, setDrawerOpen } = useLogStore()
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
@@ -112,24 +114,26 @@ export default function ErrorNotificationCenter() {
         ))}
       </div>
 
-      {/* ── 2. NÚT HUY HIỆU LOG (Nổi ở góc màn hình để theo dõi số lỗi) ──────── */}
-      <div className="error-hud-trigger">
-        <button
-          type="button"
-          className={`error-hud-btn ${unreadErrorCount > 0 ? 'hud-has-unread' : errorLogsCount > 0 ? 'hud-has-errors' : 'hud-normal'}`}
-          onClick={() => setDrawerOpen(!isDrawerOpen)}
-          title="Mở nhật ký lỗi API & Camera (Debug Log)"
-        >
-          <span className="hud-icon">{unreadErrorCount > 0 ? '🚨' : errorLogsCount > 0 ? '⚠️' : '📋'}</span>
-          <span className="hud-label">
-            {unreadErrorCount > 0
-              ? `${unreadErrorCount} LỖI API MỚI`
-              : errorLogsCount > 0
-              ? `${errorLogsCount} Lỗi API`
-              : 'Log API'}
-          </span>
-        </button>
-      </div>
+      {/* ── 2. NÚT HUY HIỆU LOG (Chỉ hiển thị trong màn hình Admin để giữ sạch giao diện khách) ──────── */}
+      {currentScreen === 'admin' && (
+        <div className="error-hud-trigger">
+          <button
+            type="button"
+            className={`error-hud-btn ${unreadErrorCount > 0 ? 'hud-has-unread' : errorLogsCount > 0 ? 'hud-has-errors' : 'hud-normal'}`}
+            onClick={() => setDrawerOpen(!isDrawerOpen)}
+            title="Mở nhật ký lỗi API & Camera (Debug Log)"
+          >
+            <span className="hud-icon">{unreadErrorCount > 0 ? '🚨' : errorLogsCount > 0 ? '⚠️' : '📋'}</span>
+            <span className="hud-label">
+              {unreadErrorCount > 0
+                ? `${unreadErrorCount} LỖI API MỚI`
+                : errorLogsCount > 0
+                ? `${errorLogsCount} Lỗi API`
+                : 'Log API'}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* ── 3. DRAWER BẢNG ĐIỀU KHIỂN LOG CHI TIẾT (Trượt ra từ bên phải) ─────── */}
       {isDrawerOpen && (

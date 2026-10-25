@@ -1,17 +1,23 @@
-/* ── Fotolism Admin Screen (Cream & Pink Pastel Theme) ───────────────── */
+/* ==========================================================================
+   FOTOLISM 3.0 — ADMIN / CONTROL PANEL SCREEN (WARM MINIMALIST LUXURY)
+   - Consistent typography: Plus Jakarta Sans
+   - Brand color palette: Espresso #502A1D, Cream #FAF6F1, Warm Surface #FFF9F4
+   - Touch-first, clean, modern UI components
+   ========================================================================== */
 
 .admin-screen {
   width: 100vw;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-cream-bg);
-  color: var(--color-dark-text);
+  background: radial-gradient(circle at 50% 25%, #FFFFFF 0%, #FAF6F1 60%, #EFE5DB 100%);
+  color: var(--text-primary, #351C15);
+  font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
   user-select: none;
   overflow: hidden;
 }
 
-/* PIN Lock Screen */
+/* ── 1. PIN Lock Screen ── */
 .admin-lock-screen {
   width: 100%;
   height: 100%;
@@ -23,78 +29,105 @@
 }
 
 .pin-pad-card {
-  background: var(--color-white);
-  border: 1px solid rgba(45, 36, 38, 0.08);
-  border-radius: var(--radius-lg);
-  padding: 36px 40px;
+  background: var(--surface-default, #FFFFFF);
+  border: 1.5px solid var(--border-default, #E6D9CF);
+  border-radius: 28px;
+  padding: 38px 44px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  box-shadow: 0 16px 40px rgba(45, 36, 38, 0.1);
+  gap: 18px;
+  box-shadow: 0 16px 48px rgba(80, 42, 29, 0.08);
+}
+
+.pin-pad-title {
+  font-family: var(--font-display, inherit);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--brand-primary, #502A1D);
+  margin: 0;
+}
+
+.pin-pad-sub {
+  color: var(--text-secondary, #70594F);
+  font-size: 0.88rem;
+  margin: 0;
 }
 
 .pin-display {
   display: flex;
-  gap: 14px;
-  margin: 10px 0;
+  gap: 16px;
+  margin: 12px 0 6px;
 }
 
 .pin-dot {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 2px solid var(--color-pink-primary);
-  transition: all 0.2s;
+  border: 2px solid var(--border-strong, #C8B2A4);
+  background: var(--surface-warm, #FFF9F4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .pin-dot.filled {
-  background: var(--color-pink-primary);
-  box-shadow: 0 0 10px var(--color-pink-primary);
+  background: var(--brand-primary, #502A1D);
+  border-color: var(--brand-primary, #502A1D);
+  box-shadow: 0 0 12px rgba(80, 42, 29, 0.35);
+  transform: scale(1.1);
 }
 
 .pin-grid {
   display: grid;
-  grid-template-columns: repeat(3, 70px);
+  grid-template-columns: repeat(3, 72px);
   gap: 14px;
+  margin-top: 8px;
 }
 
 .pin-btn {
-  height: 60px;
-  border-radius: var(--radius-md);
-  background: var(--color-cream-bg);
-  border: 1px solid rgba(45, 36, 38, 0.1);
-  color: var(--color-dark-text);
-  font-size: 1.5rem;
-  font-weight: 700;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--surface-warm, #FFF9F4);
+  border: 1.5px solid var(--border-default, #E6D9CF);
+  color: var(--brand-primary, #502A1D);
+  font-size: 1.55rem;
+  font-weight: 800;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 6px rgba(80, 42, 29, 0.04);
 }
 
 .pin-btn:hover {
-  background: var(--color-pink-primary);
-  color: var(--color-white);
+  background: var(--brand-primary, #502A1D);
+  border-color: var(--brand-primary, #502A1D);
+  color: #FFFFFF;
+  transform: scale(1.05);
+  box-shadow: 0 4px 14px rgba(80, 42, 29, 0.18);
 }
 
-/* Admin Dashboard Layout */
+.pin-btn:active {
+  transform: scale(0.96);
+}
+
+/* ── 2. Admin Dashboard Layout ── */
 .admin-header {
-  height: 64px;
+  height: 68px;
   padding: 0 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1.5px solid rgba(45, 36, 38, 0.08);
-  background: var(--color-white);
+  border-bottom: 1.5px solid var(--border-default, #E6D9CF);
+  background: var(--surface-default, #FFFFFF);
+  flex-shrink: 0;
 }
 
 .admin-title {
-  font-family: var(--font-display);
+  font-family: var(--font-display, inherit);
   font-size: 1.25rem;
   font-weight: 800;
-  color: var(--color-pink-primary);
+  color: var(--brand-primary, #502A1D);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -103,15 +136,15 @@
 .admin-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 240px 1fr;
-  height: calc(100vh - 64px);
+  grid-template-columns: 250px 1fr;
+  height: calc(100vh - 68px);
   overflow: hidden;
 }
 
-/* Sidebar Navigation */
+/* ── 3. Sidebar Navigation ── */
 .admin-sidebar {
-  background: var(--color-white);
-  border-right: 1.5px solid rgba(45, 36, 38, 0.08);
+  background: var(--surface-default, #FFFFFF);
+  border-right: 1.5px solid var(--border-default, #E6D9CF);
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
@@ -122,29 +155,30 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
+  padding: 12px 18px;
+  border-radius: 14px;
+  color: var(--text-secondary, #70594F);
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1.5px solid transparent;
 }
 
 .admin-nav-item:hover {
-  color: var(--color-pink-primary);
-  background: var(--color-pink-soft);
+  color: var(--brand-primary, #502A1D);
+  background: var(--surface-warm, #FFF9F4);
+  border-color: var(--border-default, #E6D9CF);
 }
 
 .admin-nav-item.active {
-  color: var(--color-pink-primary);
-  background: var(--color-pink-soft);
-  border-color: var(--color-pink-light);
-  font-weight: 700;
+  color: #FFFFFF;
+  background: var(--brand-primary, #502A1D);
+  border-color: var(--brand-primary, #502A1D);
+  box-shadow: 0 4px 14px rgba(80, 42, 29, 0.2);
 }
 
-/* Main Content Area */
+/* ── 4. Main Content Area ── */
 .admin-main {
   padding: 32px 40px;
   overflow-y: auto;
@@ -154,17 +188,18 @@
 }
 
 .tab-pane-title {
-  font-size: 1.4rem;
+  font-family: var(--font-display, inherit);
+  font-size: 1.45rem;
   font-weight: 800;
-  color: var(--color-dark-text);
-  margin-bottom: 8px;
+  color: var(--brand-primary, #502A1D);
+  margin: 0 0 8px;
 }
 
 .admin-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  max-width: 800px;
+  max-width: 840px;
 }
 
 .form-group {
@@ -174,47 +209,48 @@
 }
 
 .form-label {
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  color: var(--text-secondary, #70594F);
   font-weight: 700;
 }
 
 .form-input {
-  background: var(--color-white);
-  border: 1.5px solid rgba(45, 36, 38, 0.12);
-  border-radius: var(--radius-md);
+  background: var(--surface-default, #FFFFFF);
+  border: 1.5px solid var(--border-default, #E6D9CF);
+  border-radius: 12px;
   padding: 10px 14px;
-  color: var(--color-dark-text);
+  color: var(--text-primary, #351C15);
+  font-family: inherit;
   font-size: 0.95rem;
+  font-weight: 600;
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: border-color 0.2s ease;
 }
 
 .form-input:focus {
-  border-color: var(--color-pink-primary);
+  border-color: var(--brand-primary, #502A1D);
 }
 
-/* Frame grid in admin */
+/* ── 5. Frames & Stats Grid ── */
 .admin-frames-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 18px;
 }
 
 .admin-frame-card {
-  background: var(--color-white);
-  border: 1.5px solid rgba(45, 36, 38, 0.08);
-  border-radius: var(--radius-md);
-  padding: 16px;
+  background: var(--surface-default, #FFFFFF);
+  border: 1.5px solid var(--border-default, #E6D9CF);
+  border-radius: 18px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(45, 36, 38, 0.04);
+  box-shadow: 0 4px 14px rgba(80, 42, 29, 0.04);
 }
 
-/* Stat Cards */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -223,19 +259,19 @@
 }
 
 .stat-card {
-  background: var(--color-white);
-  border: 1.5px solid rgba(45, 36, 38, 0.08);
-  border-radius: var(--radius-lg);
+  background: var(--surface-default, #FFFFFF);
+  border: 1.5px solid var(--border-default, #E6D9CF);
+  border-radius: 20px;
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  box-shadow: 0 4px 16px rgba(45, 36, 38, 0.04);
+  box-shadow: 0 4px 16px rgba(80, 42, 29, 0.05);
 }
 
 .stat-num {
   font-size: 2.5rem;
   font-weight: 900;
-  font-family: var(--font-display);
-  color: var(--color-pink-primary);
+  font-family: var(--font-display, inherit);
+  color: var(--brand-primary, #502A1D);
 }

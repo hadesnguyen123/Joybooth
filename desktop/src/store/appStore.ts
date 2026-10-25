@@ -121,29 +121,24 @@ export interface ThemeItem {
 }
 
 export const THEME_OPTIONS: ThemeItem[] = [
-  // Một màu & Khung Thương Hiệu Fotolism Warm Minimal Luxury
-  { id: 'theme_fotolism_espresso', name: 'Fotolism Nâu Gỗ', category: 'Một màu', bgColor: '#FAF6F1', bgGradient: 'linear-gradient(180deg, #FFFFFF 0%, #FAF6F1 100%)', textColor: '#502A1D', borderColor: '#502A1D', decorations: ['☕', '🌿', '🪵'] },
-  { id: 'theme_walnut_luxury', name: 'Walnut Sang Trọng', category: 'Một màu', bgColor: '#30231E', bgGradient: 'linear-gradient(180deg, #403029 0%, #1F1815 100%)', textColor: '#EACDB6', borderColor: '#A66A43', decorations: ['🪵', '✨', '⚜️'] },
-  { id: 'theme_cream_warm', name: 'Kem Sữa Tối Giản', category: 'Một màu', bgColor: '#FFF9F4', bgGradient: 'linear-gradient(180deg, #FFFFFF 0%, #FFF9F4 100%)', textColor: '#351C15', borderColor: '#C8B2A4' },
-  { id: 'theme_noir', name: 'Đen Trầm Cổ Điển', category: 'Một màu', bgColor: '#1F1815', bgGradient: 'linear-gradient(180deg, #271E1A 0%, #1F1815 100%)', textColor: '#FFFFFF', borderColor: '#FFFFFF' },
-  { id: 'theme_matcha', name: 'Xanh Matcha', category: 'Một màu', bgColor: '#e8f5e9', bgGradient: 'linear-gradient(180deg, #dcedc8 0%, #f1f8e9 100%)', textColor: '#33691e', borderColor: '#689f38' },
-  { id: 'theme_mint', name: 'Xanh Mint', category: 'Một màu', bgColor: '#d8f5ea', bgGradient: 'linear-gradient(180deg, #d8f5ea 0%, #f0faf5 100%)', textColor: '#2e9e74', borderColor: '#2e9e74' },
-
-  // Ngày lễ
-  { id: 'theme_wedding', name: 'Lễ Cưới Romance', category: 'Ngày lễ', bgColor: '#FFF9F4', bgGradient: 'linear-gradient(180deg, #FFFFFF 0%, #FFF9F4 100%)', textColor: '#502A1D', borderColor: '#A66A43', decorations: ['💍', '🕊️', '💐'] },
-  { id: 'theme_birthday', name: 'Sinh Nhật Party', category: 'Ngày lễ', bgColor: '#fff4cc', bgGradient: 'linear-gradient(180deg, #ffe082 0%, #fff9c4 100%)', textColor: '#e65100', borderColor: '#ffb300', decorations: ['🎂', '🎈', '🎉'] },
-  { id: 'theme_christmas', name: 'Giáng Sinh Tuyết', category: 'Ngày lễ', bgColor: '#e8f5e9', bgGradient: 'linear-gradient(180deg, #c8e6c9 0%, #e8f5e9 100%)', textColor: '#2e7d32', borderColor: '#c62828', decorations: ['🎄', '❄️', '🎅'] },
-  { id: 'theme_valentine', name: 'Valentine Tình Nhân', category: 'Ngày lễ', bgColor: '#ffebee', bgGradient: 'linear-gradient(180deg, #ffcdd2 0%, #ffebee 100%)', textColor: '#c2185b', borderColor: '#e91e63', decorations: ['❤️', '🍫', '🌹'] },
-
-  // Thời trang & Trào lưu
-  { id: 'theme_butterflies', name: 'Cánh Bướm Tím', category: 'Thời trang', bgColor: '#f3e5f5', bgGradient: 'linear-gradient(180deg, #e1bee7 0%, #f3e5f5 100%)', textColor: '#6a1b9a', borderColor: '#ab47bc', decorations: ['🦋', '✨', '💜'] },
-  { id: 'theme_sky', name: 'Mây Trời Xanh', category: 'Thời trang', bgColor: '#e0f2fe', bgGradient: 'linear-gradient(180deg, #bae6fd 0%, #f0f9ff 100%)', textColor: '#0369a1', borderColor: '#38bdf8', decorations: ['☁️', '🕊️', '✨'] },
-  { id: 'theme_summer', name: 'Summer Vibe', category: 'Trào lưu', bgColor: '#e1f5fe', bgGradient: 'linear-gradient(180deg, #81d4fa 0%, #e1f5fe 100%)', textColor: '#0277bd', borderColor: '#039be5', decorations: ['🌊', '☀️', '🏄'] },
-  { id: 'theme_sunset_glow', name: 'Hoàng Hôn Sunset', category: 'Trào lưu', bgColor: '#fff1f2', bgGradient: 'linear-gradient(180deg, #fed7aa 0%, #f472b6 100%)', textColor: '#831843', borderColor: '#fb7185', decorations: ['🌅', '✨', '🧡'] },
-  { id: 'theme_checker', name: 'Y2K Ca-rô', category: 'Trào lưu', bgColor: '#f5f5f5', bgGradient: 'linear-gradient(180deg, #e0e0e0 0%, #ffffff 100%)', textColor: '#212121', borderColor: '#000000', decorations: ['🏁', '⚡', '🖤'] },
-  { id: 'theme_cyber_neon', name: 'Cyber Y2K Neon', category: 'Trào lưu', bgColor: '#18181b', bgGradient: 'linear-gradient(180deg, #312e81 0%, #831843 100%)', textColor: '#f43f5e', borderColor: '#ec4899', decorations: ['⚡', '💿', '🛸'] },
-  { id: 'theme_mushroom', name: 'Nấm Cute Farm', category: 'Khác', bgColor: '#f9fbe7', bgGradient: 'linear-gradient(180deg, #dce775 0%, #f9fbe7 100%)', textColor: '#558b2f', borderColor: '#8bc34a', decorations: ['🍄', '🌻', '🐤'] },
-  { id: 'theme_vintage_paper', name: 'Giấy Báo Retro', category: 'Khác', bgColor: '#faf6ee', bgGradient: 'linear-gradient(180deg, #f5ebd9 0%, #fbf8f2 100%)', textColor: '#45322e', borderColor: '#a88a6d', decorations: ['📰', '☕', '📜'] },
+  {
+    id: 'theme_white_minimal',
+    name: 'Khung Trắng Tối Giản',
+    category: 'Một màu',
+    bgColor: '#FFFFFF',
+    bgGradient: '#FFFFFF',
+    textColor: '#351C15',
+    borderColor: '#E6D9CF',
+  },
+  {
+    id: 'theme_espresso_classic',
+    name: 'Khung Nâu Cổ Điển',
+    category: 'Một màu',
+    bgColor: '#FAF6F1',
+    bgGradient: 'linear-gradient(180deg, #FFFFFF 0%, #FAF6F1 100%)',
+    textColor: '#502A1D',
+    borderColor: '#502A1D',
+  },
 ]
 
 // ─── Stickers Trang Trí ───────────────────────────────────────────────────────
@@ -212,17 +207,9 @@ export interface ColorFilterItem {
 }
 
 export const COLOR_FILTERS: ColorFilterItem[] = [
-  { id: 'normal',       name: 'Tự nhiên',       cssFilter: 'none', tag: 'GỐC', previewColor: '#ffffff' },
-  { id: 'rosy_pastel',  name: 'Hồng Pastel',    cssFilter: 'contrast(1.04) brightness(1.08) saturate(1.18) hue-rotate(-6deg)', tag: 'HOT', previewColor: '#ffd1dc' },
-  { id: 'korean_soft',  name: 'Hàn Quốc Soft',  cssFilter: 'contrast(0.96) brightness(1.12) saturate(1.08) sepia(0.08)', tag: 'TREND', previewColor: '#fff0f5' },
-  { id: 'kodak_portra', name: 'Film Kodak',     cssFilter: 'sepia(0.18) contrast(1.08) brightness(1.06) saturate(1.22)', tag: 'FILM', previewColor: '#fde047' },
-  { id: 'cool_cyan',    name: 'Xanh Lạnh Y2K',  cssFilter: 'contrast(1.05) brightness(1.10) saturate(1.12) hue-rotate(12deg)', tag: 'COLD', previewColor: '#bae6fd' },
-  { id: 'peachy_glow',  name: 'Đào Cam Mọng',   cssFilter: 'contrast(1.06) brightness(1.09) saturate(1.25) hue-rotate(-10deg)', tag: 'PEACH', previewColor: '#fbcfe8' },
-  { id: 'tokyo_airy',   name: 'Nhật Bản Soft',  cssFilter: 'contrast(0.92) brightness(1.15) saturate(1.10)', tag: 'AIRY', previewColor: '#e0e7ff' },
-  { id: 'vintage_noir', name: 'Cổ điển B&W',    cssFilter: 'grayscale(100%) contrast(1.18) brightness(1.05)', tag: 'B&W', previewColor: '#334155' },
-  { id: 'mono_moody',   name: 'Monochrome Sâu', cssFilter: 'grayscale(100%) contrast(1.35) brightness(0.98)', tag: 'MOODY', previewColor: '#18181b' },
-  { id: 'retro_90s',    name: 'Retro 90s',      cssFilter: 'sepia(0.28) contrast(1.14) brightness(1.02) saturate(1.28)', tag: '90S', previewColor: '#d97706' },
-  { id: 'warm_sunset',  name: 'Nắng Hoàng Hôn', cssFilter: 'sepia(0.25) saturate(1.20) contrast(1.02) brightness(1.05)', tag: 'WARM', previewColor: '#fed7aa' },
+  { id: 'normal',       name: 'Tự nhiên',     cssFilter: 'none', tag: 'GỐC', previewColor: '#ffffff' },
+  { id: 'vintage_noir', name: 'Cổ điển B&W',  cssFilter: 'grayscale(100%) contrast(1.18) brightness(1.05)', tag: 'CỔ ĐIỂN', previewColor: '#334155' },
+  { id: 'retro_90s',    name: 'Retro 90s',    cssFilter: 'sepia(0.28) contrast(1.14) brightness(1.02) saturate(1.28)', tag: 'RETRO', previewColor: '#d97706' },
 ]
 
 export interface CapturedPhoto {
@@ -555,7 +542,7 @@ const DEFAULT_EVENT_CONFIG: EventConfig = {
   eventLogo: null,
   date: new Date().toISOString().split('T')[0],
   operatorName: '',
-  countdownSeconds: 3,
+  countdownSeconds: 5,
   printEnabled: true,
   printCopies: 2,
   qrEnabled: true,
@@ -893,7 +880,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setRingLightEnabled: (ringLightEnabled) => set({ ringLightEnabled }),
   setRingLightLevel: (ringLightLevel) => set({ ringLightLevel }),
 
-  countdownSeconds: 3,
+  countdownSeconds: 5,
   setCountdownSeconds: (countdownSeconds) =>
     set((state) => ({
       countdownSeconds,

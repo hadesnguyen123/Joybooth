@@ -10,6 +10,7 @@ import {
   DEFAULT_EXTRA_COPY_PRICE_2X6,
   DEFAULT_EXTRA_COPY_PRICE_4X6,
 } from '../lib/constants'
+import { ArrowLeft } from 'lucide-react'
 import './PaymentScreen.css'
 
 export default function PaymentScreen() {
@@ -45,8 +46,8 @@ export default function PaymentScreen() {
   const extraCopies = Math.max(0, copies - minCopies)
   const extraPricePerUnit =
     selectedFrameSize === '2x6'
-      ? (eventConfig.extraCopyPrice2x6 || DEFAULT_EXTRA_COPY_PRICE_2X6) / 2 // giá mỗi dải thêm
-      : eventConfig.extraCopyPrice4x6 || DEFAULT_EXTRA_COPY_PRICE_4X6 // giá mỗi postcard thêm
+      ? (eventConfig.extraCopyPrice2x6 || DEFAULT_EXTRA_COPY_PRICE_2X6) / 2
+      : eventConfig.extraCopyPrice4x6 || DEFAULT_EXTRA_COPY_PRICE_4X6
   const extraTotal = extraCopies * extraPricePerUnit
 
   const subTotal = basePrice + extraTotal
@@ -89,7 +90,7 @@ export default function PaymentScreen() {
       setAppliedCoupon(found)
       setCouponError(null)
     } else {
-      setCouponError('Mã ưu đãi không hợp lệ hoặc đã hết hạn!')
+      setCouponError('Mã không hợp lệ hoặc đã hết hạn')
     }
   }
 
@@ -133,60 +134,68 @@ export default function PaymentScreen() {
 
   return (
     <div className="payment-screen-container" id="payment-kiosk-screen">
-      {/* Title */}
-      <div className="screen-title-banner">
-        <div className="title-bubble-badge">THANH TOÁN DỊCH VỤ PHOTOBOOTH</div>
-      </div>
+      {/* ── Top Header Navigation Bar ── */}
+      <header className="payment-header">
+        {/* Nút Quay Lại dạng Icon-Only tối giản, không chữ */}
+        <button
+          className="screen-back-btn"
+          onClick={() => setScreen('select-layout')}
+          aria-label="Quay lại"
+          title="Quay lại"
+        >
+          <ArrowLeft size={28} strokeWidth={2} />
+        </button>
 
-      <div className="payment-main-stage">
+        <div className="payment-header-center">
+          <h1 className="payment-header-title">Thanh Toán</h1>
+          <p className="payment-header-subtitle">
+            {selectedFrameSize === '2x6' ? 'Strip 2x6' : 'Postcard 4x6'} • {selectedLayout.name}
+          </p>
+        </div>
+
+        <div className="payment-header-meta">
+          <span className="payment-order-pill">#{orderCode}</span>
+        </div>
+      </header>
+
+      {/* ── Main Stage: 2 Tối Giản Nhất Có Thể ── */}
+      <main className="payment-main-stage">
         {/* CỘT TRÁI: Chi tiết gói, Số lượng in & Mã giảm giá */}
-        <div className="order-summary-card">
-          <div className="summary-badge-top">ĐƠN HÀNG</div>
-
-          <div className="summary-info-row">
-            <span className="summary-label">Khổ ảnh:</span>
-            <span className="summary-val highlight">
-              {selectedFrameSize === '2x6' ? '🎞️ Strip (2x6)' : '🖼️ Postcard (4x6)'}
+        <section className="payment-order-card" aria-label="Chi tiết đơn hàng">
+          <div className="card-heading-row">
+            <span className="card-heading-title">Đơn Hàng</span>
+            <span className="card-heading-badge">
+              {selectedFrameSize === '2x6' ? 'Strip 2x6' : 'Postcard 4x6'}
             </span>
           </div>
 
-          <div className="summary-info-row">
-            <span className="summary-label">Bố cục:</span>
-            <span className="summary-val">{selectedLayout.name}</span>
-          </div>
-
-          <div className="summary-info-row">
-            <span className="summary-label">Mã đơn:</span>
-            <span className="summary-val mono-badge">{orderCode}</span>
-          </div>
-
-          {/* CHỌN SỐ LƯỢNG ẢNH IN */}
-          <div className="copies-selector-box">
-            <div className="copies-label-wrap">
-              <span className="copies-title">Số bản in:</span>
-              <span className="copies-subtext">
-                {selectedFrameSize === '2x6'
-                  ? `(Cơ bản: 2 dải)`
-                  : `(Cơ bản: 1 tấm)`}
+          {/* CHỌN SỐ LƯỢNG ẢNH IN (Touch First, Siêu gọn gàng) */}
+          <div className="copies-control-card">
+            <div className="copies-info">
+              <span className="copies-title">Số bản in</span>
+              <span className="copies-note">
+                {selectedFrameSize === '2x6' ? '(Gốc: 2 dải)' : '(Gốc: 1 tấm)'}
               </span>
             </div>
 
-            <div className="copies-counter-controls">
+            <div className="copies-stepper">
               <button
-                className="counter-btn"
+                className="stepper-btn"
                 onClick={handleDecreaseCopies}
                 disabled={copies <= minCopies}
+                aria-label="Giảm"
               >
                 −
               </button>
-              <div className="counter-display">
-                <span className="counter-number">{copies}</span>
-                <span className="counter-unit">{selectedFrameSize === '2x6' ? 'dải' : 'tấm'}</span>
+              <div className="stepper-display">
+                <span className="stepper-count">{copies}</span>
+                <span className="stepper-unit">{selectedFrameSize === '2x6' ? 'dải' : 'tấm'}</span>
               </div>
               <button
-                className="counter-btn"
+                className="stepper-btn"
                 onClick={handleIncreaseCopies}
                 disabled={copies >= 12}
+                aria-label="Tăng"
               >
                 +
               </button>
@@ -194,215 +203,216 @@ export default function PaymentScreen() {
           </div>
 
           {/* NHẬP MÃ GIẢM GIÁ */}
-          <div className="coupon-input-section">
-            <label className="coupon-label">Mã ưu đãi:</label>
+          <div className="coupon-card-section">
             {!appliedCoupon ? (
-              <div className="coupon-input-group">
+              <div className="coupon-input-wrap">
                 <input
                   type="text"
-                  placeholder={`Nhập mã (VD: ${DEFAULT_COUPON_CODE}, GIAM20K)`}
+                  placeholder={`Mã ưu đãi (VD: ${DEFAULT_COUPON_CODE})`}
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
-                  className="coupon-text-field"
+                  className="coupon-input"
+                  aria-label="Mã giảm giá"
                 />
-                <button className="btn-apply-coupon" onClick={handleApplyCoupon}>
-                  Áp Dụng
+                <button
+                  type="button"
+                  className="coupon-apply-btn"
+                  onClick={handleApplyCoupon}
+                >
+                  Áp dụng
                 </button>
               </div>
             ) : (
-              <div className="coupon-applied-pill">
-                <div className="coupon-applied-info">
-                  <span className="coupon-code-badge">🏷️ {appliedCoupon.code}</span>
-                  <span className="coupon-desc">{appliedCoupon.description}</span>
-                </div>
-                <button className="btn-remove-coupon" onClick={handleRemoveCoupon}>
-                  ✕ Hủy
+              <div className="coupon-active-pill">
+                <span className="coupon-active-code">{appliedCoupon.code}</span>
+                <span className="coupon-active-desc">(-{formatVND(discountAmount)})</span>
+                <button
+                  type="button"
+                  className="coupon-remove-btn"
+                  onClick={handleRemoveCoupon}
+                  aria-label="Hủy mã"
+                >
+                  ✕
                 </button>
               </div>
             )}
-            {couponError && <p className="coupon-error-text">{couponError}</p>}
+            {couponError && <p className="coupon-error-msg">{couponError}</p>}
           </div>
 
-          <hr className="summary-divider" />
+          <div className="order-price-divider" />
 
           {/* CHI TIẾT TÍNH TIỀN */}
-          <div className="cost-breakdown-list">
-            <div className="cost-row">
-              <span>Gói chụp cơ bản:</span>
-              <span>{formatVND(basePrice)}</span>
+          <div className="cost-breakdown">
+            <div className="cost-item">
+              <span className="cost-label">Gói cơ bản</span>
+              <span className="cost-value">{formatVND(basePrice)}</span>
             </div>
             {extraTotal > 0 && (
-              <div className="cost-row">
-                <span>In thêm (+{extraCopies} {selectedFrameSize === '2x6' ? 'dải' : 'tấm'}):</span>
-                <span>+{formatVND(extraTotal)}</span>
+              <div className="cost-item">
+                <span className="cost-label">
+                  In thêm (+{extraCopies} {selectedFrameSize === '2x6' ? 'dải' : 'tấm'})
+                </span>
+                <span className="cost-value highlight">+{formatVND(extraTotal)}</span>
               </div>
             )}
             {discountAmount > 0 && (
-              <div className="cost-row discount">
-                <span>Giảm giá ({appliedCoupon?.code}):</span>
-                <span>-{formatVND(discountAmount)}</span>
+              <div className="cost-item discount">
+                <span className="cost-label">Giảm giá ({appliedCoupon?.code})</span>
+                <span className="cost-value">-{formatVND(discountAmount)}</span>
               </div>
             )}
           </div>
 
-          <div className="summary-total-box">
-            <span className="total-label">TỔNG THANH TOÁN</span>
-            <span className="total-amount-display">{formatVND(finalAmount)}</span>
+          <div className="order-total-banner">
+            <span className="total-title">TỔNG CỘNG</span>
+            <span className="total-amount">{formatVND(finalAmount)}</span>
           </div>
-        </div>
+        </section>
 
         {/* CỘT PHẢI: LỰA CHỌN PHƯƠNG THỨC THANH TOÁN (VIETQR / TIỀN MẶT) */}
-        <div className="payment-action-card">
-          {/* Method Tabs */}
-          <div className="method-switcher-tabs">
+        <section className="payment-method-card" aria-label="Phương thức thanh toán">
+          {/* Method Segmented Switcher — Tab Tiền Mặt bị disable theo yêu cầu */}
+          <div className="method-switcher">
             <button
-              className={`method-tab-btn ${paymentMethod === 'vietqr' ? 'active' : ''}`}
+              className={`method-switch-btn ${paymentMethod === 'vietqr' ? 'active' : ''}`}
               onClick={() => setPaymentMethod('vietqr')}
             >
-              💳 Quét Mã QR (Napas 24/7)
+              Quét Mã QR
             </button>
             <button
-              className={`method-tab-btn ${paymentMethod === 'cash' ? 'active' : ''}`}
-              onClick={() => setPaymentMethod('cash')}
+              className="method-switch-btn disabled"
+              disabled
+              title="Phương thức thanh toán tiền mặt tạm thời bị vô hiệu hoá"
+              aria-disabled="true"
             >
-              💵 Tiền Mặt / Quầy
+              Tiền Mặt
             </button>
           </div>
 
           {/* View Quét VietQR */}
           {paymentMethod === 'vietqr' ? (
-            <div className="vietqr-view-content">
-              <div className="vietqr-box-frame">
+            <div className="vietqr-stage">
+              <div className="vietqr-frame-wrapper">
                 {finalAmount === 0 ? (
-                  <div className="free-experience-box">
-                    <span style={{ fontSize: '3rem' }}>🎉</span>
-                    <b>Miễn phí trải nghiệm (0đ)</b>
-                    <p>Bấm xác nhận để bắt đầu chụp ngay!</p>
+                  <div className="vietqr-free-prompt">
+                    <span className="free-icon">✨</span>
+                    <h3 className="free-title">Miễn phí trải nghiệm</h3>
+                    <p className="free-sub">Bấm xác nhận bên dưới để bắt đầu chụp ảnh</p>
                   </div>
                 ) : (
-                  <>
+                  <div className="vietqr-canvas-box">
                     <img
                       src={vietQrImageUrl}
-                      alt="Mã VietQR Thanh Toán"
-                      className="vietqr-real-image"
+                      alt="Mã VietQR"
+                      className="vietqr-code-img"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none'
                       }}
                     />
-                    <div className="qr-scan-line-anim"></div>
-                  </>
+                  </div>
                 )}
               </div>
 
               {/* Chi tiết tài khoản ngân hàng */}
-              <div className="bank-meta-details">
-                <div className="bank-meta-row">
-                  <span>Ngân hàng:</span>
-                  <b>{eventConfig.bankName || 'MB Bank (Quân Đội)'}</b>
+              <div className="bank-details-box">
+                <div className="bank-detail-item">
+                  <span className="detail-name">Ngân hàng</span>
+                  <span className="detail-value">{eventConfig.bankName || 'MB Bank'}</span>
                 </div>
-                <div className="bank-meta-row">
-                  <span>Số tài khoản:</span>
-                  <b className="copy-num">{eventConfig.accountNumber || '0388889999'}</b>
+                <div className="bank-detail-item">
+                  <span className="detail-name">Số tài khoản</span>
+                  <span className="detail-value highlight-num">{eventConfig.accountNumber || '0388889999'}</span>
                 </div>
-                <div className="bank-meta-row">
-                  <span>Chủ tài khoản:</span>
-                  <b>{eventConfig.accountHolder || DEFAULT_ACCOUNT_HOLDER}</b>
+                <div className="bank-detail-item">
+                  <span className="detail-name">Chủ tài khoản</span>
+                  <span className="detail-value">{eventConfig.accountHolder || DEFAULT_ACCOUNT_HOLDER}</span>
                 </div>
-                <div className="bank-meta-row">
-                  <span>Số tiền:</span>
-                  <b style={{ color: 'var(--brand-primary, #502A1D)', fontWeight: 700 }}>{formatVND(finalAmount)}</b>
-                </div>
-                <div className="bank-meta-row">
-                  <span>Nội dung chuyển khoản:</span>
-                  <b className="code-tag">{orderCode}</b>
+                <div className="bank-detail-item">
+                  <span className="detail-name">Nội dung CK</span>
+                  <span className="detail-value tag-code">{orderCode}</span>
                 </div>
               </div>
 
-              {/* Đồng hồ đếm ngược */}
-              <div className="payment-timer-bar">
-                {secondsLeft > 0 ? (
-                  <span className="timer-text">
-                    ⏳ Thời gian thanh toán còn lại: <b>{secondsLeft}s</b>
-                  </span>
-                ) : (
-                  <span className="timer-expired">Hết hạn thanh toán — Vui lòng thử lại</span>
-                )}
+              {/* Countdown timer progress */}
+              <div className="payment-timer-wrap">
+                <div className="timer-info-row">
+                  {secondsLeft > 0 ? (
+                    <span className="timer-label">Thời gian còn lại: <b>{secondsLeft}s</b></span>
+                  ) : (
+                    <span className="timer-expired-label">Hết hạn thanh toán</span>
+                  )}
+                </div>
                 <div className="timer-progress-track">
                   <div
                     className="timer-progress-fill"
                     style={{ width: `${(secondsLeft / 120) * 100}%` }}
-                  ></div>
+                  />
                 </div>
               </div>
             </div>
           ) : (
             /* View Tiền Mặt */
-            <div className="cash-view-content">
-              <div className="cash-instruction-illustration">
-                <div className="cash-icon-circle">💵</div>
-                <h3>Thanh Toán Bằng Tiền Mặt</h3>
-                <p>
-                  Vui lòng chuẩn bị đúng số tiền: <strong style={{ color: 'var(--brand-primary, #502A1D)', fontSize: '1.2rem', fontWeight: 700 }}>{formatVND(finalAmount)}</strong>
+            <div className="cash-stage">
+              <div className="cash-guide-card">
+                <h3 className="cash-title">Thanh Toán Tiền Mặt</h3>
+                <p className="cash-amount-hint">
+                  Số tiền cần trả:{' '}
+                  <strong className="cash-amount-bold">{formatVND(finalAmount)}</strong>
                 </p>
-                <div className="cash-steps-list">
-                  <div className="cash-step-item">
-                    <span className="step-num">1</span>
-                    <span>Đưa tiền cho nhân viên trực booth hoặc đưa vào khe nhận tiền tự động.</span>
+
+                <div className="cash-steps">
+                  <div className="cash-step">
+                    <span className="step-badge">1</span>
+                    <span className="step-desc">Đưa tiền cho nhân viên tại quầy.</span>
                   </div>
-                  <div className="cash-step-item">
-                    <span className="step-num">2</span>
-                    <span>Nhân viên kiểm tra và bấm nút xác nhận bên dưới để mở camera chụp ảnh.</span>
+                  <div className="cash-step">
+                    <span className="step-badge">2</span>
+                    <span className="step-desc">Nhân viên xác nhận để bắt đầu chụp.</span>
                   </div>
                 </div>
               </div>
 
-              <div className="cash-operator-confirm-box">
-                <button
-                  className="btn-cash-confirm"
-                  onClick={() => handleConfirmPaid('cash')}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? '⏳ Đang Xử Lý...' : '✅ Nhân Viên Xác Nhận Đã Nhận Tiền'}
-                </button>
-              </div>
+              <button
+                className="cash-confirm-btn"
+                onClick={() => handleConfirmPaid('cash')}
+                disabled={isProcessing}
+              >
+                {isProcessing ? 'Đang Xử Lý...' : 'Xác Nhận Đã Nhận Tiền'}
+              </button>
             </div>
           )}
-        </div>
-      </div>
+        </section>
+      </main>
 
-      {/* Footer Navigation Bar */}
-      <footer className="payment-bottom-bar">
-        <button
-          className="btn btn-pill-white"
-          style={{ padding: '12px 28px', color: '#4b5563', borderColor: '#d1d5db' }}
-          onClick={() => setScreen('select-layout')}
-        >
-          ← Quay Lại Chọn Bố Cục
-        </button>
-
-        <div style={{ display: 'flex', gap: 14 }}>
+      {/* ── Footer Navigation Bar (Chỉ giữ 1 mũi tên trên góc trái, bỏ nút mũi tên dưới) ── */}
+      <footer className="payment-footer">
+        <div className="payment-footer-actions">
           {paymentMethod === 'vietqr' && (
             <button
-              className={`btn btn-pink ${isProcessing ? 'btn-success-anim' : ''}`}
-              style={{ padding: '14px 44px', fontSize: '1.15rem', fontWeight: 900 }}
+              className={`payment-cta-btn ${isProcessing ? 'processing' : ''}`}
               onClick={() => handleConfirmPaid('vietqr')}
             >
-              {isProcessing
-                ? '✅ ĐÃ XÁC NHẬN! ĐANG MỞ CAMERA...'
-                : finalAmount === 0
-                ? 'BẮT ĐẦU CHỤP MIỄN PHÍ ➔'
-                : 'XÁC NHẬN ĐÃ THANH TOÁN ➔'}
+              <span>
+                {isProcessing
+                  ? 'ĐANG MỞ CAMERA...'
+                  : finalAmount === 0
+                  ? 'BẮT ĐẦU CHỤP'
+                  : 'XÁC NHẬN ĐÃ THANH TOÁN'}
+              </span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
             </button>
           )}
 
-          {/* Nút kiểm thử nhanh cho Kiosk Operator */}
           <button
-            className="btn btn-pill-white"
-            style={{ padding: '12px 20px', fontSize: '0.88rem', color: '#6b7280' }}
+            className="payment-test-btn"
             onClick={() => handleConfirmPaid('free')}
+            title="Bỏ qua"
           >
-            ⚡ Test Mode (Bỏ qua)
+            Bỏ qua
           </button>
         </div>
       </footer>

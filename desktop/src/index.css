@@ -100,9 +100,14 @@
   --radius-xl: 36px;
   --radius-full: 9999px;
 
-  /* Typography Fonts */
-  --font-display: 'Plus Jakarta Sans', 'Quicksand', 'Baloo 2', system-ui, sans-serif;
-  --font-body:    'Manrope', 'Quicksand', system-ui, sans-serif;
+  /* Typography Fonts — Fotolism 3.0 Standard */
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-body:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  /* Typography Scale — Fotolism 3.0 */
+  --font-size-title: clamp(28px, 3.2vw, 40px);
+  --font-size-body:  clamp(16px, 1.8vw, 18px);
+  --font-size-btn:   clamp(18px, 2.0vw, 22px);
 
   /* Transitions */
   --transition-fast:   150ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -237,5 +242,41 @@ button, input, select, textarea, optgroup {
 
 .animate-pop {
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Fotolism 3.0 Universal Icon-Only Back Button ───────────────────────── */
+.screen-back-btn {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
+  border-radius: var(--radius-full);
+  background: var(--surface-default);
+  border: 1.5px solid var(--border-default);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-primary);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  outline: none;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.screen-back-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--brand-primary);
+  transform: scale(1.06);
+  box-shadow: var(--shadow-md);
+}
+
+.screen-back-btn:active {
+  transform: scale(0.94);
+}
+
+.screen-back-btn:focus-visible {
+  outline: 3px solid rgba(80, 42, 29, 0.25);
 }
 
